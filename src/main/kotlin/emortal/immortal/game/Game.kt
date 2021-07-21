@@ -5,14 +5,15 @@ import net.minestom.server.instance.Instance
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class Game(
-    val name: String,
     val instanceCount: Int = 1,
     val maxPlayerCount: Int = 8,
     val instances: Set<Instance>,
     val joinableMidGame: Boolean = false
 ) {
-    val players = ConcurrentHashMap.newKeySet<Player>()
+    val id = GameManager.nextGameID
 
+    val players = ConcurrentHashMap.newKeySet<Player>()
+    val gameState = GameState.WAITING_FOR_PLAYERS
     val firstInstance get() = instances.first()
 
     abstract fun playerJoin(player: Player)
@@ -21,8 +22,11 @@ abstract class Game(
     abstract fun start()
     abstract fun destroy()
 
-    open fun canBeJoined() {
-        is
+    open fun canBeJoined(): Boolean {
+        if (gameState == GameState.PLAYING) {
+            return joinableMidGame
+        }
+        return gameState.joinable
     }
 
 }

@@ -6,17 +6,31 @@ import java.util.concurrent.ConcurrentHashMap
 object GameManager {
     private val playerGameMap = ConcurrentHashMap<Player, Game>()
 
-    private val gameMap = ConcurrentHashMap<String, Set<Game>>()
+    private val gameMap = ConcurrentHashMap<String, MutableSet<Game>>()
 
     @Volatile
-    private var nextGameID: Int = 0
+    var nextGameID: Int = 0
 
-    fun createGame(game: Game) {
+    fun registerGame(name: String, game: Game) {
+        if (gameMap.containsKey(name)) {
+            gameMap[name]!!.add(game)
+        } else {
+            gameMap[name] = mutableSetOf(game)
+        }
 
+        nextGameID++
     }
 
-    fun nextGame(name: String): Game {
-        gameMap[name]!!.firstOrNull { it }
-            ?: createGame()
+    fun Game.addPlayer(player: Player) {
+        playerGameMap[player] = this
+        this.playerJoin(player)
+    }
+    fun Game.removePlayer(player: Player) {
+        playerGameMap.remove(player)
+        this.playerLeave(player)
+    }
+
+    fun nextGame(name: String): Game? {
+        return gameMap[name]!!.firstOrNull { it.canBeJoined() }
     }
 }
