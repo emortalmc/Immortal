@@ -61,8 +61,9 @@ abstract class Game(
     }
 
     fun addPlayer(player: Player) {
+        println("${player.name} joining game $gameName (ID: $id)")
         players.add(player)
-
+        scoreboard.addViewer(player)
         GameManager.playerGameMap[player] = this
 
         player.gameMode = GameMode.SPECTATOR
@@ -113,10 +114,11 @@ abstract class Game(
         }
     }
 
-    private fun removePlayer(player: Player) {
+    fun removePlayer(player: Player) {
+        println("${player.name} leaving game $gameName (ID: $id)")
         players.remove(player)
-
         GameManager.playerGameMap.remove(player)
+        scoreboard.removeViewer(player)
 
         playerAudience.sendMiniMessage(" <gray>[<red><bold>-</bold></red>]</gray> ${player.username} <red>left</red>")
 

@@ -11,6 +11,13 @@ object GameManager {
     @Volatile
     var nextGameID: Int = 0
 
+    var Player.game: Game?
+        get() = playerGameMap[this]
+        set(value) {
+            playerGameMap[this]?.removePlayer(this)
+            value?.addPlayer(this)
+        }
+
     fun nextGame(name: String): Game? {
         return gameMap[name]!!.firstOrNull { it.canBeJoined() }
     }
