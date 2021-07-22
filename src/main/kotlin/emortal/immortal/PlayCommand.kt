@@ -11,7 +11,7 @@ import world.cepi.kstom.command.arguments.suggest
 object PlayCommand : Command("play") {
 
     init {
-        val gamemode = ArgumentType.Word("gamemode").suggest {
+        val gamemodearg = ArgumentType.Word("gamemode").suggest {
             GameManager.registeredGameMap.values
                 .map { it.gameName }
         }.map { input: String ->
@@ -20,10 +20,10 @@ object PlayCommand : Command("play") {
 
         }
 
-        addSyntax(gamemode) {
-            val gamemode = context.get(gamemode)
+        addSyntax(gamemodearg) {
+            val gamemode = context.get(gamemodearg)
 
-            sender.asPlayer().joinGameOrNew(gamemode.key)
+            sender.asPlayer().joinGameOrNew(gamemode.key, GameManager.registeredGameMap[gamemode.key]!!.defaultGameOptions)
         }
     }
 
