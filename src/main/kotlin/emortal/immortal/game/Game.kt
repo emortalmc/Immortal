@@ -44,6 +44,8 @@ abstract class Game(val gameOptions: GameOptions) {
                 -2
             )
         )
+
+        registerEvents()
     }
 
     fun addPlayer(player: Player) {
@@ -132,6 +134,8 @@ abstract class Game(val gameOptions: GameOptions) {
         postDestroy()
     }
     abstract fun postDestroy()
+
+    abstract fun registerEvents()
 
     open fun canBeJoined(): Boolean {
         if (gameState == GameState.PLAYING) {
