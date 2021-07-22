@@ -1,5 +1,6 @@
 package emortal.immortal.game
 
+import emortal.immortal.game.GameManager.joinGameOrNew
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -9,8 +10,6 @@ import net.kyori.adventure.title.Title
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
-import net.minestom.server.extensions.Extension
-import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
@@ -19,38 +18,19 @@ import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
-abstract class Game(
-    val instances: Set<Instance>,
-    val gameName: String,
-    sidebarTitle: Component,
-    extension: Extension,
-    val instanceCount: Int = 1,
-    val maxPlayerCount: Int = 8,
-    val playersToStart: Int = 2,
-    val joinableMidGame: Boolean = false
-) {
-    val id = GameManager.nextGameID
-
-    val eventNode = extension.eventNode.addChild(EventNode.all("$gameName$id"))
-
+abstract class Game(val gameOptions: GameOptions) {
     val players: ConcurrentHashMap.KeySetView<Player, Boolean> = ConcurrentHashMap.newKeySet()
     val playerAudience = Audience.audience(players)
     var gameState = GameState.WAITING_FOR_PLAYERS
-    val firstInstance get() = instances.first()
+    val firstInstance get() = gameOptions.instances.first()
 
     var startingTask: Task? = null
 
-    val scoreboard = Sidebar(sidebarTitle)
+    val scoreboard = Sidebar(gameOptions.sidebarTitle)
+
+    val childEventNode = gameOptions.eventNode.addChild(EventNode.all("${gameOptions.gameName}${GameManager.nextGameID}"))
 
     init {
-        if (GameManager.gameMap.containsKey(gameName)) {
-            GameManager.gameMap[gameName]!!.add(this)
-        } else {
-            GameManager.gameMap[gameName] = mutableSetOf(this)
-        }
-
-        GameManager.nextGameID++
-
         scoreboard.createLine(Sidebar.ScoreboardLine("header", Component.empty(), 30))
         scoreboard.createLine(Sidebar.ScoreboardLine("footer", Component.empty(), -1))
         scoreboard.createLine(
@@ -66,7 +46,7 @@ abstract class Game(
     }
 
     fun addPlayer(player: Player) {
-        println("${player.name} joining game $gameName (ID: $id)")
+        println("${player.name} joining game ${gameOptions.gameName}")
         players.add(player)
         scoreboard.addViewer(player)
         GameManager.playerGameMap[player] = this
@@ -82,12 +62,12 @@ abstract class Game(
             return
         }
 
-        if (players.size == maxPlayerCount) {
+        if (players.size == gameOptions.maxPlayers) {
             start()
             return
         }
 
-        if (players.size >= playersToStart) {
+        if (players.size >= gameOptions.playersToStart) {
             if (startingTask != null) return
 
             gameState = GameState.STARTING
@@ -120,7 +100,7 @@ abstract class Game(
     }
 
     fun removePlayer(player: Player) {
-        println("${player.name} leaving game $gameName (ID: $id)")
+        println("${player.name} leaving game ${gameOptions.gameName}")
         players.remove(player)
         GameManager.playerGameMap.remove(player)
         scoreboard.removeViewer(player)
@@ -138,15 +118,15 @@ abstract class Game(
     abstract fun start()
 
     fun destroy() {
-        GameManager.gameMap[gameName]!!.remove(this)
+        gameOptions.eventNode.removeChild(childEventNode)
+
+        GameManager.gameMap[this::class]!!.remove(this)
 
         players.forEach {
             scoreboard.removeViewer(it)
-            GameManager.nextGame(gameName)!!.addPlayer(it)
+            it.joinGameOrNew(this::class)
         }
         players.clear()
-
-        eventNode.removeChild(eventNode)
 
         postDestroy()
     }
@@ -154,7 +134,7 @@ abstract class Game(
 
     open fun canBeJoined(): Boolean {
         if (gameState == GameState.PLAYING) {
-            return joinableMidGame
+            return gameOptions.joinableMidGame
         }
         return gameState.joinable
     }
