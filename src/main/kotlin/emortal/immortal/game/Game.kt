@@ -8,6 +8,8 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import net.minestom.server.event.EventNode
+import net.minestom.server.extensions.Extension
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
@@ -21,12 +23,15 @@ abstract class Game(
     val instances: Set<Instance>,
     val gameName: String,
     sidebarTitle: Component,
+    extension: Extension,
     val instanceCount: Int = 1,
     val maxPlayerCount: Int = 8,
     val playersToStart: Int = 2,
     val joinableMidGame: Boolean = false
 ) {
     val id = GameManager.nextGameID
+
+    val eventNode = extension.eventNode.addChild(EventNode.all("$gameName$id"))
 
     val players: ConcurrentHashMap.KeySetView<Player, Boolean> = ConcurrentHashMap.newKeySet()
     val playerAudience = Audience.audience(players)
@@ -140,6 +145,8 @@ abstract class Game(
             GameManager.nextGame(gameName)!!.addPlayer(it)
         }
         players.clear()
+
+        eventNode.removeChild(eventNode)
 
         postDestroy()
     }
