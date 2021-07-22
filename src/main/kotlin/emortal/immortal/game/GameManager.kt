@@ -27,7 +27,8 @@ object GameManager {
 
     fun <T : Game> createGame(gameType: KClass<T>, options: GameOptions): Game {
         nextGameID++
-        return gameType.primaryConstructor?.call(*(arrayOf(options) ?: emptyArray())) ?: throw IllegalArgumentException("Primary constructor not found.")
+        
+        return gameType.primaryConstructor?.call(options) ?: throw IllegalArgumentException("Primary constructor not found.")
     }
 
     inline fun <reified T: Game> registerGame(gameOptions: GameTypeInfo) {
