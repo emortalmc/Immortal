@@ -13,6 +13,8 @@ object GameManager {
     @Volatile
     var nextGameID = 0
 
+    val Player.game get() = playerGameMap[this]
+
     fun <T : Game> Player.joinGameOrNew(clazz: KClass<T>, options: GameOptions) {
         val game = gameMap[clazz]?.firstOrNull {
             it.canBeJoined()
