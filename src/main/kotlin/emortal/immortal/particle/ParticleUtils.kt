@@ -2,6 +2,7 @@ package emortal.immortal.particle
 
 import emortal.immortal.particle.shapes.ParticleLine
 import emortal.immortal.particle.shapes.ParticleSingle
+import net.kyori.adventure.util.RGBLike
 import net.minestom.server.coordinate.Point
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.network.packet.server.play.ParticlePacket
@@ -26,8 +27,17 @@ object ParticleUtils {
     /**
      * Creates the vibration effect created from skulk sensors
      */
-    fun vibration(startingPosition: Point, endingPosition: Point): ParticleSingle {
-        return ParticleSingle(Particle.VIBRATION, startingPosition, endingPosition)
+    fun vibration(startingPosition: Point, endingPosition: Point, ticksToMove: Int): ParticleSingle {
+        val writer = BinaryWriter()
+        writer.writeDouble(startingPosition.x())
+        writer.writeDouble(startingPosition.y())
+        writer.writeDouble(startingPosition.z())
+        writer.writeDouble(endingPosition.x())
+        writer.writeDouble(endingPosition.y())
+        writer.writeDouble(endingPosition.z())
+        writer.writeInt(ticksToMove)
+
+        return ParticleSingle(Particle.VIBRATION, startingPosition, writer = writer)
     }
 
     /**
@@ -38,16 +48,27 @@ object ParticleUtils {
      * @see Particle.DUST_COLOR_TRANSITION
      * @see Particle.FALLING_DUST
      */
-    fun colored(particle: Particle, pos: Point, spread: Point, count: Int = 1, data: Float = 0f, writer: BinaryWriter? = null): ParticleSingle {
+    fun colored(particle: Particle, pos: Point, startingColor: RGBLike, endingColor: RGBLike? = null, size: Float = 1f, spread: Point = Vec.ZERO, count: Int = 1, data: Float = 0f): ParticleSingle {
         if (particle != Particle.AMBIENT_ENTITY_EFFECT && particle == Particle.ENTITY_EFFECT && particle == Particle.DUST && particle == Particle.DUST_COLOR_TRANSITION && particle == Particle.FALLING_DUST) {
             throw Error("That particle is not colorable, see documentation")
+        }
+
+        val writer = BinaryWriter()
+        writer.writeFloat(startingColor.red() / 255f)
+        writer.writeFloat(startingColor.green() / 255f)
+        writer.writeFloat(startingColor.blue() / 255f)
+        writer.writeFloat(size)
+        if (endingColor != null) {
+            writer.writeFloat(endingColor.red() / 255f)
+            writer.writeFloat(endingColor.green() / 255f)
+            writer.writeFloat(endingColor.blue() / 255f)
         }
 
         return ParticleSingle(particle, pos, spread, count, data, writer)
     }
 
     fun moving(particle: Particle, pos: Point, velocity: Vec, speed: Float = 0.5f, writer: BinaryWriter? = null): ParticleSingle {
-        return ParticleSingle(particle, pos, velocity, 1, speed, writer)
+        return ParticleSingle(particle, pos, velocity, 0, speed, writer)
     }
 
     fun line(particle: Particle, startingPosition: Vec, endingPosition: Vec, spread: Point = Vec.ZERO, data: Float = 0f, writer: BinaryWriter? = null): ParticleLine {
