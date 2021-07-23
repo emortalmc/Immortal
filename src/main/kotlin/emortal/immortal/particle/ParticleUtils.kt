@@ -46,11 +46,11 @@ object ParticleUtils {
         return ParticleSingle(particle, pos, spread, count, data, writer)
     }
 
-    fun moving(particle: Particle, pos: Point, velocity: Vec, speed: Float = 0.5f, writer: BinaryWriter?): ParticleSingle {
+    fun moving(particle: Particle, pos: Point, velocity: Vec, speed: Float = 0.5f, writer: BinaryWriter? = null): ParticleSingle {
         return ParticleSingle(particle, pos, velocity, 1, speed, writer)
     }
 
-    fun line(particle: Particle, startingPosition: Vec, endingPosition: Vec, spread: Point, data: Float, writer: BinaryWriter?): ParticleLine {
+    fun line(particle: Particle, startingPosition: Vec, endingPosition: Vec, spread: Point = Vec.ZERO, data: Float = 0f, writer: BinaryWriter? = null): ParticleLine {
         return ParticleLine(ParticleSingle(particle, startingPosition, spread, 1, data, writer), startingPosition, endingPosition)
     }
     fun line(particleSingle: ParticleSingle, startingPosition: Vec, endingPosition: Vec): ParticleLine {
