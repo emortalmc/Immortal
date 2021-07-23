@@ -37,7 +37,7 @@ object ParticleUtils {
         writer.writeDouble(endingPosition.z())
         writer.writeInt(ticksToMove)
 
-        return ParticleSingle(Particle.VIBRATION, Vec.ZERO, writer = writer)
+        return ParticleSingle(Particle.VIBRATION, Vec.ZERO, writer = writer, count = 0)
     }
 
     /**
