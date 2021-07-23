@@ -27,11 +27,17 @@ object GameManager {
 
     fun <T : Game> createGame(gameType: KClass<T>, options: GameOptions): Game {
         nextGameID++
-        
-        return gameType.primaryConstructor?.call(options) ?: throw IllegalArgumentException("Primary constructor not found.")
+
+        val game = gameType.primaryConstructor?.call(options) ?: throw IllegalArgumentException("Primary constructor not found.")
+
+        gameMap.putIfAbsent(gameType, mutableSetOf())
+        gameMap[gameType]!!.add(game)
+
+        return game
     }
 
     inline fun <reified T: Game> registerGame(gameOptions: GameTypeInfo) {
+        println("Registered game type '${gameOptions.gameName}'")
         registeredGameMap[T::class] = gameOptions
     }
 }

@@ -49,7 +49,7 @@ abstract class Game(val gameOptions: GameOptions) {
     }
 
     fun addPlayer(player: Player) {
-        println("${player.name} joining game ${gameTypeInfo.gameName}")
+        println("${player.username} joining game ${gameTypeInfo.gameName}")
         players.add(player)
         scoreboard.addViewer(player)
         GameManager.playerGameMap[player] = this
@@ -103,7 +103,7 @@ abstract class Game(val gameOptions: GameOptions) {
     }
 
     fun removePlayer(player: Player) {
-        println("${player.name} leaving game ${gameTypeInfo.gameName}")
+        println("${player.username} leaving game ${gameTypeInfo.gameName}")
         players.remove(player)
         GameManager.playerGameMap.remove(player)
         scoreboard.removeViewer(player)
