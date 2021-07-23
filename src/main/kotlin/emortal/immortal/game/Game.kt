@@ -103,6 +103,7 @@ abstract class Game(val gameOptions: GameOptions) {
     }
 
     fun removePlayer(player: Player) {
+
         println("${player.username} leaving game ${gameTypeInfo.gameName}")
         players.remove(player)
         GameManager.playerGameMap.remove(player)
