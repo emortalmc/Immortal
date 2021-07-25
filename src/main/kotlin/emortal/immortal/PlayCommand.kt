@@ -11,13 +11,13 @@ import world.cepi.kstom.command.arguments.suggest
 object PlayCommand : Command("play") {
 
     init {
-        val gamemodearg = ArgumentType.Word("gamemode").suggest {
-            GameManager.registeredGameMap.values
-                .map { it.gameName }
-        }.map { input: String ->
+        val gamemodearg = ArgumentType.Word("gamemode").map { input: String ->
             GameManager.registeredGameMap.entries.firstOrNull { it.value.gameName == input }
                 ?: throw ArgumentSyntaxException("Invalid game name", input, 1)
 
+        }.suggest {
+            GameManager.registeredGameMap.values
+                .map { it.gameName }
         }
 
         addSyntax(gamemodearg) {
