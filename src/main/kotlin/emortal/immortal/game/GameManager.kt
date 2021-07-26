@@ -1,6 +1,7 @@
 package emortal.immortal.game
 
 import net.minestom.server.entity.Player
+import net.minestom.server.instance.Instance
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor

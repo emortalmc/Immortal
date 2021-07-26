@@ -24,7 +24,7 @@ abstract class Game(val gameOptions: GameOptions) {
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not initialized")
 
-    val firstInstance get() = gameOptions.instances.first()
+    val instance = gameOptions.instanceCallback.invoke()
 
     var startingTask: Task? = null
 
@@ -117,9 +117,9 @@ abstract class Game(val gameOptions: GameOptions) {
     abstract fun playerJoin(player: Player)
     abstract fun playerLeave(player: Player)
 
-    abstract fun respawn(player: Player)
-
     abstract fun start()
+
+    abstract fun respawn(player: Player)
 
     fun destroy() {
         gameTypeInfo.eventNode.removeChild(childEventNode)
