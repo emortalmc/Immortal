@@ -12,41 +12,33 @@ import net.minestom.server.utils.binary.BinaryWriter
 
 object ParticleUtils {
 
-    fun packet(particle: Particle, pos: Point, spread: Point = Vec.ZERO, count: Int = 1, data: Float = 0f, writer: BinaryWriter? = null): ParticlePacket {
+    fun packet(particle: Particle, pos: Point, spread: Point = Vec.ZERO, count: Int = 1, data: Float = 0f, writer: (BinaryWriter) -> Unit = { }): ParticlePacket {
         return ParticleCreator.createParticlePacket(particle, true, pos.x(), pos.y(), pos.z(), spread.x().toFloat(), spread.y().toFloat(), spread.z().toFloat(), data, count)  {
-            if (writer != null) {
-                it.write(writer)
-            }
+            writer.invoke(it)
         }
     }
 
-    fun particle(particle: Particle, pos: Point, spread: Point = Vec.ZERO, count: Int = 1, data: Float = 0f, writer: BinaryWriter? = null): ParticleSingle {
+    fun particle(particle: Particle, pos: Point, spread: Point = Vec.ZERO, count: Int = 1, data: Float = 0f, writer: (BinaryWriter) -> Unit = { }): ParticleSingle {
         return ParticleSingle(particle, pos, spread, count, data, writer)
     }
 
     fun blockBreak(blockStateId: Int, pos: Point): ParticleSingle {
-        val writer = BinaryWriter()
-        writer.writeInt(blockStateId)
-
-        return ParticleSingle(Particle.BLOCK, pos, writer = writer, count = 1)
+        return ParticleSingle(Particle.BLOCK, pos, writer = { it.writeInt(blockStateId) }, count = 1)
     }
 
     /**
      * Creates the vibration effect created from skulk sensors
-     *
-     * CURRENTLY NOT WORKING - WILL DISCONNECT PLAYERS
      */
     fun vibration(startingPosition: Point, endingPosition: Point, ticksToMove: Int): ParticleSingle {
-        val writer = BinaryWriter()
-        writer.writeDouble(startingPosition.x())
-        writer.writeDouble(startingPosition.y())
-        writer.writeDouble(startingPosition.z())
-        writer.writeDouble(endingPosition.x())
-        writer.writeDouble(endingPosition.y())
-        writer.writeDouble(endingPosition.z())
-        writer.writeInt(ticksToMove)
-
-        return ParticleSingle(Particle.VIBRATION, Vec.ZERO, writer = writer, count = 0)
+        return ParticleSingle(Particle.VIBRATION, Vec.ZERO, writer = {
+            it.writeDouble(startingPosition.x())
+            it.writeDouble(startingPosition.y())
+            it.writeDouble(startingPosition.z())
+            it.writeDouble(endingPosition.x())
+            it.writeDouble(endingPosition.y())
+            it.writeDouble(endingPosition.z())
+            it.writeInt(ticksToMove)
+        }, count = 0)
     }
 
     /**
@@ -62,25 +54,25 @@ object ParticleUtils {
             throw Error("That particle is not colorable, see documentation")
         }
 
-        val writer = BinaryWriter()
-        writer.writeFloat(startingColor.red() / 255f)
-        writer.writeFloat(startingColor.green() / 255f)
-        writer.writeFloat(startingColor.blue() / 255f)
-        writer.writeFloat(size)
-        if (endingColor != null) {
-            writer.writeFloat(endingColor.red() / 255f)
-            writer.writeFloat(endingColor.green() / 255f)
-            writer.writeFloat(endingColor.blue() / 255f)
-        }
 
-        return ParticleSingle(particle, pos, spread, count, data, writer)
+        return ParticleSingle(particle, pos, spread, count, data) {
+            it.writeFloat(startingColor.red() / 255f)
+            it.writeFloat(startingColor.green() / 255f)
+            it.writeFloat(startingColor.blue() / 255f)
+            it.writeFloat(size)
+            if (endingColor != null) {
+                it.writeFloat(endingColor.red() / 255f)
+                it.writeFloat(endingColor.green() / 255f)
+                it.writeFloat(endingColor.blue() / 255f)
+            }
+        }
     }
 
-    fun moving(particle: Particle, pos: Point, velocity: Vec, speed: Float = 0.5f, writer: BinaryWriter? = null): ParticleSingle {
+    fun moving(particle: Particle, pos: Point, velocity: Vec, speed: Float = 0.5f, writer: (BinaryWriter) -> Unit = { }): ParticleSingle {
         return ParticleSingle(particle, pos, velocity, 0, speed, writer)
     }
 
-    fun line(particle: Particle, startingPosition: Vec, endingPosition: Vec, spread: Point = Vec.ZERO, data: Float = 0f, writer: BinaryWriter? = null): ParticleLine {
+    fun line(particle: Particle, startingPosition: Vec, endingPosition: Vec, spread: Point = Vec.ZERO, data: Float = 0f, writer: (BinaryWriter) -> Unit = { }): ParticleLine {
         return ParticleLine(ParticleSingle(particle, startingPosition, spread, 1, data, writer), startingPosition, endingPosition)
     }
     fun line(particleSingle: ParticleSingle, startingPosition: Vec, endingPosition: Vec): ParticleLine {

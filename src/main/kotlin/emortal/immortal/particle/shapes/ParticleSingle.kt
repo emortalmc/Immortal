@@ -13,7 +13,7 @@ class ParticleSingle(
     val spread: Point = Vec(0.0, 0.0, 0.0),
     val count: Int = 1,
     val data: Float = 0f,
-    val writer: BinaryWriter? = null,
+    val writer: (BinaryWriter) -> Unit = { }
 ) : ParticleShape() {
 
     override val packets: Collection<ParticlePacket>
