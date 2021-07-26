@@ -24,8 +24,17 @@ object ParticleUtils {
         return ParticleSingle(particle, pos, spread, count, data, writer)
     }
 
+    fun blockBreak(blockStateId: Int, pos: Point): ParticleSingle {
+        val writer = BinaryWriter()
+        writer.writeInt(blockStateId)
+
+        return ParticleSingle(Particle.BLOCK, pos, writer = writer, count = 1)
+    }
+
     /**
      * Creates the vibration effect created from skulk sensors
+     *
+     * CURRENTLY NOT WORKING - WILL DISCONNECT PLAYERS
      */
     fun vibration(startingPosition: Point, endingPosition: Point, ticksToMove: Int): ParticleSingle {
         val writer = BinaryWriter()
