@@ -6,6 +6,7 @@ import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.title.Title
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.GameMode
@@ -24,6 +25,8 @@ abstract class Game(val gameOptions: GameOptions) {
     val playerAudience = Audience.audience(players)
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not initialized")
+
+    private val mini = MiniMessage.get()
 
     val instance = gameOptions.instanceCallback.invoke()
 
@@ -64,6 +67,7 @@ abstract class Game(val gameOptions: GameOptions) {
         scoreboard.addViewer(player)
         GameManager.playerGameMap[player] = this
 
+        player.isInvisible = false
         player.gameMode = GameMode.SPECTATOR
 
         playerAudience.sendMiniMessage(" <gray>[<green><bold>+</bold></green>]</gray> ${player.username} <green>joined</green>")
@@ -124,6 +128,8 @@ abstract class Game(val gameOptions: GameOptions) {
         GameManager.playerGameMap.remove(player)
         scoreboard.removeViewer(player)
 
+        player.isInvisible = false
+
         playerAudience.sendMiniMessage(" <gray>[<red><bold>-</bold></red>]</gray> ${player.username} <red>left</red>")
 
         if (players.size < gameOptions.playersToStart) {
@@ -141,7 +147,33 @@ abstract class Game(val gameOptions: GameOptions) {
 
     abstract fun start()
 
-    abstract fun kill(player: Player, killer: Entity)
+    fun kill(player: Player, killer: Entity?) {
+
+        val subtitle = Component.empty()
+
+        player.clearEffects()
+        player.heal()
+        player.isInvisible = true
+        player.gameMode = GameMode.SPECTATOR
+        player.showTitle(
+            Title.title(
+                Component.text("YOU DIED", NamedTextColor.RED, TextDecoration.BOLD),
+                subtitle,
+                Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))
+            )
+        )
+
+        playerDied(player, killer)
+    }
+
+    abstract fun playerDied(player: Player, killer: Entity?, deathMessage: () -> Component = {
+        if (killer == null || killer !is Player) {
+            mini.parse(" <red>☠</red> <dark_gray>|</dark_gray> <red>${player.username}</red> died")
+        } else {
+            mini.parse(" <red>☠</red> <dark_gray>|</dark_gray> <gray><white>${killer.username}</white> killed <red>${player.username}</red>")
+        }
+    })
+
     abstract fun respawn(player: Player)
 
     fun destroy() {
