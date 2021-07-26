@@ -22,12 +22,14 @@ object ParticleUtils {
         return ParticleSingle(particle, pos, spread, count, data, writer)
     }
 
-    fun blockBreak(blockStateId: Int, pos: Point): ParticleSingle {
-        return ParticleSingle(Particle.BLOCK, pos, writer = { it.writeInt(blockStateId) }, count = 1)
+    fun block(blockStateId: Int, pos: Point): ParticleSingle {
+        return ParticleSingle(Particle.BLOCK, pos, writer = { it.writeVarInt(blockStateId) }, count = 1)
     }
 
     /**
      * Creates the vibration effect created from skulk sensors
+     *
+     * CURRENTLY NOT WORKING
      */
     fun vibration(startingPosition: Point, endingPosition: Point, ticksToMove: Int): ParticleSingle {
         return ParticleSingle(Particle.VIBRATION, Vec.ZERO, writer = {
@@ -38,7 +40,7 @@ object ParticleUtils {
             it.writeDouble(endingPosition.y())
             it.writeDouble(endingPosition.z())
             it.writeInt(ticksToMove)
-        }, count = 0)
+        }, count = 1)
     }
 
     /**

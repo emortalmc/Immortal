@@ -7,6 +7,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
+import net.minestom.server.entity.Entity
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
@@ -140,7 +141,7 @@ abstract class Game(val gameOptions: GameOptions) {
 
     abstract fun start()
 
-    abstract fun kill(player: Player, killer: Player)
+    abstract fun kill(player: Player, killer: Entity)
     abstract fun respawn(player: Player)
 
     fun destroy() {

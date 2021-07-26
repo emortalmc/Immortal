@@ -10,7 +10,7 @@ import net.minestom.server.utils.binary.BinaryWriter
 class ParticleSingle(
     val particle: Particle,
     val pos: Point,
-    val spread: Point = Vec(0.0, 0.0, 0.0),
+    val spread: Point = Vec.ZERO,
     val count: Int = 1,
     val data: Float = 0f,
     val writer: (BinaryWriter) -> Unit = { }
