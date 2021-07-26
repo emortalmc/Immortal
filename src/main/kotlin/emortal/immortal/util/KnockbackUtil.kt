@@ -10,33 +10,35 @@ import kotlin.math.sqrt
 
 fun Player.takeKnockback(attacker: Player) {
 
+    val horizontalKnockback = 0.25 * 20.0
+
     val d0 = attacker.position.x() - position.x()
     val d1 = attacker.position.z() - position.z()
 
     val magnitude = sqrt(d0 * d0 + d1 * d1)
 
     val knockbackLevel = attacker.itemInMainHand.meta.enchantmentMap[Enchantment.KNOCKBACK] ?: 0
-    var i = knockbackLevel.toInt()
+    var i = knockbackLevel.toDouble()
 
-    if (attacker.isSprinting) ++i
-
+    if (attacker.isSprinting) i += 1.25
 
     var newVelocity = velocity
-        .withX(((velocity.x() / 2) - (d0 / magnitude * 0.4)))
-        .withY((min((velocity.y() / 2) + 0.4, 0.4)))
-        .withZ(((velocity.z() / 2) - (d1 / magnitude * 0.4)))
+        .withX(((velocity.x() / 2) - (d0 / magnitude * horizontalKnockback)) )
+        .withY((min((velocity.y() / 2) + 8, 8.0)))
+        .withZ(((velocity.z() / 2) - (d1 / magnitude * horizontalKnockback)))
 
+    println("x${newVelocity.x()} y${newVelocity.y()} z${newVelocity.z()}")
 
     if (i > 0) newVelocity = newVelocity.add(
         Vec(
-            (-sin(attacker.position.yaw() * Math.PI / 180.0f) * i.toFloat() * 0.5),
-            1.0,
-            (cos(attacker.position.yaw() * Math.PI / 180.0f) * i.toFloat() * 0.4)
+            (-sin(attacker.position.yaw() * Math.PI / 180.0f) * i.toFloat() * horizontalKnockback),
+            20.0,
+            (cos(attacker.position.yaw() * Math.PI / 180.0f) * i.toFloat() * horizontalKnockback)
         )
     )
 
-
-    println("x${newVelocity.x()} y${newVelocity.y()} z${newVelocity.z()}")
+    if (newVelocity.y() > 8)
+        newVelocity = newVelocity.withY(8.0);
 
     velocity = newVelocity
 
