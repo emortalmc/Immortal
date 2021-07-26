@@ -26,7 +26,7 @@ abstract class Game(val gameOptions: GameOptions) {
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not initialized")
 
-    private val mini = MiniMessage.get()
+    val mini = MiniMessage.get()
 
     val instance = gameOptions.instanceCallback.invoke()
 
