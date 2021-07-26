@@ -26,6 +26,8 @@ abstract class Game(val gameOptions: GameOptions) {
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not initialized")
 
+    private val gameMiniMessage = MiniMessage.get()
+
     val instance = gameOptions.instanceCallback.invoke()
 
     var startingTask: Task? = null
@@ -166,9 +168,9 @@ abstract class Game(val gameOptions: GameOptions) {
 
     abstract fun playerDied(player: Player, killer: Entity?, deathMessage: () -> Component = {
         if (killer == null || killer !is Player) {
-            mini.parse(" <red>☠</red> <dark_gray>|</dark_gray> <red>${player.username}</red> died")
+            gameMiniMessage.parse(" <red>☠</red> <dark_gray>|</dark_gray> <red>${player.username}</red> died")
         } else {
-            mini.parse(" <red>☠</red> <dark_gray>|</dark_gray> <gray><white>${killer.username}</white> killed <red>${player.username}</red>")
+            gameMiniMessage.parse(" <red>☠</red> <dark_gray>|</dark_gray> <gray><white>${killer.username}</white> killed <red>${player.username}</red>")
         }
     })
 

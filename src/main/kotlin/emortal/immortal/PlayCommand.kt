@@ -2,6 +2,8 @@ package emortal.immortal
 
 import emortal.immortal.game.GameManager
 import emortal.immortal.game.GameManager.joinGameOrNew
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.arguments.ArgumentType
 import net.minestom.server.command.builder.exception.ArgumentSyntaxException
@@ -24,6 +26,7 @@ object PlayCommand : Command("play") {
             val gamemode = context.get(gamemodearg)
 
             sender.asPlayer().joinGameOrNew(gamemode.key, GameManager.registeredGameMap[gamemode.key]!!.defaultGameOptions)
+            sender.asPlayer().sendMessage(Component.text("Joining ${gamemode.value.gameName}...", NamedTextColor.GREEN))
         }
     }
 
