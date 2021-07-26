@@ -26,8 +26,6 @@ abstract class Game(val gameOptions: GameOptions) {
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not initialized")
 
-    val mini = MiniMessage.get()
-
     val instance = gameOptions.instanceCallback.invoke()
 
     var startingTask: Task? = null
@@ -70,7 +68,7 @@ abstract class Game(val gameOptions: GameOptions) {
         player.isInvisible = false
         player.gameMode = GameMode.SPECTATOR
 
-        playerAudience.sendMiniMessage(" <gray>[<green><bold>+</bold></green>]</gray> ${player.username} <green>joined</green>")
+        playerAudience.sendMiniMessage(" <green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
 
         playerJoin(player)
 
@@ -130,7 +128,7 @@ abstract class Game(val gameOptions: GameOptions) {
 
         player.isInvisible = false
 
-        playerAudience.sendMiniMessage(" <gray>[<red><bold>-</bold></red>]</gray> ${player.username} <red>left</red>")
+        playerAudience.sendMiniMessage(" <red><bold>LEAVE</bold></red> <dark_gray>|</dark_gray> ${player.username}")
 
         if (players.size < gameOptions.playersToStart) {
             if (startingTask != null && gameState == GameState.STARTING) {
