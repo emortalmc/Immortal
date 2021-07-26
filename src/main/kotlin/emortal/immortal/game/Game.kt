@@ -33,6 +33,15 @@ abstract class Game(val gameOptions: GameOptions) {
 
     init {
         scoreboard.createLine(Sidebar.ScoreboardLine("header", Component.empty(), 30))
+        scoreboard.createLine(
+            Sidebar.ScoreboardLine(
+                "InfoLine",
+                Component.text()
+                    .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
+                    .build(),
+                0
+            )
+        )
         scoreboard.createLine(Sidebar.ScoreboardLine("footer", Component.empty(), -1))
         scoreboard.createLine(
             Sidebar.ScoreboardLine(
@@ -75,6 +84,8 @@ abstract class Game(val gameOptions: GameOptions) {
 
             gameState = GameState.STARTING
 
+            scoreboard.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
+
             startingTask = object : MinestomRunnable() {
                 var secs = 5
 
@@ -82,6 +93,10 @@ abstract class Game(val gameOptions: GameOptions) {
                     if (secs < 1) {
                         cancel()
                         start()
+
+                        scoreboard.updateLineContent("InfoLine", Component.empty())
+
+                        gameState = GameState.PLAYING
                         return
                     }
 
@@ -103,13 +118,19 @@ abstract class Game(val gameOptions: GameOptions) {
     }
 
     fun removePlayer(player: Player) {
-
         println("${player.username} leaving game ${gameTypeInfo.gameName}")
         players.remove(player)
         GameManager.playerGameMap.remove(player)
         scoreboard.removeViewer(player)
 
         playerAudience.sendMiniMessage(" <gray>[<red><bold>-</bold></red>]</gray> ${player.username} <red>left</red>")
+
+        if (players.size < gameOptions.playersToStart) {
+            if (startingTask != null && gameState == GameState.STARTING) {
+                startingTask?.cancel()
+                playerAudience.showTitle(Title.title(Component.text("START CANCELLED", NamedTextColor.RED, TextDecoration.BOLD), Component.empty(), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
+            }
+        }
 
         playerLeave(player)
     }
@@ -119,9 +140,11 @@ abstract class Game(val gameOptions: GameOptions) {
 
     abstract fun start()
 
+    abstract fun kill(player: Player, killer: Player)
     abstract fun respawn(player: Player)
 
     fun destroy() {
+        // Detach child event node to stop game events
         gameTypeInfo.eventNode.removeChild(childEventNode)
 
         GameManager.gameMap[this::class]!!.remove(this)
