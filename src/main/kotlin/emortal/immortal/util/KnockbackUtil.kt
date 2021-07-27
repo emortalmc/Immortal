@@ -9,8 +9,26 @@ import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-fun Entity.takeKnockback(attacker: Player) {
+fun Entity.takeKnockback(attacker: Entity) {
+    val horizontalKnockback = 0.25 * 20.0
 
+    val d0 = attacker.position.x() - position.x()
+    val d1 = attacker.position.z() - position.z()
+
+    val magnitude = sqrt(d0 * d0 + d1 * d1)
+
+    var newVelocity = velocity
+        .withX(((velocity.x() / 2) - (d0 / magnitude * horizontalKnockback)) )
+        .withY((min((velocity.y() / 2) + 8, 8.0)))
+        .withZ(((velocity.z() / 2) - (d1 / magnitude * horizontalKnockback)))
+
+    if (newVelocity.y() > 8)
+        newVelocity = newVelocity.withY(8.0);
+
+    velocity = newVelocity
+}
+
+fun Entity.takeKnockback(attacker: Player) {
     val horizontalKnockback = 0.25 * 20.0
 
     val d0 = attacker.position.x() - position.x()
@@ -28,8 +46,6 @@ fun Entity.takeKnockback(attacker: Player) {
         .withY((min((velocity.y() / 2) + 8, 8.0)))
         .withZ(((velocity.z() / 2) - (d1 / magnitude * horizontalKnockback)))
 
-    println("x${newVelocity.x()} y${newVelocity.y()} z${newVelocity.z()}")
-
     if (i > 0) newVelocity = newVelocity.add(
         Vec(
             (-sin(attacker.position.yaw() * Math.PI / 180.0f) * i.toFloat() * horizontalKnockback),
@@ -42,5 +58,4 @@ fun Entity.takeKnockback(attacker: Player) {
         newVelocity = newVelocity.withY(8.0);
 
     velocity = newVelocity
-
 }
