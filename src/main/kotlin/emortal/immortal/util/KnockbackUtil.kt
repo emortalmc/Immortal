@@ -1,6 +1,7 @@
 package emortal.immortal.util
 
 import net.minestom.server.coordinate.Vec
+import net.minestom.server.entity.Entity
 import net.minestom.server.entity.Player
 import net.minestom.server.item.Enchantment
 import kotlin.math.cos
@@ -8,7 +9,7 @@ import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-fun Player.takeKnockback(attacker: Player) {
+fun Entity.takeKnockback(attacker: Player) {
 
     val horizontalKnockback = 0.25 * 20.0
 
