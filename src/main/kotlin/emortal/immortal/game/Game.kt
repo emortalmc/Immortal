@@ -8,10 +8,10 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.title.Title
-import net.minestom.server.entity.Entity
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
+import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
@@ -28,7 +28,7 @@ abstract class Game(val gameOptions: GameOptions) {
 
     private val gameMiniMessage = MiniMessage.get()
 
-    val instance = gameOptions.instanceCallback.invoke()
+    val instance: Instance
 
     var startingTask: Task? = null
 
@@ -36,6 +36,8 @@ abstract class Game(val gameOptions: GameOptions) {
     val scoreboard = Sidebar(gameTypeInfo.sidebarTitle)
 
     init {
+        instance = gameOptions.instanceCallback.invoke()
+
         scoreboard.createLine(Sidebar.ScoreboardLine("header", Component.empty(), 30))
         scoreboard.createLine(
             Sidebar.ScoreboardLine(
@@ -70,7 +72,7 @@ abstract class Game(val gameOptions: GameOptions) {
         player.isInvisible = false
         player.gameMode = GameMode.SPECTATOR
 
-        playerAudience.sendMiniMessage(" <green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
+        playerAudience.sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
 
         playerJoin(player)
 
@@ -80,45 +82,14 @@ abstract class Game(val gameOptions: GameOptions) {
         }
 
         if (players.size == gameOptions.maxPlayers) {
-            start()
+            startCountdown()
             return
         }
 
         if (players.size >= gameOptions.playersToStart) {
             if (startingTask != null) return
 
-            gameState = GameState.STARTING
-
-            scoreboard.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
-
-            startingTask = object : MinestomRunnable() {
-                var secs = 5
-
-                override fun run() {
-                    if (secs < 1) {
-                        cancel()
-                        start()
-
-                        scoreboard.updateLineContent("InfoLine", Component.empty())
-
-                        gameState = GameState.PLAYING
-                        return
-                    }
-
-                    playerAudience.playSound(Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.BLOCK, 1f, 1f))
-                    playerAudience.showTitle(
-                        Title.title(
-                            Component.text(secs, NamedTextColor.GREEN, TextDecoration.BOLD),
-                            Component.empty(),
-                            Title.Times.of(
-                                Duration.ZERO, Duration.ofSeconds(1), Duration.ofMillis(250)
-                            )
-                        )
-                    )
-
-                    secs--
-                }
-            }.repeat(Duration.ofSeconds(1)).schedule()
+            startCountdown()
         }
     }
 
@@ -130,16 +101,55 @@ abstract class Game(val gameOptions: GameOptions) {
 
         player.isInvisible = false
 
-        playerAudience.sendMiniMessage(" <red><bold>LEAVE</bold></red> <dark_gray>|</dark_gray> ${player.username}")
+        playerAudience.sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>|</dark_gray> ${player.username}")
 
         if (players.size < gameOptions.playersToStart) {
-            if (startingTask != null && gameState == GameState.STARTING) {
-                startingTask?.cancel()
-                playerAudience.showTitle(Title.title(Component.text("START CANCELLED", NamedTextColor.RED, TextDecoration.BOLD), Component.empty(), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
+            if (startingTask != null) {
+                cancelCountdown()
             }
         }
 
         playerLeave(player)
+    }
+
+    fun startCountdown() {
+        scoreboard.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
+
+        startingTask = object : MinestomRunnable() {
+            var secs = 5
+
+            override fun run() {
+                if (secs < 1) {
+                    cancel()
+                    start()
+
+                    scoreboard.updateLineContent("InfoLine", Component.empty())
+
+                    gameState = GameState.PLAYING
+                    return
+                }
+
+                playerAudience.playSound(Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.AMBIENT, 1f, 1f))
+                playerAudience.showTitle(
+                    Title.title(
+                        Component.text(secs, NamedTextColor.GREEN, TextDecoration.BOLD),
+                        Component.empty(),
+                        Title.Times.of(
+                            Duration.ZERO, Duration.ofSeconds(1), Duration.ofMillis(250)
+                        )
+                    )
+                )
+
+                secs--
+            }
+        }.repeat(Duration.ofSeconds(1)).schedule()
+    }
+
+    fun cancelCountdown() {
+        scoreboard.updateLineContent("InfoLine", Component.text("Waiting for players...", NamedTextColor.GRAY))
+        startingTask?.cancel()
+        playerAudience.showTitle(Title.title(Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD), Component.empty(), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
+        playerAudience.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
     }
 
     abstract fun playerJoin(player: Player)
@@ -147,7 +157,7 @@ abstract class Game(val gameOptions: GameOptions) {
 
     abstract fun start()
 
-    fun kill(player: Player, killer: Entity?) {
+    /*fun kill(player: Player, killer: Entity?) {
 
         val subtitle = Component.empty()
 
@@ -172,7 +182,7 @@ abstract class Game(val gameOptions: GameOptions) {
         } else {
             gameMiniMessage.parse(" <red>☠</red> <dark_gray>|</dark_gray> <gray><white>${killer.username}</white> killed <red>${player.username}</red>")
         }
-    })
+    })*/
 
     abstract fun respawn(player: Player)
 
@@ -195,6 +205,9 @@ abstract class Game(val gameOptions: GameOptions) {
     abstract fun registerEvents()
 
     open fun canBeJoined(): Boolean {
+        if (players.size >= gameOptions.maxPlayers) {
+            return false
+        }
         if (gameState == GameState.PLAYING) {
             return gameOptions.joinableMidGame
         }

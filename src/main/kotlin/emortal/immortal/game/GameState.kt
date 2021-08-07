@@ -5,9 +5,6 @@ enum class GameState(val joinable: Boolean) {
     /** When the game is waiting for players to join */
     WAITING_FOR_PLAYERS(true),
 
-    /** When the game is counting down */
-    STARTING(true),
-
     /** When the game is in progress */
     PLAYING(false),
 
