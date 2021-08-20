@@ -6,7 +6,6 @@ import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.title.Title
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
@@ -24,41 +23,42 @@ abstract class Game(val gameOptions: GameOptions) {
     val players: ConcurrentHashMap.KeySetView<Player, Boolean> = ConcurrentHashMap.newKeySet()
     val playerAudience = Audience.audience(players)
     var gameState = GameState.WAITING_FOR_PLAYERS
-    val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not initialized")
+    val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not registered")
 
-    private val gameMiniMessage = MiniMessage.get()
-
-    val instance: Instance
+    val instance: Instance = gameOptions.instanceCallback.invoke()
 
     var startingTask: Task? = null
 
     val childEventNode = gameTypeInfo.eventNode.addChild(EventNode.all("${gameTypeInfo.gameName}${GameManager.nextGameID}"))
-    val scoreboard = Sidebar(gameTypeInfo.sidebarTitle)
+    var scoreboard: Sidebar? = null
 
     init {
-        instance = gameOptions.instanceCallback.invoke()
+        if (gameOptions.hasScoreboard) {
+            scoreboard = Sidebar(gameTypeInfo.sidebarTitle)
 
-        scoreboard.createLine(Sidebar.ScoreboardLine("header", Component.empty(), 30))
-        scoreboard.createLine(
-            Sidebar.ScoreboardLine(
-                "InfoLine",
-                Component.text()
-                    .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
-                    .build(),
-                0
+            scoreboard!!.createLine(Sidebar.ScoreboardLine("header", Component.empty(), 30))
+
+            scoreboard!!.createLine(
+                Sidebar.ScoreboardLine(
+                    "InfoLine",
+                    Component.text()
+                        .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
+                        .build(),
+                    0
+                )
             )
-        )
-        scoreboard.createLine(Sidebar.ScoreboardLine("footer", Component.empty(), -1))
-        scoreboard.createLine(
-            Sidebar.ScoreboardLine(
-                "ipLine",
-                Component.text()
-                    .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
-                    .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
-                    .build(),
-                -2
+            scoreboard!!.createLine(Sidebar.ScoreboardLine("footer", Component.empty(), -1))
+            scoreboard!!.createLine(
+                Sidebar.ScoreboardLine(
+                    "ipLine",
+                    Component.text()
+                        .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
+                        .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
+                        .build(),
+                    -2
+                )
             )
-        )
+        }
 
         registerEvents()
     }
@@ -66,7 +66,7 @@ abstract class Game(val gameOptions: GameOptions) {
     fun addPlayer(player: Player) {
         println("${player.username} joining game ${gameTypeInfo.gameName}")
         players.add(player)
-        scoreboard.addViewer(player)
+        scoreboard?.addViewer(player)
         GameManager.playerGameMap[player] = this
 
         player.isInvisible = false
@@ -75,11 +75,6 @@ abstract class Game(val gameOptions: GameOptions) {
         playerAudience.sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
 
         playerJoin(player)
-
-        if (gameState == GameState.PLAYING) {
-            respawn(player)
-            return
-        }
 
         if (players.size == gameOptions.maxPlayers) {
             startCountdown()
@@ -97,7 +92,7 @@ abstract class Game(val gameOptions: GameOptions) {
         println("${player.username} leaving game ${gameTypeInfo.gameName}")
         players.remove(player)
         GameManager.playerGameMap.remove(player)
-        scoreboard.removeViewer(player)
+        scoreboard?.removeViewer(player)
 
         player.isInvisible = false
 
@@ -113,7 +108,7 @@ abstract class Game(val gameOptions: GameOptions) {
     }
 
     fun startCountdown() {
-        scoreboard.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
+        scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
         startingTask = object : MinestomRunnable() {
             var secs = 5
@@ -123,7 +118,7 @@ abstract class Game(val gameOptions: GameOptions) {
                     cancel()
                     start()
 
-                    scoreboard.updateLineContent("InfoLine", Component.empty())
+                    scoreboard?.updateLineContent("InfoLine", Component.empty())
 
                     gameState = GameState.PLAYING
                     return
@@ -146,7 +141,7 @@ abstract class Game(val gameOptions: GameOptions) {
     }
 
     fun cancelCountdown() {
-        scoreboard.updateLineContent("InfoLine", Component.text("Waiting for players...", NamedTextColor.GRAY))
+        scoreboard?.updateLineContent("InfoLine", Component.text("Waiting for players...", NamedTextColor.GRAY))
         startingTask?.cancel()
         playerAudience.showTitle(Title.title(Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD), Component.empty(), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
         playerAudience.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
@@ -157,52 +152,27 @@ abstract class Game(val gameOptions: GameOptions) {
 
     abstract fun start()
 
-    /*fun kill(player: Player, killer: Entity?) {
-
-        val subtitle = Component.empty()
-
-        player.clearEffects()
-        player.heal()
-        player.isInvisible = true
-        player.gameMode = GameMode.SPECTATOR
-        player.showTitle(
-            Title.title(
-                Component.text("YOU DIED", NamedTextColor.RED, TextDecoration.BOLD),
-                subtitle,
-                Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))
-            )
-        )
-
-        playerDied(player, killer)
-    }
-
-    abstract fun playerDied(player: Player, killer: Entity?, deathMessage: () -> Component = {
-        if (killer == null || killer !is Player) {
-            gameMiniMessage.parse(" <red>☠</red> <dark_gray>|</dark_gray> <red>${player.username}</red> died")
-        } else {
-            gameMiniMessage.parse(" <red>☠</red> <dark_gray>|</dark_gray> <gray><white>${killer.username}</white> killed <red>${player.username}</red>")
-        }
-    })*/
-
-    abstract fun respawn(player: Player)
-
     fun destroy() {
         // Detach child event node to stop game events
         gameTypeInfo.eventNode.removeChild(childEventNode)
 
-        GameManager.gameMap[this::class]!!.remove(this)
+        if (gameOptions.isRegistered) {
+            GameManager.gameMap[this::class]!!.remove(this)
 
-        players.forEach {
-            scoreboard.removeViewer(it)
-            it.joinGameOrNew(this::class, GameManager.registeredGameMap[this::class]!!.defaultGameOptions)
+            players.forEach {
+                scoreboard?.removeViewer(it)
+                it.joinGameOrNew(this::class, GameManager.registeredGameMap[this::class]!!.defaultGameOptions)
+            }
         }
+
         players.clear()
 
         postDestroy()
     }
-    abstract fun postDestroy()
 
-    abstract fun registerEvents()
+    open fun postDestroy() {}
+
+    open fun registerEvents() {}
 
     open fun canBeJoined(): Boolean {
         if (players.size >= gameOptions.maxPlayers) {
