@@ -19,6 +19,7 @@ object PlayCommand : Command("play") {
 
         }.suggest {
             GameManager.registeredGameMap.values
+                .filter { it.showsInPlayCommand }
                 .map { it.gameName }
         }
 
