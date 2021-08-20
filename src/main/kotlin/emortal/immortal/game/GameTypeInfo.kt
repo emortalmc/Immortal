@@ -8,6 +8,7 @@ import net.minestom.server.instance.Instance
 class GameTypeInfo(
     val eventNode: EventNode<Event>,
     val gameName: String,
-    val sidebarTitle: Component,
+    val sidebarTitle: Component?,
+    val showsInPlayCommand: Boolean = true,
     val defaultGameOptions: GameOptions
 )

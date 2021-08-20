@@ -7,7 +7,6 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
-import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
 import net.minestom.server.instance.Instance
@@ -34,11 +33,11 @@ abstract class Game(val gameOptions: GameOptions) {
 
     init {
         if (gameOptions.hasScoreboard) {
-            scoreboard = Sidebar(gameTypeInfo.sidebarTitle)
+            scoreboard = gameTypeInfo.sidebarTitle?.let { Sidebar(it) }
 
-            scoreboard!!.createLine(Sidebar.ScoreboardLine("header", Component.empty(), 30))
+            scoreboard?.createLine(Sidebar.ScoreboardLine("header", Component.empty(), 30))
 
-            scoreboard!!.createLine(
+            scoreboard?.createLine(
                 Sidebar.ScoreboardLine(
                     "InfoLine",
                     Component.text()
@@ -47,8 +46,8 @@ abstract class Game(val gameOptions: GameOptions) {
                     0
                 )
             )
-            scoreboard!!.createLine(Sidebar.ScoreboardLine("footer", Component.empty(), -1))
-            scoreboard!!.createLine(
+            scoreboard?.createLine(Sidebar.ScoreboardLine("footer", Component.empty(), -1))
+            scoreboard?.createLine(
                 Sidebar.ScoreboardLine(
                     "ipLine",
                     Component.text()
@@ -69,10 +68,7 @@ abstract class Game(val gameOptions: GameOptions) {
         scoreboard?.addViewer(player)
         GameManager.playerGameMap[player] = this
 
-        player.isInvisible = false
-        player.gameMode = GameMode.SPECTATOR
-
-        playerAudience.sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
+        if (gameOptions.showsJoinLeaveMessages) playerAudience.sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
 
         playerJoin(player)
 
@@ -94,9 +90,7 @@ abstract class Game(val gameOptions: GameOptions) {
         GameManager.playerGameMap.remove(player)
         scoreboard?.removeViewer(player)
 
-        player.isInvisible = false
-
-        playerAudience.sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>|</dark_gray> ${player.username}")
+        if (gameOptions.showsJoinLeaveMessages) playerAudience.sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>|</dark_gray> ${player.username}")
 
         if (players.size < gameOptions.playersToStart) {
             if (startingTask != null) {
@@ -130,7 +124,7 @@ abstract class Game(val gameOptions: GameOptions) {
                         Component.text(secs, NamedTextColor.GREEN, TextDecoration.BOLD),
                         Component.empty(),
                         Title.Times.of(
-                            Duration.ZERO, Duration.ofSeconds(1), Duration.ofMillis(250)
+                            Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
                         )
                     )
                 )
@@ -156,13 +150,11 @@ abstract class Game(val gameOptions: GameOptions) {
         // Detach child event node to stop game events
         gameTypeInfo.eventNode.removeChild(childEventNode)
 
-        if (gameOptions.isRegistered) {
-            GameManager.gameMap[this::class]!!.remove(this)
+        GameManager.gameMap[this::class]!!.remove(this)
 
-            players.forEach {
-                scoreboard?.removeViewer(it)
-                it.joinGameOrNew(this::class, GameManager.registeredGameMap[this::class]!!.defaultGameOptions)
-            }
+        players.forEach {
+            scoreboard?.removeViewer(it)
+            if (gameOptions.autoRejoin) it.joinGameOrNew(this::class, GameManager.registeredGameMap[this::class]!!.defaultGameOptions)
         }
 
         players.clear()

@@ -14,7 +14,7 @@ object PlayCommand : Command("play") {
 
     init {
         val gamemodearg = ArgumentType.Word("gamemode").map { input: String ->
-            GameManager.registeredGameMap.entries.firstOrNull { it.value.gameName == input }
+            GameManager.registeredGameMap.entries.firstOrNull { it.value.gameName == input && it.value.showsInPlayCommand }
                 ?: throw ArgumentSyntaxException("Invalid game name", input, 1)
 
         }.suggest {

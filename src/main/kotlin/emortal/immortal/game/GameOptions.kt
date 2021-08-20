@@ -7,6 +7,7 @@ class GameOptions(
     val maxPlayers: Int = 10,
     val playersToStart: Int = 2,
     val joinableMidGame: Boolean = false,
-    val isRegistered: Boolean = true,
-    val hasScoreboard: Boolean = true
+    val autoRejoin: Boolean = true,
+    val hasScoreboard: Boolean = true,
+    val showsJoinLeaveMessages: Boolean = true
 )
