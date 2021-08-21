@@ -16,15 +16,17 @@ object GameManager {
 
     val Player.game get() = playerGameMap[this]
 
-    fun <T : Game> Player.joinGameOrNew(clazz: KClass<T>, options: GameOptions) {
+    fun <T : Game> Player.joinGameOrNew(clazz: KClass<T>, options: GameOptions): Game {
         val game = gameMap[clazz]?.firstOrNull {
             it.canBeJoined()
         }
             ?: createGame(clazz, options)
 
         game.addPlayer(this)
+
+        return game
     }
-    inline fun <reified T : Game> Player.joinGameOrNew(options: GameOptions) = this.joinGameOrNew(T::class, options)
+    inline fun <reified T : Game> Player.joinGameOrNew(options: GameOptions): Game = this.joinGameOrNew(T::class, options)
 
     fun <T : Game> createGame(gameType: KClass<T>, options: GameOptions): Game {
         nextGameID++
