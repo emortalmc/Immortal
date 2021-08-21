@@ -1,5 +1,6 @@
 package emortal.immortal
 
+import emortal.immortal.commands.PlayCommand
 import emortal.immortal.game.GameManager.game
 import net.minestom.server.event.player.PlayerDisconnectEvent
 import net.minestom.server.event.player.PlayerSpawnEvent
@@ -16,9 +17,10 @@ class ImmortalExtension : Extension() {
         eventNode.listenOnly<PlayerSpawnEvent> {
             if (player.game != null) {
                 if (player.game!!.instance != spawnInstance) {
-                    player.game?.removePlayer(player)
+                    player.game!!.removePlayer(player)
                 }
             }
+            player.respawn()
         }
 
         PlayCommand.register()

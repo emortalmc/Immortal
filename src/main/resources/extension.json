@@ -1,5 +1,8 @@
 {
   "entrypoint": "${project.group}.${project.mainClass}",
   "name": "${project.name}",
-  "version": "${project.version}"
+  "version": "${project.version}",
+  "dependencies": [
+    "KStom"
+  ]
 }

@@ -1,7 +1,6 @@
-package emortal.immortal
+package emortal.immortal.commands
 
 import emortal.immortal.game.GameManager
-import emortal.immortal.game.GameManager.game
 import emortal.immortal.game.GameManager.joinGameOrNew
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor

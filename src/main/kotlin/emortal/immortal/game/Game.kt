@@ -7,7 +7,10 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
+import net.minestom.server.entity.Entity
 import net.minestom.server.entity.Player
+import net.minestom.server.event.Event
+import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
@@ -17,6 +20,7 @@ import world.cepi.kstom.adventure.sendMiniMessage
 import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+
 
 abstract class Game(val gameOptions: GameOptions) {
     val players: ConcurrentHashMap.KeySetView<Player, Boolean> = ConcurrentHashMap.newKeySet()
@@ -28,10 +32,14 @@ abstract class Game(val gameOptions: GameOptions) {
 
     var startingTask: Task? = null
 
-    val childEventNode = gameTypeInfo.eventNode.addChild(EventNode.all("${gameTypeInfo.gameName}${GameManager.nextGameID}"))
+    val childEventNode = gameTypeInfo.eventNode.addChild(EventNode.value(
+        "${gameTypeInfo.gameName}${GameManager.nextGameID}", EventFilter.PLAYER
+    ) { obj: Entity -> obj.instance!! == instance })
+
     var scoreboard: Sidebar? = null
 
     init {
+
         if (gameOptions.hasScoreboard) {
             scoreboard = gameTypeInfo.sidebarTitle?.let { Sidebar(it) }
 
@@ -72,11 +80,6 @@ abstract class Game(val gameOptions: GameOptions) {
 
         playerJoin(player)
 
-        if (players.size == gameOptions.maxPlayers) {
-            startCountdown()
-            return
-        }
-
         if (players.size >= gameOptions.playersToStart) {
             if (startingTask != null) return
 
@@ -101,7 +104,7 @@ abstract class Game(val gameOptions: GameOptions) {
         playerLeave(player)
     }
 
-    fun startCountdown() {
+    open fun startCountdown() {
         scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
         startingTask = object : MinestomRunnable() {
@@ -134,7 +137,7 @@ abstract class Game(val gameOptions: GameOptions) {
         }.repeat(Duration.ofSeconds(1)).schedule()
     }
 
-    fun cancelCountdown() {
+    open fun cancelCountdown() {
         scoreboard?.updateLineContent("InfoLine", Component.text("Waiting for players...", NamedTextColor.GRAY))
         startingTask?.cancel()
         playerAudience.showTitle(Title.title(Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD), Component.empty(), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
