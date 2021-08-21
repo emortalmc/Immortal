@@ -1,5 +1,6 @@
 package emortal.immortal.game
 
+import emortal.immortal.game.GameManager.game
 import net.minestom.server.entity.Player
 import net.minestom.server.instance.Instance
 import java.util.concurrent.ConcurrentHashMap
@@ -17,6 +18,10 @@ object GameManager {
     val Player.game get() = playerGameMap[this]
 
     fun <T : Game> Player.joinGameOrNew(clazz: KClass<T>, options: GameOptions): Game {
+        if (this.game != null) {
+            this.game!!.removePlayer(this)
+        }
+
         val game = gameMap[clazz]?.firstOrNull {
             it.canBeJoined()
         }

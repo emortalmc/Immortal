@@ -34,10 +34,6 @@ object PlayCommand : Command("play") {
 
             val player = sender.asPlayer()
 
-            if (player.game != null) {
-                player.game!!.playerLeave(player)
-            }
-
             player.sendActionBar(Component.text("Joining ${gamemode.value.gameName}...", NamedTextColor.GREEN))
 
             player.showTitle(
