@@ -14,7 +14,7 @@ class ParticleSingle(
     val count: Int = 1,
     val data: Float = 0f,
     val writer: (BinaryWriter) -> Unit = { }
-) : ParticleShape() {
+) : ParticleShape {
 
     override val packets: Collection<ParticlePacket>
         get() = listOf(ParticleUtils.packet(particle, pos, spread, count, data, writer))

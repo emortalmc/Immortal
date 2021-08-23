@@ -3,7 +3,7 @@ package emortal.immortal.particle.shapes
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.network.packet.server.play.ParticlePacket
 
-class ParticleLine(val particleSingle: ParticleSingle, val from: Vec, val to: Vec, val spacing: Double = 0.25) : ParticleShape() {
+class ParticleLine(val particleSingle: ParticleSingle, val from: Vec, val to: Vec, val spacing: Double = 0.25) : ParticleShape {
 
     override val packets: Collection<ParticlePacket>
         get() {

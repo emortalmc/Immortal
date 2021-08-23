@@ -18,7 +18,6 @@ import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
-
 abstract class Game(val gameOptions: GameOptions) {
     val players: ConcurrentHashMap.KeySetView<Player, Boolean> = ConcurrentHashMap.newKeySet()
     val playerAudience = Audience.audience(players)

@@ -77,8 +77,8 @@ object ParticleUtils {
     fun line(particle: Particle, startingPosition: Vec, endingPosition: Vec, spread: Point = Vec.ZERO, data: Float = 0f, writer: (BinaryWriter) -> Unit = { }): ParticleLine {
         return ParticleLine(ParticleSingle(particle, startingPosition, spread, 1, data, writer), startingPosition, endingPosition)
     }
-    fun line(particleSingle: ParticleSingle, startingPosition: Vec, endingPosition: Vec): ParticleLine {
-        return ParticleLine(particleSingle, startingPosition, endingPosition)
+    fun line(particleSingle: ParticleSingle, startingPosition: Vec, endingPosition: Vec, spacing: Double = 0.25): ParticleLine {
+        return ParticleLine(particleSingle, startingPosition, endingPosition, spacing)
     }
 
 }

@@ -12,7 +12,7 @@ fun Player.sendParticle(particleShape: ParticleShape)
 fun Collection<Player>.sendParticle(particleShape: ParticleShape)
         = particleShape.packets.forEach { PacketUtils.sendGroupedPacket(this, it) }
 
-abstract class ParticleShape {
+interface ParticleShape {
 
     abstract val packets: Collection<ParticlePacket>
 
