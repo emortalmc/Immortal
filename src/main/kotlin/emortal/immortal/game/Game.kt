@@ -7,10 +7,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
-import net.minestom.server.entity.Entity
 import net.minestom.server.entity.Player
-import net.minestom.server.event.Event
-import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
@@ -25,20 +22,20 @@ import java.util.concurrent.ConcurrentHashMap
 abstract class Game(val gameOptions: GameOptions) {
     val players: ConcurrentHashMap.KeySetView<Player, Boolean> = ConcurrentHashMap.newKeySet()
     val playerAudience = Audience.audience(players)
+
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not registered")
 
-    val instance: Instance = gameOptions.instanceCallback.invoke()
+    val instance: Instance = gameOptions.instanceCallback.invoke(this)
 
     var startingTask: Task? = null
 
-    val childEventNode = gameTypeInfo.eventNode.addChild(EventNode.value(
-        "${gameTypeInfo.gameName}${GameManager.nextGameID}", EventFilter.PLAYER
-    ) { obj: Entity -> obj.instance!! == instance })
+    val eventNode = EventNode.all("${gameTypeInfo.gameName}${GameManager.nextGameID}")
 
     var scoreboard: Sidebar? = null
 
     init {
+        gameTypeInfo.eventNode.addChild(eventNode)
 
         if (gameOptions.hasScoreboard) {
             scoreboard = gameTypeInfo.sidebarTitle?.let { Sidebar(it) }
@@ -150,14 +147,13 @@ abstract class Game(val gameOptions: GameOptions) {
     abstract fun start()
 
     fun destroy() {
-        // Detach child event node to stop game events
-        gameTypeInfo.eventNode.removeChild(childEventNode)
+        gameTypeInfo.eventNode.removeChild(eventNode)
 
         GameManager.gameMap[this::class]!!.remove(this)
 
         players.forEach {
             scoreboard?.removeViewer(it)
-            if (gameOptions.autoRejoin) it.joinGameOrNew(this::class, GameManager.registeredGameMap[this::class]!!.defaultGameOptions)
+            if (gameOptions.autoRejoin) it.joinGameOrNew(this::class)
         }
 
         players.clear()
@@ -167,7 +163,7 @@ abstract class Game(val gameOptions: GameOptions) {
 
     open fun postDestroy() {}
 
-    open fun registerEvents() {}
+    abstract fun registerEvents()
 
     open fun canBeJoined(): Boolean {
         if (players.size >= gameOptions.maxPlayers) {
