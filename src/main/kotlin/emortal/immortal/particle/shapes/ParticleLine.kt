@@ -2,6 +2,9 @@ package emortal.immortal.particle.shapes
 
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.network.packet.server.play.ParticlePacket
+import world.cepi.kstom.util.component1
+import world.cepi.kstom.util.component2
+import world.cepi.kstom.util.component3
 
 class ParticleLine(val particleSingle: ParticleSingle, val from: Vec, val to: Vec, val spacing: Double = 0.25) : ParticleShape {
 
@@ -9,17 +12,22 @@ class ParticleLine(val particleSingle: ParticleSingle, val from: Vec, val to: Ve
         get() {
             val collection = mutableListOf<ParticlePacket>()
 
-            var currentPos = from
+            val (x, y, z) = from
+            particleSingle.x = x
+            particleSingle.y = y
+            particleSingle.z = z
+
             val maxDistance = from.distance(to)
-            val direction = from.sub(to).normalize().mul(spacing)
+            val (dirX, dirY, dirZ) = from.sub(to).normalize().mul(spacing)
 
             var step = 0.0
 
             while (maxDistance > step) {
-                collection.addAll(particleSingle.packets)
-                currentPos = currentPos.add(direction)
-
+                particleSingle.x += dirX
+                particleSingle.y += dirY
+                particleSingle.z += dirZ
                 step += spacing
+                collection.addAll(particleSingle.packets)
             }
 
             return collection

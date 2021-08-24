@@ -20,7 +20,6 @@ class ImmortalExtension : Extension() {
                     player.game!!.removePlayer(player)
                 }
             }
-            player.respawn()
         }
 
         PlayCommand.register()

@@ -14,7 +14,7 @@ fun Collection<Player>.sendParticle(particleShape: ParticleShape)
 
 interface ParticleShape {
 
-    abstract val packets: Collection<ParticlePacket>
+    val packets: Collection<ParticlePacket>
 
     fun render(instance: Instance)
             = packets.forEach { _ -> render(instance.players) }
