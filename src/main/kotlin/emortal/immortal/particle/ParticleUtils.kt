@@ -1,6 +1,7 @@
 package emortal.immortal.particle
 
 import emortal.immortal.particle.shapes.ParticleLine
+import emortal.immortal.particle.shapes.ParticlePoly
 import emortal.immortal.particle.shapes.ParticleSingle
 import net.kyori.adventure.util.RGBLike
 import net.minestom.server.coordinate.Point
@@ -9,6 +10,9 @@ import net.minestom.server.network.packet.server.play.ParticlePacket
 import net.minestom.server.particle.Particle
 import net.minestom.server.particle.ParticleCreator
 import net.minestom.server.utils.binary.BinaryWriter
+import world.cepi.kstom.util.component1
+import world.cepi.kstom.util.component2
+import world.cepi.kstom.util.component3
 
 object ParticleUtils {
 

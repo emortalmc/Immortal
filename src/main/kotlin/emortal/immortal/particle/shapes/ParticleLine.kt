@@ -18,7 +18,7 @@ class ParticleLine(val particleSingle: ParticleSingle, val from: Vec, val to: Ve
             particleSingle.z = z
 
             val maxDistance = from.distance(to)
-            val (dirX, dirY, dirZ) = from.sub(to).normalize().mul(spacing)
+            val (dirX, dirY, dirZ) = to.sub(from).normalize().mul(spacing)
 
             var step = 0.0
 
