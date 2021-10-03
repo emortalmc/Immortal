@@ -38,8 +38,8 @@ dependencies {
     compileOnly(kotlin("reflect"))
 
     // Compile Minestom into project
-    compileOnly("com.github.Minestom:Minestom:2ef8e957a0")
-    compileOnly("com.github.Project-Cepi:KStom:d9f7795e88")
+    compileOnly("com.github.Minestom:Minestom:f640351777")
+    compileOnly("com.github.Project-Cepi:KStom:e1158a629f")
     api("net.kyori:adventure-text-minimessage:4.1.0-SNAPSHOT")
 
     // import kotlinx serialization
