@@ -97,6 +97,11 @@ abstract class Game(val gameOptions: GameOptions) {
             }
         }
 
+        if (players.size == 0) {
+            destroy()
+            return
+        }
+
         playerLeave(player)
     }
 
