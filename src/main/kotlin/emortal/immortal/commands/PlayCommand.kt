@@ -16,11 +16,11 @@ object PlayCommand : Kommand({
     onlyPlayers
 
     val gamemodearg = ArgumentType.Word("gamemode").map { input: String ->
-        GameManager.registeredGameMap.entries.firstOrNull { it.value.gameName == input && it.value.showsInPlayCommand }
+        GameManager.registeredGameMap.entries.firstOrNull { it.value.gameName == input && it.value.showsInSlashPlay }
 
     }.suggest {
         GameManager.registeredGameMap.values
-            .filter { it.showsInPlayCommand }
+            .filter { it.showsInSlashPlay }
             .map { it.gameName }
     }
 
@@ -47,4 +47,4 @@ object PlayCommand : Kommand({
 
     }
 
-}, "play")
+}, "play", "join")

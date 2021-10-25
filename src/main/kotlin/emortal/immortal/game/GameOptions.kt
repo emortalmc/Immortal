@@ -3,11 +3,10 @@ package emortal.immortal.game
 import net.minestom.server.instance.Instance
 
 class GameOptions(
-    val instanceCallback: (Game) -> Instance,
     val maxPlayers: Int = 10,
-    val playersToStart: Int = 2,
-    val joinableMidGame: Boolean = false,
-    val autoRejoin: Boolean = true,
-    val hasScoreboard: Boolean = true,
+    val minPlayers: Int = 2,
+    val countdownSeconds: Int = 5,
+    val canJoinDuringGame: Boolean = false,
+    val showScoreboard: Boolean = true,
     val showsJoinLeaveMessages: Boolean = true
 )

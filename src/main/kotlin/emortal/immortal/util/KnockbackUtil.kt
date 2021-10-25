@@ -59,3 +59,5 @@ fun Entity.takeKnockback(attacker: Player) {
 
     velocity = newVelocity
 }
+
+

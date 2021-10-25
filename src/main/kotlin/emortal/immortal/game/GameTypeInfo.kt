@@ -9,6 +9,6 @@ class GameTypeInfo(
     val eventNode: EventNode<Event>,
     val gameName: String,
     val sidebarTitle: Component?,
-    val showsInPlayCommand: Boolean = true,
+    val showsInSlashPlay: Boolean = true,
     val defaultGameOptions: GameOptions
 )

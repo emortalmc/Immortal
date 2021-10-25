@@ -1,13 +1,22 @@
 package emortal.immortal.game
 
-import emortal.immortal.game.GameManager.game
+import net.kyori.adventure.text.Component
 import net.minestom.server.entity.Player
-import net.minestom.server.instance.Instance
+import net.minestom.server.event.Event
+import net.minestom.server.event.EventFilter
+import net.minestom.server.event.EventNode
+import net.minestom.server.tag.Tag
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 
 object GameManager {
+    val LOGGER = LoggerFactory.getLogger("GameManager")
+
+    val gameNameTag = Tag.String("gameName")
+    val gameIdTag = Tag.Integer("gameId")
+
     val playerGameMap = ConcurrentHashMap<Player, Game>()
     val registeredGameMap = ConcurrentHashMap<KClass<out Game>, GameTypeInfo>()
     val gameMap = ConcurrentHashMap<KClass<out Game>, MutableSet<Game>>()
@@ -17,7 +26,7 @@ object GameManager {
 
     val Player.game get() = playerGameMap[this]
 
-    fun <T : Game> Player.joinGameOrNew(clazz: KClass<T>, options: GameOptions = GameManager.registeredGameMap[clazz]!!.defaultGameOptions): Game {
+    fun <T : Game> Player.joinGameOrNew(clazz: KClass<T>, options: GameOptions = registeredGameMap[clazz]!!.defaultGameOptions): Game {
         if (this.game != null) {
             this.game!!.removePlayer(this)
         }
@@ -31,7 +40,7 @@ object GameManager {
 
         return game
     }
-    inline fun <reified T : Game> Player.joinGameOrNew(options: GameOptions = GameManager.registeredGameMap[T::class]!!.defaultGameOptions): Game = this.joinGameOrNew(T::class, options)
+    inline fun <reified T : Game> Player.joinGameOrNew(options: GameOptions = registeredGameMap[T::class]!!.defaultGameOptions): Game = this.joinGameOrNew(T::class, options)
 
     fun <T : Game> createGame(gameType: KClass<T>, options: GameOptions): Game {
         nextGameID++
@@ -44,8 +53,21 @@ object GameManager {
         return game
     }
 
-    inline fun <reified T: Game> registerGame(gameOptions: GameTypeInfo) {
-        println("Registered game type '${gameOptions.gameName}'")
-        registeredGameMap[T::class] = gameOptions
+    inline fun <reified T: Game> registerGame(
+        eventNode: EventNode<Event>,
+        gameName: String,
+        sidebarTitle: Component,
+        showsInSlashPlay: Boolean = true,
+        defaultGameOptions: GameOptions
+    ) {
+        registeredGameMap[T::class] = GameTypeInfo(
+            eventNode.addChild(EventNode.tag(gameName, EventFilter.INSTANCE, gameNameTag) { it == gameName }),
+            gameName,
+            sidebarTitle,
+            showsInSlashPlay,
+            defaultGameOptions
+        )
+
+        LOGGER.info("Registered game type '${gameName}'")
     }
 }
