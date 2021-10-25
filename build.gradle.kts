@@ -38,7 +38,7 @@ dependencies {
     compileOnly(kotlin("reflect"))
 
     // Compile Minestom into project
-    compileOnly("com.github.Minestom:Minestom:-SNAPSHOT")
+    compileOnly("com.github.Minestom:Minestom:f86d91f9b8")
     api("com.github.Project-Cepi:KStom:5daaf786cf")
     api("com.github.Project-Cepi:Particable:e4537a1816")
 
