@@ -80,6 +80,8 @@ abstract class Game(val gameOptions: GameOptions, ) {
         scoreboard?.addViewer(player)
         GameManager.playerGameMap[player] = this
 
+        player.inventory.clear()
+
         if (gameOptions.showsJoinLeaveMessages) playerAudience.sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
 
         playerJoin(player)
@@ -97,6 +99,8 @@ abstract class Game(val gameOptions: GameOptions, ) {
         players.remove(player)
         GameManager.playerGameMap.remove(player)
         scoreboard?.removeViewer(player)
+
+        player.inventory.clear()
 
         if (gameOptions.showsJoinLeaveMessages) playerAudience.sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>|</dark_gray> ${player.username}")
 
