@@ -41,6 +41,8 @@ abstract class Game(val gameOptions: GameOptions, ) {
     var scoreboard: Sidebar? = null
 
     init {
+        LOGGER.info("A game of '${gameTypeInfo.gameName}' was created")
+
         if (gameOptions.showScoreboard) {
             scoreboard = gameTypeInfo.sidebarTitle?.let { Sidebar(it) }
 
@@ -72,7 +74,8 @@ abstract class Game(val gameOptions: GameOptions, ) {
     }
 
     fun addPlayer(player: Player) {
-        LOGGER.info("${player.username} joining game ${gameTypeInfo.gameName}")
+        LOGGER.info("${player.username} joining game '${gameTypeInfo.gameName}'")
+
         players.add(player)
         scoreboard?.addViewer(player)
         GameManager.playerGameMap[player] = this
@@ -90,6 +93,7 @@ abstract class Game(val gameOptions: GameOptions, ) {
 
     fun removePlayer(player: Player) {
         LOGGER.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
+
         players.remove(player)
         GameManager.playerGameMap.remove(player)
         scoreboard?.removeViewer(player)
@@ -109,6 +113,11 @@ abstract class Game(val gameOptions: GameOptions, ) {
 
         playerLeave(player)
     }
+
+    abstract fun playerJoin(player: Player)
+    abstract fun playerLeave(player: Player)
+    abstract fun gameStarted()
+    abstract fun gameDestroyed()
 
     fun startCountdown() {
         if (gameOptions.countdownSeconds == 0) {
@@ -151,11 +160,6 @@ abstract class Game(val gameOptions: GameOptions, ) {
         playerAudience.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
     }
 
-    abstract fun playerJoin(player: Player)
-    abstract fun playerLeave(player: Player)
-    abstract fun gameStarted()
-    abstract fun gameDestroyed()
-
     abstract fun registerEvents()
 
     fun start() {
@@ -167,12 +171,15 @@ abstract class Game(val gameOptions: GameOptions, ) {
     }
 
     fun destroy() {
+        LOGGER.info("A game of '${gameTypeInfo.gameName}' was destroyed")
+
         gameTypeInfo.eventNode.removeChild(eventNode)
 
         GameManager.gameMap[this::class]!!.remove(this)
 
         players.forEach {
             scoreboard?.removeViewer(it)
+            it.chat("/play lobby")
             // TODO: Rejoining (gameOptions.autoRejoin) it.joinGameOrNew(this::class)
         }
 

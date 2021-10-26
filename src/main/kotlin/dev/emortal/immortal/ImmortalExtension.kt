@@ -24,11 +24,13 @@ class ImmortalExtension : Extension() {
 
         PlayCommand.register()
 
-        logger.info("[ImmortalExtension] has been enabled!")
+        logger.info("[Immortal] has been enabled!")
     }
 
     override fun terminate() {
-        logger.info("[ImmortalExtension] has been disabled!")
+        PlayCommand.register()
+
+        logger.info("[Immortal] has been disabled!")
     }
 
 }
