@@ -1,4 +1,4 @@
-package emortal.immortal.util
+package dev.emortal.immortal.util
 
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.Entity

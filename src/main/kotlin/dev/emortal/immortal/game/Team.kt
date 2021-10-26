@@ -1,4 +1,4 @@
-package emortal.immortal.game
+package dev.emortal.immortal.game
 
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor

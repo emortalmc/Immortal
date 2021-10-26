@@ -1,6 +1,6 @@
-package emortal.immortal.game
+package dev.emortal.immortal.game
 
-import emortal.immortal.game.GameManager.gameNameTag
+import dev.emortal.immortal.game.GameManager.gameNameTag
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -33,7 +33,9 @@ abstract class Game(val gameOptions: GameOptions, ) {
     val id = GameManager.nextGameID
     val instance: Instance = instanceCreate().also { it.setTag(gameNameTag, gameTypeInfo.gameName) }
 
-    val eventNode = gameTypeInfo.eventNode.addChild(EventNode.tag("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE, GameManager.gameIdTag) { it == id })
+    val eventNode = gameTypeInfo.eventNode.addChild(EventNode.tag("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
+        GameManager.gameIdTag
+    ) { it == id })
 
     var startingTask: Task? = null
     var scoreboard: Sidebar? = null

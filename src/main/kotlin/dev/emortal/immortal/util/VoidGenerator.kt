@@ -1,4 +1,4 @@
-package emortal.immortal.util
+package dev.emortal.immortal.util
 
 import net.minestom.server.instance.ChunkGenerator
 import net.minestom.server.instance.ChunkPopulator

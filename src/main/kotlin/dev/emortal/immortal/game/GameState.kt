@@ -1,4 +1,4 @@
-package emortal.immortal.game
+package dev.emortal.immortal.game
 
 enum class GameState(val joinable: Boolean) {
 

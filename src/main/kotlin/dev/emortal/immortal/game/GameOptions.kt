@@ -1,4 +1,4 @@
-package emortal.immortal.game
+package dev.emortal.immortal.game
 
 import net.minestom.server.instance.Instance
 

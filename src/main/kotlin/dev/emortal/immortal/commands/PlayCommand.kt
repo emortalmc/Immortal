@@ -1,7 +1,7 @@
-package emortal.immortal.commands
+package dev.emortal.immortal.commands
 
-import emortal.immortal.game.GameManager
-import emortal.immortal.game.GameManager.joinGameOrNew
+import dev.emortal.immortal.game.GameManager
+import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.title.Title

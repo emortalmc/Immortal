@@ -1,7 +1,7 @@
-package emortal.immortal
+package dev.emortal.immortal
 
-import emortal.immortal.commands.PlayCommand
-import emortal.immortal.game.GameManager.game
+import dev.emortal.immortal.commands.PlayCommand
+import dev.emortal.immortal.game.GameManager.game
 import net.minestom.server.event.player.PlayerDisconnectEvent
 import net.minestom.server.event.player.PlayerSpawnEvent
 import net.minestom.server.extensions.Extension
