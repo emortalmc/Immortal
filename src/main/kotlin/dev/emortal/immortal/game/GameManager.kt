@@ -32,6 +32,7 @@ object GameManager {
         }
 
         val game = gameMap[clazz]?.firstOrNull {
+            // TODO: has to be changed for parties
             it.canBeJoined()
         }
             ?: createGame(clazz, options)
@@ -40,6 +41,7 @@ object GameManager {
 
         return game
     }
+
     inline fun <reified T : Game> Player.joinGameOrNew(options: GameOptions = registeredGameMap[T::class]!!.defaultGameOptions): Game = this.joinGameOrNew(T::class, options)
 
     fun <T : Game> createGame(gameType: KClass<T>, options: GameOptions): Game {

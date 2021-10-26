@@ -81,6 +81,7 @@ abstract class Game(val gameOptions: GameOptions, ) {
         GameManager.playerGameMap[player] = this
 
         player.inventory.clear()
+        if (player.instance!! != instance) player.setInstance(instance)
 
         if (gameOptions.showsJoinLeaveMessages) playerAudience.sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
 
