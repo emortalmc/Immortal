@@ -31,8 +31,6 @@ class Team(
     fun remove(player: Player) {
         player.team = null
         players -= player
-
-        player.instance!!
     }
 
     fun has(player: Player) {

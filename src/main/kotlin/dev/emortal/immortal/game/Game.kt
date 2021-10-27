@@ -205,10 +205,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     abstract fun instanceCreate(): Instance
 
-<<<<<<< Updated upstream
-}
-=======
     override fun getPlayers(): MutableCollection<Player> = players
 
 }
->>>>>>> Stashed changes
