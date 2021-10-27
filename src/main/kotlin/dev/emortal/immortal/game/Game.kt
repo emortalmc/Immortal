@@ -77,8 +77,6 @@ abstract class Game(val gameOptions: GameOptions) {
     }
 
     fun addPlayer(player: Player) {
-
-        player.instance!!.players
         LOGGER.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
         players.add(player)
