@@ -7,6 +7,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
+import net.minestom.server.adventure.audience.PacketGroupingAudience
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
@@ -20,12 +21,10 @@ import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
-abstract class Game(val gameOptions: GameOptions) {
+abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val teams = mutableListOf<Team>()
-
-    val playerAudience = Audience.audience(players)
 
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not registered")
@@ -86,7 +85,7 @@ abstract class Game(val gameOptions: GameOptions) {
         player.inventory.clear()
         if (player.instance!! != instance) player.setInstance(instance)
 
-        if (gameOptions.showsJoinLeaveMessages) playerAudience.sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
+        if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
 
         playerJoin(player)
 
@@ -106,7 +105,7 @@ abstract class Game(val gameOptions: GameOptions) {
 
         player.inventory.clear()
 
-        if (gameOptions.showsJoinLeaveMessages) playerAudience.sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>|</dark_gray> ${player.username}")
+        if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>|</dark_gray> ${player.username}")
 
         if (players.size < gameOptions.minPlayers) {
             if (startingTask != null) {
@@ -145,8 +144,8 @@ abstract class Game(val gameOptions: GameOptions) {
                     return
                 }
 
-                playerAudience.playSound(Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.AMBIENT, 1f, 1f))
-                playerAudience.showTitle(
+                playSound(Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.AMBIENT, 1f, 1f))
+                showTitle(
                     Title.title(
                         Component.text(secs, NamedTextColor.GREEN, TextDecoration.BOLD),
                         Component.empty(),
@@ -164,8 +163,8 @@ abstract class Game(val gameOptions: GameOptions) {
     fun cancelCountdown() {
         scoreboard?.updateLineContent("InfoLine", Component.text("Waiting for players...", NamedTextColor.GRAY))
         startingTask?.cancel()
-        playerAudience.showTitle(Title.title(Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD), Component.text("Not enough players"), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
-        playerAudience.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
+        showTitle(Title.title(Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD), Component.text("Not enough players"), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
+        playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
     }
 
     abstract fun registerEvents()
@@ -206,4 +205,10 @@ abstract class Game(val gameOptions: GameOptions) {
 
     abstract fun instanceCreate(): Instance
 
+<<<<<<< Updated upstream
 }
+=======
+    override fun getPlayers(): MutableCollection<Player> = players
+
+}
+>>>>>>> Stashed changes

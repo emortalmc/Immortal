@@ -25,12 +25,14 @@ class Team(
 
     fun add(player: Player) {
         player.team = scoreboardTeam
-        players.add(player)
+        players += player
     }
 
     fun remove(player: Player) {
         player.team = null
-        players.remove(player)
+        players -= player
+
+        player.instance!!
     }
 
     fun has(player: Player) {
