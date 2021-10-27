@@ -3,6 +3,7 @@ package dev.emortal.immortal.game
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.util.RGBLike
+import net.minestom.server.adventure.audience.PacketGroupingAudience
 import net.minestom.server.entity.Player
 import net.minestom.server.network.packet.server.play.TeamsPacket
 import world.cepi.kstom.Manager
@@ -13,9 +14,9 @@ class Team(
     val colour: RGBLike,
     val collisionRule: TeamsPacket.CollisionRule = TeamsPacket.CollisionRule.NEVER,
     val nameTagVisibility: TeamsPacket.NameTagVisibility = TeamsPacket.NameTagVisibility.ALWAYS
-) {
+) : PacketGroupingAudience {
 
-    val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
+    private val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
 
     val scoreboardTeam = Manager.team.createTeam(teamName).also {
         it.teamColor = NamedTextColor.nearestTo(TextColor.color(colour))
@@ -36,5 +37,7 @@ class Team(
     fun has(player: Player) {
         players.contains(player)
     }
+
+    override fun getPlayers(): MutableCollection<Player> = players
 
 }
