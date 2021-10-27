@@ -9,7 +9,7 @@ import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import java.time.Duration
 
-interface PvpGame {
+abstract class PvpGame(gameOptions: GameOptions) : Game(gameOptions) {
 
     fun kill(player: Player, killer: Entity?) {
 
@@ -30,8 +30,8 @@ interface PvpGame {
         playerDied(player, killer)
     }
 
-    fun playerDied(player: Player, killer: Entity?)
+    abstract fun playerDied(player: Player, killer: Entity?)
 
-    fun respawn(player: Player)
+    abstract fun respawn(player: Player)
 
 }

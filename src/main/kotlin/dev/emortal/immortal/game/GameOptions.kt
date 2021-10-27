@@ -1,7 +1,5 @@
 package dev.emortal.immortal.game
 
-import net.minestom.server.instance.Instance
-
 class GameOptions(
     val maxPlayers: Int = 10,
     val minPlayers: Int = 2,

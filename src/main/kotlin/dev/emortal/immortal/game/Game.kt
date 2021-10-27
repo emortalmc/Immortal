@@ -20,17 +20,19 @@ import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
-abstract class Game(val gameOptions: GameOptions, ) {
+abstract class Game(val gameOptions: GameOptions) {
 
-    val players: ConcurrentHashMap.KeySetView<Player, Boolean> = ConcurrentHashMap.newKeySet()
+    val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
+    val teams = mutableListOf<Team>()
+
     val playerAudience = Audience.audience(players)
 
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not registered")
+    val id = GameManager.nextGameID
 
     val LOGGER = LoggerFactory.getLogger("Game-${gameTypeInfo.gameName}")
 
-    val id = GameManager.nextGameID
     val instance: Instance = instanceCreate().also { it.setTag(gameNameTag, gameTypeInfo.gameName) }
 
     val eventNode = gameTypeInfo.eventNode.addChild(EventNode.tag("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
@@ -38,6 +40,7 @@ abstract class Game(val gameOptions: GameOptions, ) {
     ) { it == id })
 
     var startingTask: Task? = null
+
     var scoreboard: Sidebar? = null
 
     init {
@@ -74,6 +77,8 @@ abstract class Game(val gameOptions: GameOptions, ) {
     }
 
     fun addPlayer(player: Player) {
+
+        player.instance!!.players
         LOGGER.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
         players.add(player)

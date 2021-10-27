@@ -5,22 +5,36 @@ import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.util.RGBLike
 import net.minestom.server.entity.Player
 import net.minestom.server.network.packet.server.play.TeamsPacket
-import net.minestom.server.scoreboard.Team
 import world.cepi.kstom.Manager
+import java.util.concurrent.ConcurrentHashMap
 
 class Team(
     val teamName: String,
     val colour: RGBLike,
-    val players: List<Player>,
-    val maxPlayers: Int = Integer.MAX_VALUE,
     val collisionRule: TeamsPacket.CollisionRule = TeamsPacket.CollisionRule.NEVER,
     val nameTagVisibility: TeamsPacket.NameTagVisibility = TeamsPacket.NameTagVisibility.ALWAYS
 ) {
-    val team: Team = Manager.team.createTeam(teamName).also {
+
+    val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
+
+    val scoreboardTeam = Manager.team.createTeam(teamName).also {
         it.teamColor = NamedTextColor.nearestTo(TextColor.color(colour))
         it.collisionRule = collisionRule
         it.nameTagVisibility = nameTagVisibility
-
-        players.forEach { player -> player.team = it }
     }
+
+    fun add(player: Player) {
+        player.team = scoreboardTeam
+        players.add(player)
+    }
+
+    fun remove(player: Player) {
+        player.team = null
+        players.remove(player)
+    }
+
+    fun has(player: Player) {
+        players.contains(player)
+    }
+
 }
