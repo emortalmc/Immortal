@@ -83,7 +83,9 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         GameManager.playerGameMap[player] = this
 
         player.inventory.clear()
-        if (player.instance!! != instance) player.setInstance(instance)
+        player.scheduleNextTick {
+            if (player.instance!! != instance) player.setInstance(instance)
+        }
 
         if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
 
