@@ -34,10 +34,6 @@ class Team(
         players -= player
     }
 
-    fun has(player: Player) {
-        players.contains(player)
-    }
-
     override fun getPlayers(): MutableCollection<Player> = players
 
 }

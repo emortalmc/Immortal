@@ -11,7 +11,8 @@ import java.time.Duration
 
 abstract class PvpGame(gameOptions: GameOptions) : Game(gameOptions) {
 
-    fun kill(player: Player, killer: Entity?) {
+    // TODO: Make messages configurable
+    fun kill(player: Player, killer: Entity? = null) {
 
         val subtitle = Component.empty()
 
@@ -26,6 +27,7 @@ abstract class PvpGame(gameOptions: GameOptions) : Game(gameOptions) {
                 Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))
             )
         )
+        // TODO: global message when messages are configurable
 
         playerDied(player, killer)
     }
