@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap
 abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
-    val teams = mutableListOf<Team>()
+    val teams = mutableSetOf<Team>()
 
     var gameState = GameState.WAITING_FOR_PLAYERS
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not registered")
@@ -71,8 +71,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 )
             )
         }
-
-        registerEvents()
     }
 
     fun addPlayer(player: Player) {
@@ -176,6 +174,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         gameState = GameState.PLAYING
         scoreboard?.updateLineContent("InfoLine", Component.empty())
 
+        registerEvents()
         gameStarted()
     }
 
@@ -185,6 +184,10 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         gameTypeInfo.eventNode.removeChild(eventNode)
 
         GameManager.gameMap[this::class]!!.remove(this)
+
+        teams.forEach {
+            destroy()
+        }
 
         players.forEach {
             scoreboard?.removeViewer(it)

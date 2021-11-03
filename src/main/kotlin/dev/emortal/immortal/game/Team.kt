@@ -34,6 +34,14 @@ class Team(
         players -= player
     }
 
+    fun destroy() {
+        players.forEach {
+            it.team = null
+        }
+        players.clear()
+        Manager.team.deleteTeam(scoreboardTeam)
+    }
+
     override fun getPlayers(): MutableCollection<Player> = players
 
 }

@@ -39,7 +39,7 @@ dependencies {
 
     // Compile Minestom into project
     compileOnly("com.github.Minestom:Minestom:0bcfc39a9d")
-    api("com.github.Project-Cepi:KStom:19d8c89110")
+    api("com.github.Project-Cepi:Kstom:9278ca7f1b")
     api("com.github.Project-Cepi:Particable:b552376803")
 
     // import kotlinx serialization
