@@ -99,6 +99,10 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     fun removePlayer(player: Player) {
         LOGGER.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
 
+        teams.forEach {
+            it.remove(player)
+        }
+
         players.remove(player)
         GameManager.playerGameMap.remove(player)
         scoreboard?.removeViewer(player)
@@ -186,7 +190,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         GameManager.gameMap[this::class]!!.remove(this)
 
         teams.forEach {
-            destroy()
+            it.destroy()
         }
 
         players.forEach {
