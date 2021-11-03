@@ -212,6 +212,11 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         return gameState.joinable
     }
 
+    fun registerTeam(team: Team): Team {
+        teams.add(team)
+        return team
+    }
+
     abstract fun instanceCreate(): Instance
 
     override fun getPlayers(): MutableCollection<Player> = players
