@@ -8,15 +8,13 @@ import net.minestom.server.utils.NamespaceID
 object SignHandler : BlockHandler {
     override fun getNamespaceId(): NamespaceID = NamespaceID.from(Key.key("minecraft:sign"))
     override fun getBlockEntityTags(): MutableCollection<Tag<*>> {
-        val tags = mutableListOf<Tag<*>>()
-
-        tags.add(Tag.Byte("GlowingText"))
-        tags.add(Tag.String("Color"))
-        tags.add(Tag.String("Text1"))
-        tags.add(Tag.String("Text2"))
-        tags.add(Tag.String("Text3"))
-        tags.add(Tag.String("Text4"))
-
-        return tags
+        return mutableListOf(
+            Tag.Byte("GlowingText"),
+            Tag.String("Color"),
+            Tag.String("Text1"),
+            Tag.String("Text2"),
+            Tag.String("Text3"),
+            Tag.String("Text4"),
+        )
     }
 }

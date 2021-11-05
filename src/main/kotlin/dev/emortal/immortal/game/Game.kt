@@ -1,5 +1,6 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.sound.Sound
@@ -32,14 +33,16 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     val LOGGER = LoggerFactory.getLogger("Game-${gameTypeInfo.gameName}")
 
-    val instance: Instance = instanceCreate().also { it.setTag(gameNameTag, gameTypeInfo.gameName) }
+    val instance: Instance = instanceCreate().also {
+        it.setTag(gameNameTag, gameTypeInfo.gameName)
+        it.setTag(gameIdTag, id)
+    }
 
     val eventNode = gameTypeInfo.eventNode.addChild(EventNode.tag("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
         GameManager.gameIdTag
     ) { it == id })
 
     var startingTask: Task? = null
-
     var scoreboard: Sidebar? = null
 
     init {
@@ -64,7 +67,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 Sidebar.ScoreboardLine(
                     "ipLine",
                     Component.text()
-                        .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
+                        .append(Component.text(" mc.emortal.dev ", NamedTextColor.DARK_GRAY))
                         .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
                         .build(),
                     -2
@@ -167,6 +170,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     fun cancelCountdown() {
         scoreboard?.updateLineContent("InfoLine", Component.text("Waiting for players...", NamedTextColor.GRAY))
         startingTask?.cancel()
+        startingTask = null
         showTitle(Title.title(Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD), Component.text("Not enough players"), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
         playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
     }
@@ -174,6 +178,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     abstract fun registerEvents()
 
     fun start() {
+        startingTask?.cancel()
         startingTask = null
         gameState = GameState.PLAYING
         scoreboard?.updateLineContent("InfoLine", Component.empty())

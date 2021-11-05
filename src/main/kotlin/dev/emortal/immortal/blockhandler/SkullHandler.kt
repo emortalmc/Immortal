@@ -9,13 +9,9 @@ import org.jglrxavpok.hephaistos.nbt.NBTCompound
 object SkullHandler : BlockHandler {
     override fun getNamespaceId(): NamespaceID = NamespaceID.from(Key.key("minecraft:skull"))
     override fun getBlockEntityTags(): MutableCollection<Tag<*>> {
-        val tags = mutableListOf<Tag<*>>()
-
-        tags.add(Tag.String("ExtraType"))
-
-        val compound: Tag<NBTCompound> = Tag.NBT("SkullOwner");
-        tags.add(compound)
-
-        return tags
+        return mutableListOf(
+            Tag.String("ExtraType"),
+            Tag.NBT<NBTCompound>("SkullOwner")
+        )
     }
 }

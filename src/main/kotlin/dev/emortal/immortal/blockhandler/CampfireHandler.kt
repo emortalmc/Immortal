@@ -10,14 +10,10 @@ import org.jglrxavpok.hephaistos.nbt.NBTList
 object CampfireHandler : BlockHandler {
     override fun getNamespaceId(): NamespaceID = NamespaceID.from(Key.key("minecraft:skull"))
     override fun getBlockEntityTags(): MutableCollection<Tag<*>> {
-        val tags = mutableListOf<Tag<*>>()
-
-        tags.add(Tag.IntArray("CookingTimes"))
-        tags.add(Tag.IntArray("CookingTotalTimes"))
-
-        val compound: Tag<NBTList<*>> = Tag.NBT("Items");
-        tags.add(compound)
-
-        return tags
+        return mutableListOf(
+            Tag.IntArray("CookingTimes"),
+            Tag.IntArray("CookingTotalTimes"),
+            Tag.NBT<NBTList<*>>("Items")
+        )
     }
 }

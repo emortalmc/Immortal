@@ -27,11 +27,13 @@ class Team(
     fun add(player: Player) {
         player.team = scoreboardTeam
         players += player
+        scoreboardTeam.sendUpdatePacket()
     }
 
     fun remove(player: Player) {
         player.team = null
         players -= player
+        scoreboardTeam.sendUpdatePacket()
     }
 
     fun destroy() {

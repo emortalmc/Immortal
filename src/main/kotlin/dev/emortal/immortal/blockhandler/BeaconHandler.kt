@@ -10,6 +10,6 @@ import org.jglrxavpok.hephaistos.nbt.NBTList
 object BeaconHandler : BlockHandler {
     override fun getNamespaceId(): NamespaceID = NamespaceID.from(Key.key("minecraft:skull"))
     override fun getBlockEntityTags(): MutableCollection<Tag<*>> {
-        return mutableListOf<Tag<*>>()
+        return mutableListOf()
     }
 }

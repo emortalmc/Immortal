@@ -3,9 +3,13 @@ package dev.emortal.immortal
 import dev.emortal.immortal.blockhandler.CampfireHandler
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
+import dev.emortal.immortal.commands.ForceStartCommand
 import dev.emortal.immortal.commands.PlayCommand
 import dev.emortal.immortal.game.GameManager.game
 import net.minestom.server.MinecraftServer
+import net.minestom.server.entity.GameMode
+import net.minestom.server.event.player.PlayerBlockBreakEvent
+import net.minestom.server.event.player.PlayerBlockPlaceEvent
 import net.minestom.server.event.player.PlayerDisconnectEvent
 import net.minestom.server.event.player.PlayerSpawnEvent
 import net.minestom.server.extensions.Extension
@@ -29,6 +33,17 @@ class ImmortalExtension : Extension() {
             }
         }
 
+        eventNode.listenOnly<PlayerBlockPlaceEvent> {
+            if (player.gameMode == GameMode.ADVENTURE || player.gameMode == GameMode.SPECTATOR) {
+                isCancelled = true
+            }
+        }
+        eventNode.listenOnly<PlayerBlockBreakEvent> {
+            if (player.gameMode == GameMode.ADVENTURE || player.gameMode == GameMode.SPECTATOR) {
+                isCancelled = true
+            }
+        }
+
         val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
             .ambientLight(1f)
             .build()
@@ -38,13 +53,15 @@ class ImmortalExtension : Extension() {
         CampfireHandler.register("minecraft:campfire")
         SkullHandler.register("minecraft:skull")
 
+        //ForceStartCommand.register()
         PlayCommand.register()
 
         logger.info("[Immortal] Initialized!")
     }
 
     override fun terminate() {
-        PlayCommand.register()
+        ForceStartCommand.unregister()
+        PlayCommand.unregister()
 
         logger.info("[Immortal] Terminated!")
     }
