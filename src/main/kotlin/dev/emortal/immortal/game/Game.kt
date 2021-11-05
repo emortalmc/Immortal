@@ -38,9 +38,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         it.setTag(gameIdTag, id)
     }
 
-    val eventNode = gameTypeInfo.eventNode.addChild(EventNode.tag("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
-        GameManager.gameIdTag
-    ) { it == id })
+    val eventNode = gameTypeInfo.eventNode.addChild(EventNode.value("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE) { instance == it })
 
     var startingTask: Task? = null
     var scoreboard: Sidebar? = null
