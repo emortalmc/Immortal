@@ -12,6 +12,7 @@ import net.minestom.server.adventure.audience.PacketGroupingAudience
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
+import net.minestom.server.event.trait.InstanceEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
@@ -38,13 +39,15 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         it.setTag(gameIdTag, id)
     }
 
-    val eventNode = gameTypeInfo.eventNode.addChild(EventNode.value("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE) { instance == it })
+    val eventNode = EventNode.tag("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
+        gameIdTag
+    ) { it == id }
 
     var startingTask: Task? = null
     var scoreboard: Sidebar? = null
 
     init {
-        LOGGER.info("A game of '${gameTypeInfo.gameName}' was created")
+        gameTypeInfo.eventNode.addChild(eventNode)
 
         if (gameOptions.showScoreboard) {
             scoreboard = gameTypeInfo.sidebarTitle?.let { Sidebar(it) }
@@ -72,6 +75,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 )
             )
         }
+
+        LOGGER.info("A game of '${gameTypeInfo.gameName}' was created")
     }
 
     fun addPlayer(player: Player) {

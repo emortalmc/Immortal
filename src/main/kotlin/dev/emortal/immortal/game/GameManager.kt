@@ -63,7 +63,7 @@ object GameManager {
         defaultGameOptions: GameOptions
     ) {
         registeredGameMap[T::class] = GameTypeInfo(
-            eventNode.addChild(EventNode.tag(gameName, EventFilter.INSTANCE, gameNameTag) { it == gameName }),
+            eventNode,
             gameName,
             sidebarTitle,
             showsInSlashPlay,
