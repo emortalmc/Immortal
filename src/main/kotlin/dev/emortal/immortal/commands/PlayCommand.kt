@@ -29,7 +29,7 @@ object PlayCommand : Kommand({
 
         player.sendActionBar(Component.text("Joining ${gamemode!!.value.gameName}...", NamedTextColor.GREEN))
 
-        player.showTitle(
+        /*player.showTitle(
             Title.title(
                 Component.text("\uE00A"),
                 Component.empty(),
@@ -39,11 +39,11 @@ object PlayCommand : Kommand({
                     Duration.ofMillis(500)
                 )
             )
-        )
+        )*/
 
-        Manager.scheduler.buildTask {
-            sender.asPlayer().joinGameOrNew(gamemode.key, GameManager.registeredGameMap[gamemode.key]!!.defaultGameOptions)
-        }.delay(Duration.ofMillis(500)).schedule()
+        //Manager.scheduler.buildTask {
+            player.joinGameOrNew(gamemode.key, GameManager.registeredGameMap[gamemode.key]!!.defaultGameOptions)
+        //}.delay(Duration.ofMillis(500)).schedule()
 
     }
 

@@ -48,6 +48,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
+        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
         if (gameOptions.showScoreboard) {
             scoreboard = gameTypeInfo.sidebarTitle?.let { Sidebar(it) }
@@ -91,7 +92,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             if (player.instance!! != instance) player.setInstance(instance)
         }
 
-        if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>|</dark_gray> ${player.username}")
+        if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>(${players.size}/${gameOptions.maxPlayers}) |</dark_gray> ${player.username}")
 
         playerJoin(player)
 
@@ -115,7 +116,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.inventory.clear()
 
-        if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>|</dark_gray> ${player.username}")
+        if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>(${players.size}/${gameOptions.maxPlayers}) |</dark_gray> ${player.username}")
 
         if (players.size < gameOptions.minPlayers) {
             if (startingTask != null) {
@@ -171,7 +172,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun cancelCountdown() {
-        scoreboard?.updateLineContent("InfoLine", Component.text("Waiting for players...", NamedTextColor.GRAY))
+        scoreboard?.updateLineContent("InfoLine", Component.text("Waiting for players... (${gameOptions.minPlayers - players.size} more)", NamedTextColor.GRAY))
         startingTask?.cancel()
         startingTask = null
         showTitle(Title.title(Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD), Component.text("Not enough players"), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
@@ -186,12 +187,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         gameState = GameState.PLAYING
         scoreboard?.updateLineContent("InfoLine", Component.empty())
 
-        registerEvents()
+        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents()
         gameStarted()
     }
 
     fun destroy() {
-        LOGGER.info("A game of '${gameTypeInfo.gameName}' was destroyed")
+        LOGGER.info("A game of '${gameTypeInfo.gameName}' is destroying")
 
         gameTypeInfo.eventNode.removeChild(eventNode)
 

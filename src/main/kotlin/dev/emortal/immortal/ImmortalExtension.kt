@@ -6,6 +6,7 @@ import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.ForceStartCommand
 import dev.emortal.immortal.commands.PlayCommand
 import dev.emortal.immortal.game.GameManager.game
+import dev.emortal.immortal.game.WhenToRegisterEvents
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.GameMode
 import net.minestom.server.event.player.PlayerBlockBreakEvent
@@ -53,7 +54,7 @@ class ImmortalExtension : Extension() {
         CampfireHandler.register("minecraft:campfire")
         SkullHandler.register("minecraft:skull")
 
-        //ForceStartCommand.register()
+        ForceStartCommand.register()
         PlayCommand.register()
 
         logger.info("[Immortal] Initialized!")

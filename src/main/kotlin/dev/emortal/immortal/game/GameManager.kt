@@ -60,6 +60,7 @@ object GameManager {
         gameName: String,
         sidebarTitle: Component,
         showsInSlashPlay: Boolean = true,
+        whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
         defaultGameOptions: GameOptions
     ) {
         registeredGameMap[T::class] = GameTypeInfo(
@@ -67,6 +68,7 @@ object GameManager {
             gameName,
             sidebarTitle,
             showsInSlashPlay,
+            whenToRegisterEvents,
             defaultGameOptions
         )
 

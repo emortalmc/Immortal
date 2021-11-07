@@ -12,7 +12,7 @@ object ForceStartCommand : Kommand({
     default {
 
         // TODO: Use some permissions system instead
-        if (player.permissionLevel == 4) {
+        if (player.permissionLevel != 4) {
             player.sendMessage(Component.text("No permission", NamedTextColor.RED))
             return@default
         }
