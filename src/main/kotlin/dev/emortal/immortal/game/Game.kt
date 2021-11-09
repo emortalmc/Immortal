@@ -2,6 +2,7 @@ package dev.emortal.immortal.game
 
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
+import dev.emortal.immortal.util.reset
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -9,6 +10,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minestom.server.adventure.audience.PacketGroupingAudience
+import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
@@ -53,7 +55,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (gameOptions.showScoreboard) {
             scoreboard = gameTypeInfo.sidebarTitle?.let { Sidebar(it) }
 
-            scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 30))
+            scoreboard?.createLine(Sidebar.ScoreboardLine("HeaderSpacer", Component.empty(), 30))
 
             scoreboard?.createLine(
                 Sidebar.ScoreboardLine(
@@ -64,12 +66,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                     0
                 )
             )
-            scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -1))
+            scoreboard?.createLine(Sidebar.ScoreboardLine("FooterSpacer", Component.empty(), -1))
             scoreboard?.createLine(
                 Sidebar.ScoreboardLine(
                     "ipLine",
                     Component.text()
-                        .append(Component.text(" mc.emortal.dev ", NamedTextColor.DARK_GRAY))
+                        .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
                         .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
                         .build(),
                     -2
@@ -87,7 +89,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         scoreboard?.addViewer(player)
         GameManager.playerGameMap[player] = this
 
-        player.inventory.clear()
+        player.reset()
+
         player.scheduleNextTick {
             if (player.instance!! != instance) player.setInstance(instance)
         }
@@ -110,11 +113,11 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.remove(player)
         }
 
+        player.reset()
+
         players.remove(player)
         GameManager.playerGameMap.remove(player)
         scoreboard?.removeViewer(player)
-
-        player.inventory.clear()
 
         if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>(${players.size}/${gameOptions.maxPlayers}) |</dark_gray> ${player.username}")
 

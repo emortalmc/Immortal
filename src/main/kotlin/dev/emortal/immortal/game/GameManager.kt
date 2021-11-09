@@ -27,9 +27,7 @@ object GameManager {
     val Player.game get() = playerGameMap[this]
 
     fun <T : Game> Player.joinGameOrNew(clazz: KClass<T>, options: GameOptions = registeredGameMap[clazz]!!.defaultGameOptions): Game {
-        if (this.game != null) {
-            this.game!!.removePlayer(this)
-        }
+        this.game?.removePlayer(this)
 
         val game = gameMap[clazz]?.firstOrNull {
             // TODO: has to be changed for parties
