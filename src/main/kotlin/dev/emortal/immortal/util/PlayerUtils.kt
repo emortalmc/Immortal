@@ -5,6 +5,7 @@ import net.minestom.server.entity.Player
 
 fun Player.reset() {
     inventory.clear()
+    closeInventory()
     isInvisible = false
     isGlowing = false
     gameMode = GameMode.ADVENTURE

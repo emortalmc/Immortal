@@ -2,19 +2,17 @@ package dev.emortal.immortal.game
 
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
+import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.reset
-import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minestom.server.adventure.audience.PacketGroupingAudience
-import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
-import net.minestom.server.event.trait.InstanceEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
@@ -41,7 +39,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         it.setTag(gameIdTag, id)
     }
 
-    val eventNode = EventNode.tag("${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
+    val eventNode = EventNode.tag(
+        "${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
         gameIdTag
     ) { it == id }
 
@@ -175,10 +174,22 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun cancelCountdown() {
-        scoreboard?.updateLineContent("InfoLine", Component.text("Waiting for players... (${gameOptions.minPlayers - players.size} more)", NamedTextColor.GRAY))
+        scoreboard?.updateLineContent(
+            "InfoLine",
+            Component.text(
+                "Waiting for players... (${gameOptions.minPlayers - players.size} more)",
+                NamedTextColor.GRAY
+            )
+        )
         startingTask?.cancel()
         startingTask = null
-        showTitle(Title.title(Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD), Component.text("Not enough players"), Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))))
+        showTitle(
+            Title.title(
+                Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD),
+                Component.text("Not enough players"),
+                Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))
+            )
+        )
         playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
     }
 
@@ -199,7 +210,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         gameTypeInfo.eventNode.removeChild(eventNode)
 
-        GameManager.gameMap[this::class]!!.remove(this)
+        GameManager.gameMap[gameTypeInfo.gameName]?.remove(this)
 
         teams.forEach {
             it.destroy()
@@ -207,7 +218,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         players.forEach {
             scoreboard?.removeViewer(it)
-            it.chat("/play lobby")
+            it.joinGameOrNew("lobby")
             // TODO: Rejoining (gameOptions.autoRejoin) it.joinGameOrNew(this::class)
         }
 
