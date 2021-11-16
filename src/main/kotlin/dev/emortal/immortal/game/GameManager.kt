@@ -18,6 +18,7 @@ object GameManager {
     val gameIdTag = Tag.Integer("gameId")
 
     val playerGameMap = ConcurrentHashMap<Player, Game>()
+
     //KClass<out Game>
     val gameNameToClassMap = ConcurrentHashMap<String, KClass<out Game>>()
     val registeredGameMap = ConcurrentHashMap<KClass<out Game>, GameTypeInfo>()
@@ -28,7 +29,10 @@ object GameManager {
 
     val Player.game get() = playerGameMap[this]
 
-    fun Player.joinGameOrNew(gameTypeName: String, options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.defaultGameOptions): Game {
+    fun Player.joinGameOrNew(
+        gameTypeName: String,
+        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.defaultGameOptions
+    ): Game {
         this.game?.removePlayer(this)
 
         val game = gameMap[gameTypeName]?.firstOrNull {
@@ -48,14 +52,16 @@ object GameManager {
         nextGameID++
 
         val gameClass = gameNameToClassMap[gameTypeName]
-        val game = gameClass?.primaryConstructor?.call(options) ?: throw IllegalArgumentException("Primary constructor not found.")
+        val game = gameClass?.primaryConstructor?.call(options)
+            ?: throw IllegalArgumentException("Primary constructor not found.")
 
-        gameMap.getOrDefault(gameTypeName, mutableSetOf()).add(game)
+        gameMap.putIfAbsent(gameTypeName, mutableSetOf())
+        gameMap[gameTypeName]!!.add(game)
 
         return game
     }
 
-    inline fun <reified T: Game> registerGame(
+    inline fun <reified T : Game> registerGame(
         eventNode: EventNode<Event>,
         gameName: String,
         sidebarTitle: Component,
