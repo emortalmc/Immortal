@@ -1,6 +1,5 @@
 package dev.emortal.immortal.util
 
-import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.Player
 import net.minestom.server.item.Enchantment
@@ -15,7 +14,7 @@ fun Entity.takeKnockback(attacker: Entity) {
     val magnitude = sqrt(d0 * d0 + d1 * d1)
 
     var newVelocity = velocity
-        .withX(((velocity.x() / 2) - (d0 / magnitude * horizontalKnockback)) )
+        .withX(((velocity.x() / 2) - (d0 / magnitude * horizontalKnockback)))
         .withY((min((velocity.y() / 2) + 8, 8.0)))
         .withZ(((velocity.z() / 2) - (d1 / magnitude * horizontalKnockback)))
 
@@ -28,7 +27,7 @@ fun Entity.takeKnockback(attacker: Entity) {
 fun Entity.takeKnockback(attacker: Player) {
     val verticalKnockback = 0.4 * 20
     val horizontalKnockback = 0.4 * 20
-    val extraHorizontalKnockback = 0.5 * 20
+    val extraHorizontalKnockback = 0.3 * 20
     val extraVerticalKnockback = 0.1 * 20
     val limitVerticalKnockback = 0.4 * 20
 

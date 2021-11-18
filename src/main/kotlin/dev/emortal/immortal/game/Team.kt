@@ -13,27 +13,32 @@ class Team(
     val teamName: String,
     val colour: RGBLike,
     val collisionRule: TeamsPacket.CollisionRule = TeamsPacket.CollisionRule.NEVER,
-    val nameTagVisibility: TeamsPacket.NameTagVisibility = TeamsPacket.NameTagVisibility.ALWAYS
+    val nameTagVisibility: TeamsPacket.NameTagVisibility = TeamsPacket.NameTagVisibility.ALWAYS,
+    var friendlyFire: Boolean = false,
+    var canSeeInvisiblePlayers: Boolean = false
 ) : PacketGroupingAudience {
 
     private val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
 
-    val scoreboardTeam = Manager.team.createTeam(teamName).also {
-        it.teamColor = NamedTextColor.nearestTo(TextColor.color(colour))
-        it.collisionRule = collisionRule
-        it.nameTagVisibility = nameTagVisibility
-    }
+    val scoreboardTeam = Manager.team.createBuilder(teamName)
+        .teamColor(NamedTextColor.nearestTo(TextColor.color(colour)))
+        .collisionRule(collisionRule)
+        .nameTagVisibility(nameTagVisibility)
+        .also {
+            if (friendlyFire) it.allowFriendlyFire()
+            if (canSeeInvisiblePlayers) it.seeInvisiblePlayers()
+        }
+        .updateTeamPacket()
+        .build()
 
     fun add(player: Player) {
         player.team = scoreboardTeam
         players += player
-        scoreboardTeam.sendUpdatePacket()
     }
 
     fun remove(player: Player) {
         player.team = null
         players -= player
-        scoreboardTeam.sendUpdatePacket()
     }
 
     fun destroy() {
@@ -45,5 +50,4 @@ class Team(
     }
 
     override fun getPlayers(): MutableCollection<Player> = players
-
 }
