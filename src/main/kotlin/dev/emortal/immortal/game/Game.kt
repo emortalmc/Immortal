@@ -51,7 +51,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     var startingTask: Task? = null
     var scoreboard: Sidebar? = null
 
-    val spectatorInventory = SpectatingInventory(players)
+    val spectatorInventory = SpectatingInventory(this)
 
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
