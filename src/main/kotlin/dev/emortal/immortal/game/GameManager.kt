@@ -18,8 +18,8 @@ object GameManager {
     val gameIdTag = Tag.Integer("gameId")
 
     val playerGameMap = ConcurrentHashMap<Player, Game>()
+    val spectatorToFriendMap = ConcurrentHashMap<Player, Player>()
 
-    //KClass<out Game>
     val gameNameToClassMap = ConcurrentHashMap<String, KClass<out Game>>()
     val registeredGameMap = ConcurrentHashMap<KClass<out Game>, GameTypeInfo>()
     val gameMap = ConcurrentHashMap<String, MutableSet<Game>>()

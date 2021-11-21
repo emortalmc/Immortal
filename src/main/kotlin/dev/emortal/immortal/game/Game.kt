@@ -3,6 +3,7 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
+import dev.emortal.immortal.inventory.SpectatingInventory
 import dev.emortal.immortal.util.reset
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -10,15 +11,17 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minestom.server.adventure.audience.PacketGroupingAudience
+import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
 import net.minestom.server.instance.Instance
+import net.minestom.server.item.ItemStack
+import net.minestom.server.item.Material
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import org.slf4j.LoggerFactory
-import world.cepi.kstom.adventure.sendMiniMessage
 import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
@@ -26,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
 abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
+    val spectators: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val teams = mutableSetOf<Team>()
 
     var gameState = GameState.WAITING_FOR_PLAYERS
@@ -46,6 +50,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     var startingTask: Task? = null
     var scoreboard: Sidebar? = null
+
+    val spectatorInventory = SpectatingInventory(players)
 
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
@@ -94,7 +100,14 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             if (player.instance!! != instance) player.setInstance(instance)
         }
 
-        if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<green><bold>JOIN</bold></green> <dark_gray>(${players.size}/${gameOptions.maxPlayers}) |</dark_gray> ${player.username}")
+        if (gameOptions.showsJoinLeaveMessages) sendMessage(
+            Component.text()
+                .append(Component.text("JOIN", NamedTextColor.GREEN, TextDecoration.BOLD))
+                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(player.username, NamedTextColor.GREEN))
+                .append(Component.text(" joined the game ", NamedTextColor.GRAY))
+                .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+        )
 
         playerJoin(player)
 
@@ -106,6 +119,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun removePlayer(player: Player) {
+        if (!players.contains(player)) return
+
         LOGGER.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
 
         teams.forEach {
@@ -118,7 +133,14 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         GameManager.playerGameMap.remove(player)
         scoreboard?.removeViewer(player)
 
-        if (gameOptions.showsJoinLeaveMessages) sendMiniMessage("<red><bold>QUIT</bold></red> <dark_gray>(${players.size}/${gameOptions.maxPlayers}) |</dark_gray> ${player.username}")
+        if (gameOptions.showsJoinLeaveMessages) sendMessage(
+            Component.text()
+                .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
+                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(player.username, NamedTextColor.RED))
+                .append(Component.text(" left the game", NamedTextColor.GRAY))
+                .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+        )
 
         if (players.size < gameOptions.minPlayers) {
             if (startingTask != null) {
@@ -133,6 +155,58 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         playerLeave(player)
     }
+
+    fun addSpectator(player: Player, friend: Player) {
+        LOGGER.info("${player.username} spectating game '${gameTypeInfo.gameName}'")
+
+        player.reset()
+        player.isAutoViewable = false
+        player.isInvisible = true
+        player.isAllowFlying = true
+        player.isFlying = true
+        player.gameMode = GameMode.SPECTATOR
+
+        player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+
+        friend.sendMessage(
+            Component.text()
+                .append(Component.text("FRIEND", NamedTextColor.GOLD, TextDecoration.BOLD))
+                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                .append(Component.text("Your friend ", NamedTextColor.GRAY))
+                .append(Component.text(player.username, NamedTextColor.GREEN))
+                .append(Component.text(" is now spectating your game", NamedTextColor.GRAY))
+        )
+
+        GameManager.spectatorToFriendMap[player] = friend
+
+        spectatorJoin(player, friend)
+    }
+
+    fun removeSpectator(player: Player) {
+        if (!spectators.contains(player)) return
+
+        val friend = GameManager.spectatorToFriendMap[player]
+
+        LOGGER.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
+
+        spectators.add(player)
+
+        friend?.sendMessage(
+            Component.text()
+                .append(Component.text("FRIEND", NamedTextColor.GOLD, TextDecoration.BOLD))
+                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                .append(Component.text("Your friend ", NamedTextColor.GRAY))
+                .append(Component.text(player.username, NamedTextColor.RED))
+                .append(Component.text(" is no longer spectating your game", NamedTextColor.GRAY))
+        )
+
+        player.reset()
+
+        spectatorLeave(player, friend!!)
+    }
+
+    abstract fun spectatorJoin(player: Player, friend: Player)
+    abstract fun spectatorLeave(player: Player, friend: Player)
 
     abstract fun playerJoin(player: Player)
     abstract fun playerLeave(player: Player)
@@ -206,7 +280,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun destroy() {
-        LOGGER.info("A game of '${gameTypeInfo.gameName}' is destroying")
+        LOGGER.info("A game of '${gameTypeInfo.gameName}' is being destroyed")
 
         gameTypeInfo.eventNode.removeChild(eventNode)
 
@@ -219,7 +293,11 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         players.forEach {
             scoreboard?.removeViewer(it)
             it.joinGameOrNew("lobby")
-            // TODO: Rejoining (gameOptions.autoRejoin) it.joinGameOrNew(this::class)
+            //it.joinGameOrNew(gameTypeInfo.gameName, gameOptions)
+        }
+
+        spectators.forEach {
+            it.joinGameOrNew("lobby")
         }
 
         gameDestroyed()
@@ -242,6 +320,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     abstract fun instanceCreate(): Instance
 
-    override fun getPlayers(): MutableCollection<Player> = players
+    override fun getPlayers(): MutableCollection<Player> = (players + spectators).toMutableSet()
 
 }

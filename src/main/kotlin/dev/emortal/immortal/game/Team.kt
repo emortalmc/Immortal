@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class Team(
     val teamName: String,
-    val colour: RGBLike,
+    val colour: RGBLike = NamedTextColor.WHITE,
     val collisionRule: TeamsPacket.CollisionRule = TeamsPacket.CollisionRule.NEVER,
     val nameTagVisibility: TeamsPacket.NameTagVisibility = TeamsPacket.NameTagVisibility.ALWAYS,
     var friendlyFire: Boolean = false,
@@ -26,7 +26,7 @@ class Team(
         .nameTagVisibility(nameTagVisibility)
         .also {
             if (friendlyFire) it.allowFriendlyFire()
-            if (canSeeInvisiblePlayers) it.seeInvisiblePlayers()
+            if (canSeeInvisiblePlayers) it.updateSeeInvisiblePlayers()
         }
         .updateTeamPacket()
         .build()

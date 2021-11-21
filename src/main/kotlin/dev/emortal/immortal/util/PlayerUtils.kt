@@ -5,6 +5,7 @@ import net.minestom.server.entity.Player
 
 fun Player.reset() {
     inventory.clear()
+    isAutoViewable = true
     closeInventory()
     isInvisible = false
     isGlowing = false
