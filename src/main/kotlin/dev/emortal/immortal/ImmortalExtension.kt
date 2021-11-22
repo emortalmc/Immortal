@@ -5,6 +5,7 @@ import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.ForceStartCommand
 import dev.emortal.immortal.commands.PlayCommand
+import dev.emortal.immortal.commands.SpectateCommand
 import dev.emortal.immortal.game.GameManager.game
 import net.minestom.server.entity.GameMode
 import net.minestom.server.event.player.*
@@ -66,6 +67,7 @@ class ImmortalExtension : Extension() {
 
         ForceStartCommand.register()
         PlayCommand.register()
+        SpectateCommand.register()
 
         logger.info("[Immortal] Initialized!")
     }
@@ -73,6 +75,7 @@ class ImmortalExtension : Extension() {
     override fun terminate() {
         ForceStartCommand.unregister()
         PlayCommand.unregister()
+        SpectateCommand.unregister()
 
         logger.info("[Immortal] Terminated!")
     }

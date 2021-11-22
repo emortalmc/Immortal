@@ -53,7 +53,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     var startingTask: Task? = null
     var scoreboard: Sidebar? = null
 
-    val spectatorGUI = SpectatingGUI(this)
+    val spectatorGUI = SpectatingGUI()
 
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
@@ -61,7 +61,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         eventNode.listenOnly<PlayerUseItemEvent> {
             if (!spectators.contains(player)) return@listenOnly
             if (player.itemInMainHand.material != Material.COMPASS) return@listenOnly
-
             player.openInventory(spectatorGUI.inventory)
         }
 
@@ -102,7 +101,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         LOGGER.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
-        spectatorGUI.refresh()
+        spectatorGUI.refresh(players)
 
         players.add(player)
         scoreboard?.addViewer(player)
@@ -137,7 +136,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         LOGGER.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
 
-        spectatorGUI.refresh()
+        spectatorGUI.refresh(players)
 
         teams.forEach {
             it.remove(player)
@@ -154,7 +153,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
                 .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
                 .append(Component.text(player.username, NamedTextColor.RED))
-                .append(Component.text(" left the game", NamedTextColor.GRAY))
+                .append(Component.text(" left the game ", NamedTextColor.GRAY))
                 .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
         )
 
