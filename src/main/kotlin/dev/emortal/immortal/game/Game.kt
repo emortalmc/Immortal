@@ -3,7 +3,7 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
-import dev.emortal.immortal.inventory.SpectatingInventory
+import dev.emortal.immortal.inventory.SpectatingGUI
 import dev.emortal.immortal.util.reset
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -15,6 +15,7 @@ import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
+import net.minestom.server.event.player.PlayerUseItemEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.item.ItemStack
 import net.minestom.server.item.Material
@@ -22,6 +23,7 @@ import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import org.slf4j.LoggerFactory
+import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
@@ -51,10 +53,18 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     var startingTask: Task? = null
     var scoreboard: Sidebar? = null
 
-    val spectatorInventory = SpectatingInventory(this)
+    val spectatorGUI = SpectatingGUI(this)
 
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
+
+        eventNode.listenOnly<PlayerUseItemEvent> {
+            if (!spectators.contains(player)) return@listenOnly
+            if (player.itemInMainHand.material != Material.COMPASS) return@listenOnly
+
+            player.openInventory(spectatorGUI.inventory)
+        }
+
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
         if (gameOptions.showScoreboard) {
@@ -87,8 +97,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         LOGGER.info("A game of '${gameTypeInfo.gameName}' was created")
     }
 
-    fun addPlayer(player: Player) {
+    fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+        if (players.contains(player)) return
+
         LOGGER.info("${player.username} joining game '${gameTypeInfo.gameName}'")
+
+        spectatorGUI.refresh()
 
         players.add(player)
         scoreboard?.addViewer(player)
@@ -100,7 +114,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             if (player.instance!! != instance) player.setInstance(instance)
         }
 
-        if (gameOptions.showsJoinLeaveMessages) sendMessage(
+        if (joinMessage) sendMessage(
             Component.text()
                 .append(Component.text("JOIN", NamedTextColor.GREEN, TextDecoration.BOLD))
                 .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
@@ -118,10 +132,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
     }
 
-    fun removePlayer(player: Player) {
+    fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (!players.contains(player)) return
 
         LOGGER.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
+
+        spectatorGUI.refresh()
 
         teams.forEach {
             it.remove(player)
@@ -133,7 +149,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         GameManager.playerGameMap.remove(player)
         scoreboard?.removeViewer(player)
 
-        if (gameOptions.showsJoinLeaveMessages) sendMessage(
+        if (leaveMessage) sendMessage(
             Component.text()
                 .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
                 .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
@@ -157,6 +173,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun addSpectator(player: Player, friend: Player) {
+        if (spectators.contains(player)) return
+
         LOGGER.info("${player.username} spectating game '${gameTypeInfo.gameName}'")
 
         player.reset()
@@ -205,8 +223,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         spectatorLeave(player, friend!!)
     }
 
-    abstract fun spectatorJoin(player: Player, friend: Player)
-    abstract fun spectatorLeave(player: Player, friend: Player)
+    open fun spectatorJoin(player: Player, friend: Player) {}
+    open fun spectatorLeave(player: Player, friend: Player) {}
 
     abstract fun playerJoin(player: Player)
     abstract fun playerLeave(player: Player)
