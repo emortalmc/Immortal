@@ -1,6 +1,7 @@
 package dev.emortal.immortal.game
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
@@ -81,5 +82,19 @@ object GameManager {
         )
 
         LOGGER.info("Registered game type '${gameName}'")
+    }
+
+    inline fun <reified T : Game> unregisterGame() {
+        val gameName = registeredGameMap[T::class]!!.gameName
+
+        gameMap[gameName]?.forEach {
+            it.sendMessage(Component.text("Game was reloaded!", NamedTextColor.RED))
+            it.destroy()
+        }
+        gameMap.remove(gameName)
+        gameNameToClassMap.remove(gameName)
+        registeredGameMap.remove(T::class)
+
+        LOGGER.info("Unregistered game type '${gameName}'")
     }
 }
