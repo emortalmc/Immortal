@@ -38,13 +38,13 @@ dependencies {
     compileOnly(kotlin("reflect"))
 
     // Compile Minestom into project
-    compileOnly("com.github.Minestom:Minestom:5734097789")
+    compileOnly("com.github.Minestom:Minestom:e53c0a68fb")
     compileOnly("com.github.EmortalMC:Acquaintance:405ff23175")
-    api("com.github.Project-Cepi:Kstom:a2373045c4")
+    api("com.github.Project-Cepi:Kstom:2731335167")
     api("com.github.Project-Cepi:Particable:b8b604e205")
 
     // import kotlinx serialization
-    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
 }
 tasks.withType<Test> {
     useJUnitPlatform()
