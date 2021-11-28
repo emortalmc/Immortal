@@ -1,17 +1,38 @@
 package dev.emortal.immortal.inventory
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
+import net.minestom.server.entity.PlayerSkin
 import net.minestom.server.inventory.Inventory
 import net.minestom.server.inventory.InventoryType
 import net.minestom.server.item.Material
 import net.minestom.server.item.metadata.PlayerHeadMeta
+import net.minestom.server.tag.Tag
 import world.cepi.kstom.item.item
+import world.cepi.kstom.util.asPlayer
 import world.cepi.kstom.util.setItemStack
+import java.util.*
 
 class SpectatingGUI : GUI() {
 
+    companion object {
+        val playerUUIDTag = Tag.String("uuid")
+    }
+
     override fun createInventory(): Inventory {
         val inventory = Inventory(InventoryType.CHEST_6_ROW, "Spectate player")
+
+        inventory.addInventoryCondition { player, slot, clickType, inventoryConditionResult ->
+            inventoryConditionResult.isCancel = true
+
+            if (inventory.getItemStack(slot).material != Material.PLAYER_HEAD) return@addInventoryCondition
+
+            val clickedPlayer = UUID.fromString(inventory.getItemStack(slot).getTag(playerUUIDTag)).asPlayer()
+                ?: return@addInventoryCondition
+
+            player.teleport(clickedPlayer.position)
+        }
 
         return inventory
     }
@@ -26,10 +47,12 @@ class SpectatingGUI : GUI() {
                 val meta = this as PlayerHeadMeta.Builder
 
                 meta.skullOwner(player.uuid)
-                meta.playerSkin(player.skin)
+                meta.playerSkin(PlayerSkin.fromUuid(player.uuid.toString()))
+                meta.displayName(Component.text(player.username, NamedTextColor.YELLOW))
+                meta.setTag(playerUUIDTag, player.uuid.toString())
             }
 
-            inventory.setItemStack(i % 8, i / 9, headItemStack)
+            inventory.setItemStack(i % 8, 1 + (i / 9), headItemStack)
         }
     }
 

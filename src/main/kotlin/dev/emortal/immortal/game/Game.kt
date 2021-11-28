@@ -67,7 +67,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
         if (gameOptions.showScoreboard) {
-            scoreboard = gameTypeInfo.sidebarTitle?.let { Sidebar(it) }
+            scoreboard = gameTypeInfo.gameTitle?.let { Sidebar(it) }
 
             scoreboard?.createLine(Sidebar.ScoreboardLine("HeaderSpacer", Component.empty(), 30))
 
@@ -101,13 +101,13 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         LOGGER.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
-        spectatorGUI.refresh(players)
-
         players.add(player)
         scoreboard?.addViewer(player)
         GameManager.playerGameMap[player] = this
 
         player.reset()
+
+        spectatorGUI.refresh(players)
 
         player.scheduleNextTick {
             if (player.instance!! != instance) player.setInstance(instance)
@@ -177,13 +177,17 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         LOGGER.info("${player.username} spectating game '${gameTypeInfo.gameName}'")
 
         player.reset()
+        player.respawnPoint = friend.position
+        if (player.instance != instance) player.setInstance(instance)
         player.isAutoViewable = false
         player.isInvisible = true
+        player.gameMode = GameMode.ADVENTURE
         player.isAllowFlying = true
         player.isFlying = true
-        player.gameMode = GameMode.SPECTATOR
 
         player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+
+        spectators.add(player)
 
         friend.sendMessage(
             Component.text()
@@ -206,7 +210,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         LOGGER.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
 
-        spectators.add(player)
+        spectators.remove(player)
+        player.joinGameOrNew("lobby")
 
         friend?.sendMessage(
             Component.text()

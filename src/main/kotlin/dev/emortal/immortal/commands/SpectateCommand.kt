@@ -31,13 +31,18 @@ object SpectateCommand : Kommand({
         val friend = !friendArg
         val game = friend.game
 
-        if (player.friends.contains(friend.uuid)) {
+        if (!player.friends.contains(friend.uuid)) {
             player.sendMessage(Component.text("You are not friends with '${friend.username}'", NamedTextColor.RED))
             return@syntax
         }
 
         if (game == null) {
             player.sendMessage(Component.text("'${friend.username}' is not in a game", NamedTextColor.RED))
+            return@syntax
+        }
+
+        if (game.gameTypeInfo.gameName == "lobby") {
+            player.sendMessage(Component.text("'${friend.username}' is in the lobby", NamedTextColor.RED))
             return@syntax
         }
 
