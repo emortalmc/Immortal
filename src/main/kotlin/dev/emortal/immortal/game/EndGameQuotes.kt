@@ -3,12 +3,12 @@ package dev.emortal.immortal.game
 object EndGameQuotes {
 
     val victory = setOf(
+        "pepeD",
         "gg ez no re",
         "All luck",
         "NoHacksJustSkill",
         "Were you hacking?",
         "skillage",
-        "no",
         "I dropped my popcorn",
         "Defeat... but not for you",
         "Teamwork makes the dream work",
@@ -33,7 +33,7 @@ object EndGameQuotes {
         "smh my head",
         "I bet you didn't even say good game",
         "You did your best... but it wasn't enough",
-        "i lagged -An Australian",
+        "\"i lagged\" says an Australian",
         "If I had a dollar every time you won a game, I'd be in crippling debt",
         // "Even {lowest player on leaderboard} is better than you"
     )
