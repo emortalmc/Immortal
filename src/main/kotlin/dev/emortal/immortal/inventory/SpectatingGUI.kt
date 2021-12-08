@@ -47,7 +47,7 @@ class SpectatingGUI : GUI() {
                 val meta = this as PlayerHeadMeta.Builder
 
                 meta.skullOwner(player.uuid)
-                meta.playerSkin(PlayerSkin.fromUuid(player.uuid.toString()))
+                meta.playerSkin(PlayerSkin.fromUuid(player.uuid.toString()) ?: PlayerSkin.fromUsername(""))
                 meta.displayName(Component.text(player.username, NamedTextColor.YELLOW))
                 meta.setTag(playerUUIDTag, player.uuid.toString())
             }
