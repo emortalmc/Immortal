@@ -2,6 +2,7 @@ package dev.emortal.immortal.commands
 
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
+import dev.emortal.immortal.util.smallcaps
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.title.Title
@@ -17,7 +18,6 @@ object PlayCommand : Kommand({
 
     val gamemodeArg = ArgumentType.Word("gamemode").map { input: String ->
         GameManager.registeredGameMap.entries.firstOrNull { it.value.gameName == input && it.value.showsInSlashPlay }
-
     }.suggest {
         GameManager.registeredGameMap.values
             .filter { it.showsInSlashPlay }
@@ -27,7 +27,7 @@ object PlayCommand : Kommand({
     syntax(gamemodeArg) {
         val gamemode = !gamemodeArg
 
-        player.sendActionBar(Component.text("Joining ${gamemode!!.value.gameName}...", NamedTextColor.GREEN))
+        player.sendActionBar(Component.text("Joining ${gamemode!!.value.gameName.smallcaps()}...", NamedTextColor.GREEN))
 
         player.showTitle(
             Title.title(

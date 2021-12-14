@@ -27,6 +27,10 @@ class ImmortalExtension : Extension() {
             player.game?.removeSpectator(player)
         }
         eventNode.listenOnly<PlayerSpawnEvent> {
+            if (isFirstSpawn) {
+                player.isEnableRespawnScreen = false
+            }
+
             if (player.game != null) {
                 if (player.game?.instance != spawnInstance) {
                     player.game?.removePlayer(player)
