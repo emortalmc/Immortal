@@ -1,5 +1,6 @@
 package dev.emortal.immortal.util
 
+import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -25,22 +26,8 @@ fun Iterable<Duration>.sum(): Duration {
 val Title.Times.totalDuration: Duration
     get() = fadeIn().plus(stay()).plus(fadeOut())
 
-fun Player.queueTitle(title: Title, lambda: () -> Unit = {}) {
-    val queue = TitleUtils.playerTitleQueue.getOrDefault(this, mutableListOf())
-    val queueDuration = queue.map { (it.times() ?: Title.DEFAULT_TIMES).totalDuration }.sum()
-
-    Manager.scheduler.buildTask {
-        this.showTitle(title)
-        queue.remove(title)
-        lambda.invoke()
-    }.delay(queueDuration)
-}
-
 fun Player.counterTitle(color: NamedTextColor, game: String, xp: Int) {
     val ticks = 20
-
-    val queue = TitleUtils.playerTitleQueue.getOrDefault(this, mutableListOf())
-    val queueDuration = queue.map { (it.times() ?: Title.DEFAULT_TIMES).totalDuration }.sum()
 
     object : MinestomRunnable() {
         var i = 0
@@ -81,11 +68,5 @@ fun Player.counterTitle(color: NamedTextColor, game: String, xp: Int) {
             )
             i++
         }
-    }.delay(queueDuration).repeat(Duration.ofMillis(50)).schedule()
-
-
-}
-
-object TitleUtils {
-    val playerTitleQueue = hashMapOf<Player, MutableList<Title>>()
+    }.repeat(Duration.ofMillis(50)).schedule()
 }
