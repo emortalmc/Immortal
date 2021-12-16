@@ -5,6 +5,7 @@ import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.inventory.SpectatingGUI
 import dev.emortal.immortal.util.reset
+import dev.emortal.immortal.util.task
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -24,7 +25,6 @@ import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import org.slf4j.LoggerFactory
 import world.cepi.kstom.event.listenOnly
-import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
@@ -44,6 +44,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         it.setTag(gameNameTag, gameTypeInfo.gameName)
         it.setTag(gameIdTag, id)
     }
+
+    val instances = mutableListOf(instance)
 
     val eventNode = EventNode.tag(
         "${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
@@ -243,30 +245,18 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
-        startingTask = object : MinestomRunnable() {
-            var secs = gameOptions.countdownSeconds
-
-            override fun run() {
-                if (secs < 1) {
-                    cancel()
-                    start()
-                    return
-                }
-
-                playSound(Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.AMBIENT, 1f, 1f))
-                showTitle(
-                    Title.title(
-                        Component.text(secs, NamedTextColor.GREEN, TextDecoration.BOLD),
-                        Component.empty(),
-                        Title.Times.of(
-                            Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
-                        )
+        startingTask = task(repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds, finalIteration = { start() }) { _,i ->
+            playSound(Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.AMBIENT, 1f, 1f))
+            showTitle(
+                Title.title(
+                    Component.text(i + 1, NamedTextColor.GREEN, TextDecoration.BOLD),
+                    Component.empty(),
+                    Title.Times.of(
+                        Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
                     )
                 )
-
-                secs--
-            }
-        }.repeat(Duration.ofSeconds(1)).schedule()
+            )
+        }
     }
 
     fun cancelCountdown() {
@@ -292,7 +282,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     abstract fun registerEvents()
 
     fun start() {
-        startingTask?.cancel()
         startingTask = null
         gameState = GameState.PLAYING
         scoreboard?.updateLineContent("InfoLine", Component.empty())

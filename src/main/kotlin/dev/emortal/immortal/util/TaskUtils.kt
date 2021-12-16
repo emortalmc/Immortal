@@ -4,7 +4,7 @@ import net.minestom.server.timer.Task
 import world.cepi.kstom.Manager
 import java.time.Duration
 
-fun task(wait: Duration = Duration.ZERO, repeat: Duration = Duration.ZERO, iterations: Int = 1, finalIteration: () -> Unit = {}, lambda: (Task, Int) -> Unit) {
+fun task(wait: Duration = Duration.ZERO, repeat: Duration = Duration.ZERO, iterations: Int = 1, finalIteration: () -> Unit = {}, lambda: (Task, Int) -> Unit): Task {
     lateinit var task1: Task
     var i = 0
 
@@ -17,4 +17,6 @@ fun task(wait: Duration = Duration.ZERO, repeat: Duration = Duration.ZERO, itera
         lambda(task1, i);
         i++
     }.delay(wait).repeat(repeat).schedule()
+
+    return task1
 }

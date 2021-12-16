@@ -32,7 +32,7 @@ class ImmortalExtension : Extension() {
             }
 
             if (player.game != null) {
-                if (player.game?.instance != spawnInstance) {
+                if (player.game?.instances?.contains(spawnInstance) != true) {
                     player.game?.removePlayer(player)
                     player.game?.removeSpectator(player)
                 }
