@@ -40,8 +40,9 @@ dependencies {
     // Compile Minestom into project
     compileOnly("com.github.emortaldev:Minestom:d25ea275e4")
     compileOnly("com.github.EmortalMC:Acquaintance:405ff23175")
-    api("com.github.Project-Cepi:Kstom:b195c64c8d")
+    api("com.github.Project-Cepi:Kstom:6bbc7aacce")
     api("com.github.Project-Cepi:Particable:9d08bbd4cc")
+    api("com.github.emortaldev:particable:e98f138cda")
 
     // import kotlinx serialization
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
