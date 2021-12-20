@@ -28,26 +28,38 @@ object GameManager {
     @Volatile
     var nextGameID = 0
 
-    val Player.game get() = playerGameMap[this]
+    var Player.game get() = playerGameMap[this]
+        set(value) {
+            if (value == null) return
+            this.joinGame(value)
+        }
+
+    fun Player.joinGame(game: Game) {
+        val lastGame = this.game
+
+        playerGameMap[this] = game
+        game.addPlayer(this)
+
+        lastGame?.removePlayer(this)
+    }
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.defaultGameOptions
-    ): Game {
-        this.game?.removePlayer(this)
+    ) = this.joinGame(findOrCreateGame(gameTypeName, options))
 
+    fun findOrCreateGame(
+        gameTypeName: String,
+        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.defaultGameOptions
+    ): Game {
         val game = gameMap[gameTypeName]?.firstOrNull {
             // TODO: has to be changed for parties
             it.canBeJoined()
         }
             ?: createGame(gameTypeName, options)
 
-        game.addPlayer(this)
-
         return game
     }
-
-    //inline fun <reified T : Game> Player.joinGameOrNew(options: GameOptions = registeredGameMap[gameTypeName]!!.defaultGameOptions): Game = this.joinGameOrNew(T::class, options)
 
     fun createGame(gameTypeName: String, options: GameOptions): Game {
         nextGameID++

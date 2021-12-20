@@ -3,10 +3,12 @@ package dev.emortal.immortal.commands
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.smallcaps
+import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.title.Title
 import net.minestom.server.command.builder.arguments.ArgumentType
+import net.minestom.server.sound.SoundEvent
 import world.cepi.kstom.Manager
 import world.cepi.kstom.command.arguments.suggest
 import world.cepi.kstom.command.kommand.Kommand
@@ -29,22 +31,8 @@ object PlayCommand : Kommand({
 
         player.sendActionBar(Component.text("Joining ${gamemode!!.value.gameName.smallcaps()}...", NamedTextColor.GREEN))
 
-        player.showTitle(
-            Title.title(
-                Component.text("\uE00A"),
-                Component.empty(),
-                Title.Times.of(
-                    Duration.ofMillis(250),
-                    Duration.ofMillis(500),
-                    Duration.ofMillis(250)
-                )
-            )
-        )
-
-        Manager.scheduler.buildTask {
-            player.joinGameOrNew(gamemode.value.gameName, GameManager.registeredGameMap[gamemode.key]!!.defaultGameOptions)
-        }.delay(Duration.ofMillis(500)).schedule()
-
+        player.joinGameOrNew(gamemode.value.gameName)
+        player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
     }
 
 }, "play", "join")

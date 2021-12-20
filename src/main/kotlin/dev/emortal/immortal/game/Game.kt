@@ -24,6 +24,7 @@ import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import org.slf4j.LoggerFactory
+import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
@@ -98,22 +99,19 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         LOGGER.info("A game of '${gameTypeInfo.gameName}' was created")
     }
 
-    fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (players.contains(player)) return
 
         LOGGER.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
         players.add(player)
         scoreboard?.addViewer(player)
-        GameManager.playerGameMap[player] = this
 
         player.reset()
 
         spectatorGUI.refresh(players)
 
-        player.scheduleNextTick {
-            if (player.instance!! != instance) player.setInstance(instance)
-        }
+        if (player.instance!! != instance) player.setInstance(instance)
 
         if (joinMessage) sendMessage(
             Component.text()
@@ -123,8 +121,11 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 .append(Component.text(" joined the game ", NamedTextColor.GRAY))
                 .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
         )
+        playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
 
-        playerJoin(player)
+        player.scheduleNextTick {
+            playerJoin(player)
+        }
 
         if (players.size >= gameOptions.minPlayers) {
             if (startingTask != null) return
@@ -133,7 +134,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
     }
 
-    fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+    internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (!players.contains(player)) return
 
         LOGGER.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
@@ -158,6 +159,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 .append(Component.text(" left the game ", NamedTextColor.GRAY))
                 .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
         )
+        playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 0.5f))
 
         if (players.size < gameOptions.minPlayers) {
             if (startingTask != null) {
@@ -200,6 +202,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 .append(Component.text(" is now spectating your game", NamedTextColor.GRAY))
         )
 
+        player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
         GameManager.spectatorToFriendMap[player] = friend
 
         spectatorJoin(player, friend)
@@ -224,6 +228,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 .append(Component.text(" is no longer spectating your game", NamedTextColor.GRAY))
         )
 
+
         player.reset()
 
         spectatorLeave(player, friend!!)
@@ -246,10 +251,10 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
         startingTask = task(repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds, finalIteration = { start() }) { _,i ->
-            playSound(Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.AMBIENT, 1f, 1f))
+            playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_COW_BELL, Sound.Source.AMBIENT, 1f, 0.5f))
             showTitle(
                 Title.title(
-                    Component.text(i + 1, NamedTextColor.GREEN, TextDecoration.BOLD),
+                    Component.text(gameOptions.countdownSeconds - i, NamedTextColor.GREEN, TextDecoration.BOLD),
                     Component.empty(),
                     Title.Times.of(
                         Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
@@ -282,6 +287,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     abstract fun registerEvents()
 
     fun start() {
+        playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
         startingTask = null
         gameState = GameState.PLAYING
         scoreboard?.updateLineContent("InfoLine", Component.empty())
@@ -309,6 +316,10 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         spectators.forEach {
             it.joinGameOrNew("lobby")
+        }
+
+        instances.forEach {
+            Manager.instance.unregisterInstance(it)
         }
 
         gameDestroyed()
