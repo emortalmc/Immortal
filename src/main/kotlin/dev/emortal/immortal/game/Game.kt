@@ -127,7 +127,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             playerJoin(player)
         }
 
-        if (players.size >= gameOptions.minPlayers) {
+        if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
             if (startingTask != null) return
 
             startCountdown()
