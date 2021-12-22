@@ -37,9 +37,11 @@ object GameManager {
     fun Player.joinGame(game: Game) {
         val lastGame = this.game
 
-        playerGameMap[this] = game
-        game.addPlayer(this)
+        LOGGER.info("${username} was last in ${lastGame?.gameTypeInfo?.gameName}")
 
+        playerGameMap[this] = game
+
+        game.addPlayer(this)
         lastGame?.removePlayer(this)
     }
 
