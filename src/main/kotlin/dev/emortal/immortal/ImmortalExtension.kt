@@ -8,7 +8,6 @@ import dev.emortal.immortal.commands.PlayCommand
 import dev.emortal.immortal.commands.SoundCommand
 import dev.emortal.immortal.commands.SpectateCommand
 import dev.emortal.immortal.game.GameManager
-import dev.emortal.immortal.game.GameManager.LOGGER
 import dev.emortal.immortal.game.GameManager.game
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -17,46 +16,26 @@ import net.minestom.server.entity.Player
 import net.minestom.server.event.entity.EntityTickEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.extensions.Extension
-import net.minestom.server.network.packet.server.play.PlayerInfoPacket
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import world.cepi.kstom.Manager
-import world.cepi.kstom.event.listen
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
-import java.time.Duration
-import java.util.*
 
 class ImmortalExtension : Extension() {
-
-    companion object {
-        val unregisterQueue = mutableListOf<UUID>()
-        val lastInstanceMap = hashMapOf<Player, UUID>()
-    }
 
     override fun initialize() {
         eventNode.listenOnly<PlayerDisconnectEvent> {
             player.game?.removePlayer(player)
             player.game?.removeSpectator(player)
             GameManager.playerGameMap.remove(player)
+
+            if (instance.players.size == 0) {
+                Manager.instance.unregisterInstance(instance)
+            }
         }
 
         eventNode.listenOnly<PlayerSpawnEvent> {
-            if (isFirstSpawn) {
-                player.isEnableRespawnScreen = false
-            }
-
-            LOGGER.info("${player.username} switched instance")
-            if (unregisterQueue.contains(lastInstanceMap[player])) {
-                val lastInstance = Manager.instance.getInstance(lastInstanceMap[player]!!)
-
-                if (lastInstance?.players?.size == 0) {
-                    Manager.instance.unregisterInstance(lastInstance)
-                    LOGGER.info("Unregistered instance - Current instances: ${Manager.instance.instances.size}")
-                }
-            }
-
-            lastInstanceMap[player] = spawnInstance.uniqueId
 
             /*if (player.game != null) {
                 if (player.game?.instances?.contains(spawnInstance) == false) {

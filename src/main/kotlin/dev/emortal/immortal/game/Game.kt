@@ -1,10 +1,7 @@
 package dev.emortal.immortal.game
 
-import dev.emortal.immortal.ImmortalExtension
-import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
-import dev.emortal.immortal.game.GameManager.joinGame
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.inventory.SpectatingGUI
 import dev.emortal.immortal.util.reset
@@ -26,7 +23,6 @@ import net.minestom.server.item.Material
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
-import net.minestom.server.utils.time.TimeUnit
 import org.slf4j.LoggerFactory
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
@@ -43,14 +39,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not registered")
     val id = GameManager.nextGameID
 
-    val LOGGER = LoggerFactory.getLogger("Game-${gameTypeInfo.gameName}")
+    private val logger = LoggerFactory.getLogger("Game-${gameTypeInfo.gameName}-$id")
 
     val instance: Instance = instanceCreate().also {
         it.setTag(gameNameTag, gameTypeInfo.gameName)
         it.setTag(gameIdTag, id)
     }
-
-    val instances = mutableListOf(instance)
 
     val eventNode = EventNode.tag(
         "${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
@@ -76,18 +70,18 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (gameOptions.showScoreboard) {
             scoreboard = gameTypeInfo.gameTitle?.let { Sidebar(it) }
 
-            scoreboard?.createLine(Sidebar.ScoreboardLine("HeaderSpacer", Component.empty(), 30))
+            scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 30))
 
             scoreboard?.createLine(
                 Sidebar.ScoreboardLine(
-                    "InfoLine",
+                    "infoLine",
                     Component.text()
                         .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
                         .build(),
                     0
                 )
             )
-            scoreboard?.createLine(Sidebar.ScoreboardLine("FooterSpacer", Component.empty(), -1))
+            scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -1))
             scoreboard?.createLine(
                 Sidebar.ScoreboardLine(
                     "ipLine",
@@ -100,13 +94,13 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             )
         }
 
-        LOGGER.info("A game of '${gameTypeInfo.gameName}' was created")
+        logger.info("A game of '${gameTypeInfo.gameName}' was created")
     }
 
     internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (players.contains(player)) return
 
-        LOGGER.info("${player.username} joining game '${gameTypeInfo.gameName}'")
+        logger.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
         players.add(player)
         scoreboard?.addViewer(player)
@@ -116,7 +110,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         spectatorGUI.refresh(players)
 
         if (player.instance!! != instance) {
-            player.setInstance(instance)
+            val lastInstance = player.instance
+            player.setInstance(instance).thenRun {
+                if (lastInstance?.players?.size == 0) {
+                    Manager.instance.unregisterInstance(lastInstance)
+                }
+            }
         }
 
         if (joinMessage) sendMessage(
@@ -143,7 +142,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (!players.contains(player)) return
 
-        LOGGER.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
+        logger.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
 
         spectatorGUI.refresh(players)
 
@@ -183,7 +182,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     fun addSpectator(player: Player, friend: Player) {
         if (spectators.contains(player)) return
 
-        LOGGER.info("${player.username} started spectating game '${gameTypeInfo.gameName}'")
+        logger.info("${player.username} started spectating game '${gameTypeInfo.gameName}'")
 
         player.reset()
         player.respawnPoint = friend.position
@@ -219,7 +218,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         val friend = GameManager.spectatorToFriendMap[player]
 
-        LOGGER.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
+        logger.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
 
         spectators.remove(player)
         player.joinGameOrNew("lobby")
@@ -303,7 +302,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun destroy() {
-        LOGGER.info("A game of '${gameTypeInfo.gameName}' is ending")
+        logger.info("A game of '${gameTypeInfo.gameName}' is ending")
 
         gameTypeInfo.eventNode.removeChild(eventNode)
 
@@ -324,11 +323,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
 
         gameDestroyed()
-
-        instances.forEach {
-            LOGGER.info("Instance will be unregistered when possible")
-            ImmortalExtension.unregisterQueue.add(it.uniqueId)
-        }
     }
 
     open fun canBeJoined(): Boolean {

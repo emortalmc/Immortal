@@ -10,8 +10,8 @@ import kotlin.math.roundToInt
 fun progressBar(percentage: Float, characterCount: Int = 10, character: String = " ", completeColor: NamedTextColor, incompleteColor: NamedTextColor, decoration: TextDecoration? = null): Component {
     val percentage = percentage.coerceIn(0f, 1f)
 
-    val completeCharacters = percentage.roundToInt() * characterCount
-    val incompleteCharacters = (1 - percentage).roundToInt() * characterCount
+    val completeCharacters = (percentage * characterCount).roundToInt()
+    val incompleteCharacters = ((1 - percentage) * characterCount).roundToInt()
 
     if (decoration == null) {
         return Component.text(character.repeat(completeCharacters), completeColor)

@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 
 object GameManager {
-    val LOGGER: Logger = LoggerFactory.getLogger("GameManager")
+    val logger: Logger = LoggerFactory.getLogger("GameManager")
 
     val gameNameTag = Tag.String("gameName")
     val gameIdTag = Tag.Integer("gameId")
@@ -36,8 +36,6 @@ object GameManager {
 
     fun Player.joinGame(game: Game) {
         val lastGame = this.game
-
-        LOGGER.info("${username} was last in ${lastGame?.gameTypeInfo?.gameName}")
 
         playerGameMap[this] = game
 
@@ -95,7 +93,7 @@ object GameManager {
             defaultGameOptions
         )
 
-        LOGGER.info("Registered game type '${gameName}'")
+        logger.info("Registered game type '${gameName}'")
     }
 
     inline fun <reified T : Game> unregisterGame() {
@@ -109,6 +107,6 @@ object GameManager {
         gameNameToClassMap.remove(gameName)
         registeredGameMap.remove(T::class)
 
-        LOGGER.info("Unregistered game type '${gameName}'")
+        logger.info("Unregistered game type '${gameName}'")
     }
 }
