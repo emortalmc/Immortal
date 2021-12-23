@@ -3,10 +3,7 @@ package dev.emortal.immortal
 import dev.emortal.immortal.blockhandler.CampfireHandler
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
-import dev.emortal.immortal.commands.ForceStartCommand
-import dev.emortal.immortal.commands.PlayCommand
-import dev.emortal.immortal.commands.SoundCommand
-import dev.emortal.immortal.commands.SpectateCommand
+import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import net.kyori.adventure.text.Component
@@ -79,19 +76,23 @@ class ImmortalExtension : Extension() {
         CampfireHandler.register("minecraft:campfire")
         SkullHandler.register("minecraft:skull")
 
-        ForceStartCommand.register()
+        //ForceStartCommand.register()
         PlayCommand.register()
-        SoundCommand.register()
+        //SoundCommand.register()
         SpectateCommand.register()
+
+        //InstanceCommand.register()
 
         logger.info("[Immortal] Initialized!")
     }
 
     override fun terminate() {
-        ForceStartCommand.unregister()
+        //ForceStartCommand.unregister()
         PlayCommand.unregister()
-        SoundCommand.unregister()
+        //SoundCommand.unregister()
         SpectateCommand.unregister()
+
+        //InstanceCommand.unregister()
 
         logger.info("[Immortal] Terminated!")
     }

@@ -39,7 +39,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not registered")
     val id = GameManager.nextGameID
 
-    private val logger = LoggerFactory.getLogger("Game-${gameTypeInfo.gameName}-$id")
+    val logger = LoggerFactory.getLogger("Game-${gameTypeInfo.gameName}-$id")
 
     val instance: Instance = instanceCreate().also {
         it.setTag(gameNameTag, gameTypeInfo.gameName)
