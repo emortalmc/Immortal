@@ -295,7 +295,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         startingTask = null
         gameState = GameState.PLAYING
-        scoreboard?.updateLineContent("InfoLine", Component.empty())
+        scoreboard?.updateLineContent("infoLine", Component.empty())
 
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents()
         gameStarted()
