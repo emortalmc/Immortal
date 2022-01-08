@@ -7,7 +7,7 @@ plugins {
     // Kotlinx serialization for any data format
     kotlin("plugin.serialization") version "1.6.10"
     // Shade the plugin
-    id("com.github.johnrengelman.shadow") version "7.1.0"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
     // Allow publishing
     `maven-publish`
 
@@ -38,14 +38,14 @@ dependencies {
     compileOnly(kotlin("reflect"))
 
     // Compile Minestom into project
-    compileOnly("com.github.emortaldev:Minestom:d25ea275e4")
+    compileOnly("com.github.Minestom:Minestom:8deacf05f1123c9ad1e3451e71f13af396f5d4b4")
     compileOnly("com.github.EmortalMC:Acquaintance:405ff23175")
-    api("com.github.Project-Cepi:Kstom:6bbc7aacce")
-    api("com.github.Project-Cepi:Particable:9d08bbd4cc")
+    api("com.github.Project-Cepi:KStom:05b5e1f2a1")
+    //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
     api("com.github.emortaldev:particable:e98f138cda")
 
     // import kotlinx serialization
-    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 }
 tasks.withType<Test> {
     useJUnitPlatform()
