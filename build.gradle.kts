@@ -40,7 +40,7 @@ dependencies {
     // Compile Minestom into project
     compileOnly("com.github.Minestom:Minestom:8deacf05f1123c9ad1e3451e71f13af396f5d4b4")
     compileOnly("com.github.EmortalMC:Acquaintance:405ff23175")
-    api("com.github.emortaldev:KStom:latest")
+    api("com.github.emortaldev:KStom:e6434856df")
     //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
     api("com.github.emortaldev:particable:e98f138cda")
 
