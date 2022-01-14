@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.time.Duration
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
@@ -50,6 +51,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         "${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
         gameIdTag
     ) { it == id }
+
+    val timer = Timer()
 
     var startingTask: Task? = null
     var scoreboard: Sidebar? = null
@@ -254,7 +257,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
-        MinestomRunnable(repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
+        MinestomRunnable(timer = timer, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
             playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_COW_BELL, Sound.Source.AMBIENT, 1f, 0.5f))
             showTitle(
                 Title.title(
