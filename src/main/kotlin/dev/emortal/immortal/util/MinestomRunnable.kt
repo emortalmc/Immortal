@@ -4,7 +4,7 @@ import java.time.Duration
 import java.util.*
 import kotlin.concurrent.scheduleAtFixedRate
 
-class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat: Duration = Duration.ZERO, var iterations: Int = -1, timer: Timer = defaultTimer, val run: (MinestomRunnable) -> Unit) {
+abstract class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat: Duration = Duration.ZERO, var iterations: Int = -1, timer: Timer = defaultTimer) {
 
     companion object {
         val defaultTimer = Timer()
@@ -12,7 +12,7 @@ class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat: Duration
 
     var currentIteration = 0
     private val task: TimerTask = timer.scheduleAtFixedRate(delay.toMillis(), repeat.toMillis()) {
-        run(this@MinestomRunnable)
+        this@MinestomRunnable.run()
         currentIteration++
 
         if (iterations != -1 && currentIteration >= iterations) {
@@ -20,14 +20,11 @@ class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat: Duration
         }
     }
 
-    var onCancel = { }
-
-    fun onCancel(lambda: () -> Unit) {
-        onCancel = lambda
-    }
+    abstract fun run()
+    open fun cancelled() {}
 
     fun cancel() {
-        onCancel()
+        cancelled()
         task.cancel()
     }
 }

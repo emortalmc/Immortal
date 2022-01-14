@@ -257,19 +257,25 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
-        MinestomRunnable(timer = timer, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
-            playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_COW_BELL, Sound.Source.AMBIENT, 1f, 0.5f))
-            showTitle(
-                Title.title(
-                    Component.text(gameOptions.countdownSeconds - it.currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
-                    Component.empty(),
-                    Title.Times.of(
-                        Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
+        object : MinestomRunnable(timer = timer, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
+
+            override fun run() {
+                playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_COW_BELL, Sound.Source.AMBIENT, 1f, 0.5f))
+                showTitle(
+                    Title.title(
+                        Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
+                        Component.empty(),
+                        Title.Times.of(
+                            Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
+                        )
                     )
                 )
-            )
-        }.onCancel {
-            start()
+            }
+
+            override fun cancelled() {
+                start()
+            }
+
         }
     }
 
