@@ -4,8 +4,8 @@ import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.inventory.SpectatingGUI
+import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.reset
-import dev.emortal.immortal.util.task
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -254,17 +254,19 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
-        startingTask = task(repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds, finalIteration = { start() }) { _,i ->
+        MinestomRunnable(repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
             playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_COW_BELL, Sound.Source.AMBIENT, 1f, 0.5f))
             showTitle(
                 Title.title(
-                    Component.text(gameOptions.countdownSeconds - i, NamedTextColor.GREEN, TextDecoration.BOLD),
+                    Component.text(gameOptions.countdownSeconds - it.currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
                     Component.empty(),
                     Title.Times.of(
                         Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
                     )
                 )
             )
+        }.onCancel {
+            start()
         }
     }
 

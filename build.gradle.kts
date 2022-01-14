@@ -38,11 +38,11 @@ dependencies {
     compileOnly(kotlin("reflect"))
 
     // Compile Minestom into project
-    compileOnly("com.github.Minestom:Minestom:8deacf05f1123c9ad1e3451e71f13af396f5d4b4")
+    compileOnly("com.github.Minestom:Minestom:517d6a3b7c")
     compileOnly("com.github.EmortalMC:Acquaintance:405ff23175")
-    api("com.github.emortaldev:KStom:e6434856df")
+    api("com.github.emortaldev:Kstom:def1719826")
     //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
-    api("com.github.emortaldev:particable:e98f138cda")
+    api("com.github.emortaldev:Particable:e98f138cda")
 
     // import kotlinx serialization
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
