@@ -10,21 +10,34 @@ abstract class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat:
         val defaultTimer = Timer()
     }
 
-    var currentIteration = 0
-    private val task: TimerTask = timer.scheduleAtFixedRate(delay.toMillis(), repeat.toMillis()) {
-        this@MinestomRunnable.run()
-        currentIteration++
+    private var task: TimerTask? = null
 
-        if (iterations != -1 && currentIteration >= iterations) {
+    init {
+        if (iterations < 2 && delay.toMillis() == 0L && repeat.toMillis() == 0L) {
+            this@MinestomRunnable.run()
             this@MinestomRunnable.cancel()
+        } else {
+            task = timer.scheduleAtFixedRate(delay.toMillis(), repeat.toMillis()) {
+                if (iterations != -1 && currentIteration >= iterations) {
+                    this@MinestomRunnable.cancel()
+                    return@scheduleAtFixedRate
+                }
+
+                this@MinestomRunnable.run()
+                currentIteration++
+            }
         }
     }
+    var currentIteration = 0
+    var cancelled = false
 
     abstract fun run()
     open fun cancelled() {}
 
     fun cancel() {
+        if (cancelled) return
+        cancelled = true
         cancelled()
-        task.cancel()
+        task?.cancel()
     }
 }

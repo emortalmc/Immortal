@@ -42,20 +42,6 @@ class ImmortalExtension : Extension() {
             }*/
         }
 
-        eventNode.listenOnly<EntityTickEvent> {
-            if (entity.position.y <= 0) {
-                    entity.remove()
-            }
-            if (entity.chunk == null) {
-                logger.warn("Entity was force removed because it was not in a chunk")
-                if (entity is Player) {
-                    (entity as Player).kick(Component.text("You were not in a chunk... somehow.\nCongratulations! You found a bug", NamedTextColor.RED))
-                } else {
-                    entity.remove()
-                }
-            }
-        }
-
         eventNode.listenOnly<PlayerBlockPlaceEvent> {
             if (player.gameMode == GameMode.ADVENTURE || player.gameMode == GameMode.SPECTATOR) {
                 isCancelled = true

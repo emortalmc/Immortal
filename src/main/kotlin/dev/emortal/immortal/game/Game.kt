@@ -54,7 +54,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     val timer = Timer()
 
-    var startingTask: Task? = null
+    var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
     val spectatorGUI = SpectatingGUI()
@@ -257,10 +257,10 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
-        object : MinestomRunnable(timer = timer, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
+        startingTask = object : MinestomRunnable(timer = timer, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
 
             override fun run() {
-                playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_COW_BELL, Sound.Source.AMBIENT, 1f, 0.5f))
+                playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.AMBIENT, 1f, 1.2f))
                 showTitle(
                     Title.title(
                         Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
@@ -316,6 +316,9 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         logger.info("A game of '${gameTypeInfo.gameName}' is ending")
 
         gameTypeInfo.eventNode.removeChild(eventNode)
+
+        timer.cancel()
+        timer.purge()
 
         GameManager.gameMap[gameTypeInfo.gameName]?.remove(this)
 
