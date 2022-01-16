@@ -12,6 +12,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minestom.server.adventure.audience.PacketGroupingAudience
+import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventFilter
@@ -28,6 +29,7 @@ import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
@@ -58,6 +60,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     var scoreboard: Sidebar? = null
 
     val spectatorGUI = SpectatingGUI()
+
+    var spawnPosition = Pos(0.5, 70.0, 0.5)
 
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
@@ -100,46 +104,56 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         logger.info("A game of '${gameTypeInfo.gameName}' was created")
     }
 
-    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
-        if (players.contains(player)) return
+    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Void>? {
+        if (players.contains(player)) return null
 
         logger.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
         players.add(player)
-        scoreboard?.addViewer(player)
-
-        player.reset()
 
         spectatorGUI.refresh(players)
 
+        val funcCompletableFuture: CompletableFuture<Void> = CompletableFuture()
+        var completableFuture: CompletableFuture<Void> = CompletableFuture.completedFuture(null)
+
         if (player.instance!! != instance) {
             val lastInstance = player.instance
-            player.setInstance(instance).thenRun {
+            player.respawnPoint = spawnPosition
+            completableFuture = player.setInstance(instance, spawnPosition)
+            completableFuture.thenRun {
                 if (lastInstance?.players?.size == 0) {
                     Manager.instance.unregisterInstance(lastInstance)
                 }
             }
         }
 
-        if (joinMessage) sendMessage(
-            Component.text()
-                .append(Component.text("JOIN", NamedTextColor.GREEN, TextDecoration.BOLD))
-                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(player.username, NamedTextColor.GREEN))
-                .append(Component.text(" joined the game ", NamedTextColor.GRAY))
-                .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
-        )
-        playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
+        completableFuture.thenRun {
+            player.reset()
 
-        player.scheduleNextTick {
+            scoreboard?.addViewer(player)
+
+            if (joinMessage) sendMessage(
+                Component.text()
+                    .append(Component.text("JOIN", NamedTextColor.GREEN, TextDecoration.BOLD))
+                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                    .append(Component.text(player.username, NamedTextColor.GREEN))
+                    .append(Component.text(" joined the game ", NamedTextColor.GRAY))
+                    .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+            )
+            playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
+
             playerJoin(player)
+
+            funcCompletableFuture.complete(null)
+
+            if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
+                if (startingTask != null) return@thenRun
+
+                startCountdown()
+            }
         }
 
-        if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
-            if (startingTask != null) return
-
-            startCountdown()
-        }
+        return funcCompletableFuture
     }
 
     internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
@@ -153,7 +167,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.remove(player)
         }
 
-        player.reset()
+        //player.reset()
 
         players.remove(player)
         scoreboard?.removeViewer(player)
@@ -255,7 +269,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             return
         }
 
-        scoreboard?.updateLineContent("InfoLine", Component.text("Starting...", NamedTextColor.GRAY))
+        scoreboard?.updateLineContent("infoLine", Component.text("Starting...", NamedTextColor.GRAY))
 
         startingTask = object : MinestomRunnable(timer = timer, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
 
@@ -281,7 +295,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     fun cancelCountdown() {
         scoreboard?.updateLineContent(
-            "InfoLine",
+            "infoLine",
             Component.text(
                 "Waiting for players... (${gameOptions.minPlayers - players.size} more)",
                 NamedTextColor.GRAY

@@ -8,6 +8,7 @@ import net.minestom.server.event.EventNode
 import net.minestom.server.tag.Tag
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
@@ -34,19 +35,20 @@ object GameManager {
             this.joinGame(value)
         }
 
-    fun Player.joinGame(game: Game) {
+    fun Player.joinGame(game: Game): CompletableFuture<Void>? {
         val lastGame = this.game
 
         playerGameMap[this] = game
 
-        game.addPlayer(this)
+        val addPlayerFuture = game.addPlayer(this)
         lastGame?.removePlayer(this)
+        return addPlayerFuture
     }
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.defaultGameOptions
-    ) = this.joinGame(findOrCreateGame(gameTypeName, options))
+    ): CompletableFuture<Void>? = this.joinGame(findOrCreateGame(gameTypeName, options))
 
     fun findOrCreateGame(
         gameTypeName: String,

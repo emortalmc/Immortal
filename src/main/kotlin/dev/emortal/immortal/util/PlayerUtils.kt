@@ -6,7 +6,6 @@ import net.minestom.server.entity.Player
 fun Player.reset() {
     inventory.clear()
     isAutoViewable = true
-    closeInventory()
     isInvisible = false
     isGlowing = false
     gameMode = GameMode.ADVENTURE
@@ -14,6 +13,8 @@ fun Player.reset() {
     isFlying = false
     food = 20
     level = 0
+    setCanPickupItem(true)
+    closeInventory()
     setNoGravity(false)
     refreshCommands()
     heal()

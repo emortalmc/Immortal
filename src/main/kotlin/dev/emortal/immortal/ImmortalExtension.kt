@@ -64,7 +64,7 @@ class ImmortalExtension : Extension() {
 
         //ForceStartCommand.register()
         PlayCommand.register()
-        //SoundCommand.register()
+        SoundCommand.register()
         SpectateCommand.register()
 
         //InstanceCommand.register()
@@ -75,7 +75,7 @@ class ImmortalExtension : Extension() {
     override fun terminate() {
         //ForceStartCommand.unregister()
         PlayCommand.unregister()
-        //SoundCommand.unregister()
+        SoundCommand.unregister()
         SpectateCommand.unregister()
 
         //InstanceCommand.unregister()

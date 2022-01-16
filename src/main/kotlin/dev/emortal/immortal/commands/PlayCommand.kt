@@ -29,10 +29,20 @@ object PlayCommand : Kommand({
     syntax(gamemodeArg) {
         val gamemode = !gamemodeArg
 
-        player.sendActionBar(Component.text("Joining ${gamemode!!.value.gameName.smallcaps()}...", NamedTextColor.GREEN))
+        player.sendActionBar(Component.text("Joining ${gamemode!!.value.gameName}...", NamedTextColor.GREEN))
 
-        player.joinGameOrNew(gamemode.value.gameName)
-        player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        val joinGameFuture = player.joinGameOrNew(gamemode.value.gameName)
+
+        if (joinGameFuture == null) {
+            player.sendMessage(Component.text("Something went wrong while joining ${gamemode.value.gameName}"))
+            player.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
+            return@syntax
+        }
+
+        joinGameFuture.thenRun {
+            player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        }
     }
 
 }, "play", "join")

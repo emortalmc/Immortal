@@ -1,5 +1,6 @@
 package dev.emortal.immortal.util
 
+import net.minestom.server.timer.Task
 import java.time.Duration
 import java.util.*
 import kotlin.concurrent.scheduleAtFixedRate
@@ -20,6 +21,7 @@ abstract class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat:
             task = timer.scheduleAtFixedRate(delay.toMillis(), repeat.toMillis()) {
                 if (iterations != -1 && currentIteration >= iterations) {
                     this@MinestomRunnable.cancel()
+                    cancelled()
                     return@scheduleAtFixedRate
                 }
 
@@ -37,7 +39,6 @@ abstract class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat:
     fun cancel() {
         if (cancelled) return
         cancelled = true
-        cancelled()
         task?.cancel()
     }
 }
