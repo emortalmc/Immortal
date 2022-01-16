@@ -1,6 +1,7 @@
 package dev.emortal.immortal.commands
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.command.builder.arguments.ArgumentType
 import world.cepi.kstom.Manager
 import world.cepi.kstom.command.arguments.suggest
@@ -17,6 +18,11 @@ object InstanceCommand : Kommand({
 
     syntax(instanceArgument) {
         val instance = !instanceArgument
+
+        if (player.permissionLevel != 4) {
+            player.sendMessage(Component.text("No permission", NamedTextColor.RED))
+            return@syntax
+        }
 
         if (instance == null) {
             sender.sendMessage(Component.text("Invalid instance"))

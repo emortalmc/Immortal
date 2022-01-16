@@ -142,9 +142,10 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             )
             playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
 
-            playerJoin(player)
-
-            funcCompletableFuture.complete(null)
+            player.scheduleNextTick {
+                playerJoin(player)
+                funcCompletableFuture.complete(null)
+            }
 
             if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
                 if (startingTask != null) return@thenRun
@@ -353,7 +354,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         gameDestroyed()
     }
 
-    open fun canBeJoined(): Boolean {
+    open fun canBeJoined(player: Player): Boolean {
+        if (players.contains(player)) return false
         if (players.size >= gameOptions.maxPlayers) {
             return false
         }
