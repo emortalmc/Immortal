@@ -61,7 +61,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     val spectatorGUI = SpectatingGUI()
 
-    var spawnPosition = Pos(0.5, 70.0, 0.5)
+    open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
