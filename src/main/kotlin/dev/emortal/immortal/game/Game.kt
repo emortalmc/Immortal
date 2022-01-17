@@ -19,6 +19,8 @@ import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.player.PlayerUseItemEvent
 import net.minestom.server.instance.Instance
+import net.minestom.server.instance.InstanceContainer
+import net.minestom.server.instance.SharedInstance
 import net.minestom.server.item.ItemStack
 import net.minestom.server.item.Material
 import net.minestom.server.scoreboard.Sidebar
@@ -75,7 +77,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
         if (gameOptions.showScoreboard) {
-            scoreboard = gameTypeInfo.gameTitle?.let { Sidebar(it) }
+            scoreboard = Sidebar(gameTypeInfo.gameTitle)
 
             scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 30))
 
@@ -333,7 +335,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         gameTypeInfo.eventNode.removeChild(eventNode)
 
         timer.cancel()
-        timer.purge()
 
         GameManager.gameMap[gameTypeInfo.gameName]?.remove(this)
 

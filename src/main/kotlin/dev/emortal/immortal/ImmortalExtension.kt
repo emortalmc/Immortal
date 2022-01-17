@@ -8,18 +8,29 @@ import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
+import net.minestom.server.adventure.audience.Audiences
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
-import net.minestom.server.event.entity.EntityTickEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.extensions.Extension
+import net.minestom.server.network.packet.server.play.TeamsPacket
+import net.minestom.server.scoreboard.Team
+import net.minestom.server.scoreboard.TeamBuilder
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
+import java.text.DecimalFormat
+import java.time.Duration
+
 
 class ImmortalExtension : Extension() {
+
+    companion object {
+        val defaultTeamMap = mutableMapOf<Player, Team>()
+    }
 
     override fun initialize() {
         eventNode.listenOnly<PlayerDisconnectEvent> {
@@ -34,12 +45,21 @@ class ImmortalExtension : Extension() {
 
         eventNode.listenOnly<PlayerSpawnEvent> {
 
-            /*if (player.game != null) {
-                if (player.game?.instances?.contains(spawnInstance) == false) {
-                    player.game?.removePlayer(player)
-                    player.game?.removeSpectator(player)
-                }
-            }*/
+            val rankPrefix = Component.text("MEMBER ", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)
+
+            player.displayName = Component.text()
+                .append(rankPrefix)
+                .append(Component.text(player.username, NamedTextColor.GRAY))
+                .build()
+
+            val team = TeamBuilder(player.username, Manager.team)
+                .teamColor(NamedTextColor.GRAY)
+                .prefix(rankPrefix)
+                .collisionRule(TeamsPacket.CollisionRule.NEVER)
+                .build()
+
+            player.team = team
+            defaultTeamMap[player] = team
         }
 
         eventNode.listenOnly<PlayerBlockPlaceEvent> {

@@ -31,14 +31,14 @@ abstract class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat:
         }
     }
     var currentIteration = 0
-    var cancelled = false
+    //var cancelled = false
 
     abstract fun run()
     open fun cancelled() {}
 
     fun cancel() {
-        if (cancelled) return
-        cancelled = true
+        //if (cancelled) return
+        //cancelled = true
         task?.cancel()
     }
 }

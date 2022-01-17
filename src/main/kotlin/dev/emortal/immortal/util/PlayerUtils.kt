@@ -1,5 +1,6 @@
 package dev.emortal.immortal.util
 
+import dev.emortal.immortal.ImmortalExtension
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 
@@ -13,6 +14,8 @@ fun Player.reset() {
     isFlying = false
     food = 20
     level = 0
+    isEnableRespawnScreen = false
+    team = ImmortalExtension.defaultTeamMap[this]
     setCanPickupItem(true)
     closeInventory()
     setNoGravity(false)
