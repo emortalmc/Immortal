@@ -3,6 +3,6 @@
   "name": "${project.name}",
   "version": "${project.version}",
   "dependencies": [
-    "KStom", "Particable"
+    "KStom", "Particable", "LuckPerms"
   ]
 }

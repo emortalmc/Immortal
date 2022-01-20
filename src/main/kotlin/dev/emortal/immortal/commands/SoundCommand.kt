@@ -17,6 +17,7 @@ object SoundCommand : Kommand({
     val pitchArgument = ArgumentFloat("pitch")
 
     syntax(soundArgument, volumeArgument, pitchArgument) {
+
         player.playSound(Sound.sound((!soundArgument)!!, Sound.Source.MASTER, !volumeArgument, !pitchArgument))
     }
 

@@ -130,8 +130,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
 
         completableFuture.thenRun {
-            player.reset()
-
             scoreboard?.addViewer(player)
 
             if (joinMessage) sendMessage(
@@ -145,6 +143,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
 
             player.scheduleNextTick {
+                player.reset()
                 playerJoin(player)
                 funcCompletableFuture.complete(null)
             }

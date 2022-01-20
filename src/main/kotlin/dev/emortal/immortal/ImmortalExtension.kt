@@ -9,6 +9,9 @@ import dev.emortal.immortal.game.GameManager.game
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.luckperms.api.LuckPerms
+import net.luckperms.api.LuckPermsProvider
+import net.minestom.server.MinecraftServer
 import net.minestom.server.adventure.audience.Audiences
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
@@ -20,6 +23,7 @@ import net.minestom.server.scoreboard.TeamBuilder
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import world.cepi.kstom.Manager
+import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
 import java.text.DecimalFormat
@@ -30,9 +34,13 @@ class ImmortalExtension : Extension() {
 
     companion object {
         val defaultTeamMap = mutableMapOf<Player, Team>()
+
+        lateinit var luckperms: LuckPerms
     }
 
     override fun initialize() {
+        luckperms = LuckPermsProvider.get()
+
         eventNode.listenOnly<PlayerDisconnectEvent> {
             player.game?.removePlayer(player)
             player.game?.removeSpectator(player)
@@ -44,17 +52,15 @@ class ImmortalExtension : Extension() {
         }
 
         eventNode.listenOnly<PlayerSpawnEvent> {
+            val luckpermsUser = luckperms.getPlayerAdapter(Player::class.java).getUser(player)
+            val prefix = luckpermsUser.cachedData.metaData.prefix ?: return@listenOnly
+            //val suffix = luckpermsUser.cachedData.metaData.suffix ?: return@listenOnly
 
-            val rankPrefix = Component.text("MEMBER ", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)
-
-            player.displayName = Component.text()
-                .append(rankPrefix)
-                .append(Component.text(player.username, NamedTextColor.GRAY))
-                .build()
+            this.player.displayName = "$prefix ${player.username}".asMini()
 
             val team = TeamBuilder(player.username, Manager.team)
                 .teamColor(NamedTextColor.GRAY)
-                .prefix(rankPrefix)
+                .prefix(prefix.asMini())
                 .collisionRule(TeamsPacket.CollisionRule.NEVER)
                 .build()
 

@@ -14,6 +14,7 @@ abstract class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat:
     private var task: TimerTask? = null
 
     init {
+
         if (iterations < 2 && delay.toMillis() == 0L && repeat.toMillis() == 0L) {
             this@MinestomRunnable.run()
             this@MinestomRunnable.cancel()
