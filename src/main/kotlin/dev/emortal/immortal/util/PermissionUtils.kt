@@ -15,6 +15,7 @@ object PermissionUtils {
     val Player.prefix: String? get() = lpUser.cachedData.metaData.prefix
     val Player.suffix: String? get() = lpUser.cachedData.metaData.suffix
 
-    fun Player.hasPermission(permission: String): Tristate = lpUser.cachedData.permissionData.checkPermission(permission)
+    fun Player.hasLuckPermission(permission: String): Boolean = lpUser.cachedData.permissionData.checkPermission(permission).asBoolean()
+
 }
 
