@@ -4,16 +4,15 @@ import dev.emortal.immortal.blockhandler.CampfireHandler
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.*
+import dev.emortal.immortal.config.ConfigHelper
+import dev.emortal.immortal.config.GameListing
+import dev.emortal.immortal.config.GameListingConfig
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.util.PermissionUtils.prefix
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
-import net.minestom.server.MinecraftServer
-import net.minestom.server.adventure.audience.Audiences
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.player.*
@@ -24,12 +23,10 @@ import net.minestom.server.scoreboard.TeamBuilder
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import world.cepi.kstom.Manager
-import world.cepi.kstom.Manager.team
 import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
-import java.text.DecimalFormat
-import java.time.Duration
+import java.nio.file.Path
 
 
 class ImmortalExtension : Extension() {
@@ -38,10 +35,23 @@ class ImmortalExtension : Extension() {
         val defaultTeamMap = mutableMapOf<Player, Team>()
 
         lateinit var luckperms: LuckPerms
+
+        lateinit var gameListingConfig: GameListingConfig
+        val gameListingPath = Path.of("./gameListings.json")
     }
 
     override fun initialize() {
         luckperms = LuckPermsProvider.get()
+
+        gameListingConfig = ConfigHelper.initConfigFile(gameListingPath, GameListingConfig())
+
+        GameManager.registeredGameMap.forEach {
+            if (!gameListingConfig.gameListings.contains(it.value.gameName)) {
+                gameListingConfig.gameListings[it.value.gameName] = GameListing()
+            }
+        }
+
+        ConfigHelper.writeObjectToPath(gameListingPath, gameListingConfig)
 
         eventNode.listenOnly<PlayerDisconnectEvent> {
             player.game?.removePlayer(player)

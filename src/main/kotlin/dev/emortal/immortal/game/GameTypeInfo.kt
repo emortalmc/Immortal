@@ -9,6 +9,7 @@ data class GameTypeInfo(
     val gameName: String,
     val gameTitle: Component,
     val showsInSlashPlay: Boolean = true,
+    val spectatable: Boolean = true,
     val whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
     val gamePresets: MutableMap<String, GameOptions>
 )

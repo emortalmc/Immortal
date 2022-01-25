@@ -2,6 +2,7 @@ package dev.emortal.immortal.commands
 
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
+import dev.emortal.immortal.inventory.GameSelectorGUI
 import dev.emortal.immortal.util.smallcaps
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -42,8 +43,8 @@ object PlayCommand : Kommand({
 
         val joinGameFuture = player.joinGameOrNew(gamemode.gameName)
 
-        joinGameFuture?.thenRun {
-            player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        joinGameFuture.thenAccept {
+            if (it) player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
         }
     }
 
@@ -54,9 +55,14 @@ object PlayCommand : Kommand({
 
         val joinGameFuture = player.joinGameOrNew(gamemode.gameName, options)
 
-        joinGameFuture?.thenRun {
-            player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        joinGameFuture.thenAccept {
+            if (it) player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
         }
+    }
+
+    default {
+        player.playSound(Sound.sound(SoundEvent.ENTITY_EXPERIENCE_ORB_PICKUP, Sound.Source.MASTER, 1f, 2f))
+        player.openInventory(GameSelectorGUI.inventory)
     }
 
 }, "play")

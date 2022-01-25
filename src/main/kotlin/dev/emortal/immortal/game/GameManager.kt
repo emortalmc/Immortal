@@ -1,5 +1,6 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.acquaintance.RelationshipManager.party
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -83,7 +84,7 @@ object GameManager {
         options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gamePresets["default"]!!
     ): Game {
         val game = gameMap[gameTypeName]?.firstOrNull {
-            // TODO: has to be changed for parties
+            // TODO: Private games with parties
             it.canBeJoined(player) && it.gameOptions == options
         }
             ?: createGame(gameTypeName, options)
@@ -109,6 +110,7 @@ object GameManager {
         gameName: String,
         sidebarTitle: Component,
         showsInSlashPlay: Boolean = true,
+        spectatable: Boolean = true,
         whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
         defaultGameOptions: GameOptions
     ) {
@@ -119,6 +121,7 @@ object GameManager {
             gameName,
             sidebarTitle,
             showsInSlashPlay,
+            spectatable,
             whenToRegisterEvents,
             mutableMapOf("default" to defaultGameOptions)
         )
