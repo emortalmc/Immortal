@@ -39,12 +39,14 @@ object GameManager {
             this.joinGame(value)
         }
 
-    fun Player.joinGame(game: Game): CompletableFuture<Void>? {
+    fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
+        val future: CompletableFuture<Boolean> = CompletableFuture()
         val lastGame = this.game
 
         if (hasTag(joiningGameTag)) {
             sendMessage(Component.text("Already joining a game", NamedTextColor.RED))
-            return null
+            future.complete(false)
+            return future
         }
         setTag(joiningGameTag, 1)
 
@@ -56,35 +58,33 @@ object GameManager {
 
         playerGameMap[this] = game
 
-        val addPlayerFuture = game.addPlayer(this)
-        if (addPlayerFuture != null) {
-            lastGame?.removePlayer(this)
-
-            addPlayerFuture.thenRun {
-                removeTag(joiningGameTag)
+        game.addPlayer(this).thenAccept { wasSuccessful ->
+            if (wasSuccessful) {
+                lastGame?.removePlayer(this)
+            } else {
+                sendMessage(Component.text("Something went wrong while joining ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
+                playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
             }
-        } else {
-            sendMessage(Component.text("Something went wrong while joining ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
-            playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
             removeTag(joiningGameTag)
+            future.complete(wasSuccessful)
         }
 
-        return addPlayerFuture
+        return future
     }
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.defaultGameOptions
-    ): CompletableFuture<Void>? = this.joinGame(findOrCreateGame(this, gameTypeName, options))
+        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gamePresets["default"]!!
+    ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
 
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.defaultGameOptions
+        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gamePresets["default"]!!
     ): Game {
         val game = gameMap[gameTypeName]?.firstOrNull {
             // TODO: has to be changed for parties
-            it.canBeJoined(player)
+            it.canBeJoined(player) && it.gameOptions == options
         }
             ?: createGame(gameTypeName, options)
 
@@ -120,17 +120,20 @@ object GameManager {
             sidebarTitle,
             showsInSlashPlay,
             whenToRegisterEvents,
-            defaultGameOptions
+            mutableMapOf("default" to defaultGameOptions)
         )
 
         logger.info("Registered game type '${gameName}'")
+    }
+
+    inline fun <reified  T : Game> addPreset(presetName: String, presetOptions: GameOptions) {
+        registeredGameMap[T::class]?.gamePresets?.set(presetName, presetOptions)
     }
 
     inline fun <reified T : Game> unregisterGame() {
         val gameName = registeredGameMap[T::class]!!.gameName
 
         gameMap[gameName]?.forEach {
-            it.sendMessage(Component.text("Game was reloaded!", NamedTextColor.RED))
             it.destroy()
         }
         gameMap.remove(gameName)

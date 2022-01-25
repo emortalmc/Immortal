@@ -19,21 +19,44 @@ object PlayCommand : Kommand({
     onlyPlayers
 
     val gamemodeArg = ArgumentType.Word("gamemode").map { input: String ->
-        GameManager.registeredGameMap.entries.firstOrNull { it.value.gameName == input && it.value.showsInSlashPlay }
+        GameManager.registeredGameMap.values.firstOrNull { it.gameName == input && it.showsInSlashPlay }
     }.suggest {
         GameManager.registeredGameMap.values
             .filter { it.showsInSlashPlay }
             .map { it.gameName }
     }
 
+    val presetArg = ArgumentType.Word("preset")
+        .map { input: String ->
+            GameManager.registeredGameMap.values.map { it.gamePresets }.flatMap { it.keys }.firstOrNull { it == input }
+        }
+        .suggest {
+            GameManager.registeredGameMap.values
+                .filter { it.showsInSlashPlay }
+                .map { it.gamePresets.keys }
+                .flatten()
+        }
+
     syntax(gamemodeArg) {
         val gamemode = !gamemodeArg ?: return@syntax
 
-        val joinGameFuture = player.joinGameOrNew(gamemode.value.gameName)
+        val joinGameFuture = player.joinGameOrNew(gamemode.gameName)
 
         joinGameFuture?.thenRun {
             player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
         }
     }
 
-}, "play", "join")
+    syntax(gamemodeArg, presetArg) {
+        val gamemode = !gamemodeArg ?: return@syntax
+        val preset = !presetArg
+        val options = gamemode.gamePresets[preset] ?: return@syntax
+
+        val joinGameFuture = player.joinGameOrNew(gamemode.gameName, options)
+
+        joinGameFuture?.thenRun {
+            player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        }
+    }
+
+}, "play")

@@ -6,6 +6,7 @@ import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
+import dev.emortal.immortal.util.PermissionUtils.prefix
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -23,6 +24,7 @@ import net.minestom.server.scoreboard.TeamBuilder
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import world.cepi.kstom.Manager
+import world.cepi.kstom.Manager.team
 import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
@@ -52,20 +54,19 @@ class ImmortalExtension : Extension() {
         }
 
         eventNode.listenOnly<PlayerSpawnEvent> {
-            val luckpermsUser = luckperms.getPlayerAdapter(Player::class.java).getUser(player)
-            val prefix = luckpermsUser.cachedData.metaData.prefix ?: return@listenOnly
-            //val suffix = luckpermsUser.cachedData.metaData.suffix ?: return@listenOnly
+            val prefix = player.prefix ?: return@listenOnly
 
             this.player.displayName = "$prefix ${player.username}".asMini()
 
             val team = TeamBuilder(player.username, Manager.team)
                 .teamColor(NamedTextColor.GRAY)
-                .prefix(prefix.asMini())
+                .prefix("$prefix ".asMini())
                 .collisionRule(TeamsPacket.CollisionRule.NEVER)
                 .build()
 
             player.team = team
             defaultTeamMap[player] = team
+
         }
 
         eventNode.listenOnly<PlayerBlockPlaceEvent> {

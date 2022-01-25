@@ -106,8 +106,13 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         logger.info("A game of '${gameTypeInfo.gameName}' was created")
     }
 
-    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Void>? {
-        if (players.contains(player)) return null
+    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Boolean> {
+        val funcCompletableFuture: CompletableFuture<Boolean> = CompletableFuture()
+
+        if (players.contains(player)) {
+            funcCompletableFuture.complete(false)
+            return funcCompletableFuture
+        }
 
         logger.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
@@ -115,7 +120,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         spectatorGUI.refresh(players)
 
-        val funcCompletableFuture: CompletableFuture<Void> = CompletableFuture()
         var completableFuture: CompletableFuture<Void> = CompletableFuture.completedFuture(null)
 
         if (player.instance!! != instance) {
@@ -145,7 +149,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             player.scheduleNextTick {
                 player.reset()
                 playerJoin(player)
-                funcCompletableFuture.complete(null)
+                funcCompletableFuture.complete(true)
             }
 
             if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
