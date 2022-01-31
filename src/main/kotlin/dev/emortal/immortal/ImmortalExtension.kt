@@ -9,6 +9,7 @@ import dev.emortal.immortal.config.GameListing
 import dev.emortal.immortal.config.GameListingConfig
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
+import dev.emortal.immortal.inventory.GameSelectorGUI
 import dev.emortal.immortal.util.PacketNPC
 import dev.emortal.immortal.util.PermissionUtils.prefix
 import net.kyori.adventure.text.format.NamedTextColor
@@ -46,6 +47,7 @@ class ImmortalExtension : Extension() {
     }
 
     override fun initialize() {
+
         luckperms = LuckPermsProvider.get()
 
         gameListingConfig = ConfigHelper.initConfigFile(gameListingPath, GameListingConfig())
