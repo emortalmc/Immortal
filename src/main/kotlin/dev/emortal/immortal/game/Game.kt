@@ -446,8 +446,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             }
         }
 
+        gameWon(winningPlayers)
+
         Manager.scheduler.buildTask { destroy() }.delay(Duration.ofSeconds(6)).schedule()
     }
+
+    open fun gameWon(winningPlayers: Collection<Player>) {}
 
     abstract fun instanceCreate(): Instance
 

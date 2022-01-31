@@ -31,13 +31,15 @@ object GameSelectorGUI : GUI() {
         fun itemFromListing(gameName: String, gameListing: GameListing): ItemStack? {
             val gameClass = GameManager.gameNameToClassMap[gameName] ?: return null
             val gameType = GameManager.registeredGameMap[gameClass] ?: return null
-            val games = GameManager.gameMap[gameName] ?: return null
+            val games = GameManager.gameMap[gameName]
 
-            val loreList = gameListing.description.toMutableList()
+            val loreList = mutableListOf<String>()
+            loreList.add("")
+            loreList.addAll(gameListing.description)
             loreList.addAll(listOf(
                 "",
                 "<dark_gray>/play $gameName",
-                "<green>● <bold>${games.sumOf { it.players.size }}</bold> playing"
+                "<green>● <bold>${games?.sumOf { it.players.size } ?: 0}</bold> playing"
             ))
 
             return item(gameListing.item) {
