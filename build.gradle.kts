@@ -46,6 +46,9 @@ dependencies {
     //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
     api("com.github.emortaldev:Particable:e98f138cda")
 
+    api("mysql:mysql-connector-java:8.0.28")
+    api("com.zaxxer:HikariCP:5.0.1")
+
     // import kotlinx serialization
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
