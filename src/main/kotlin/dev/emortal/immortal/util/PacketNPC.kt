@@ -11,7 +11,7 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class PacketNPC(val position: Pos, val hologram: MultilineHologram, val gameName: String, val playerSkin: PlayerSkin? = null, val entityType: EntityType = EntityType.PLAYER) {
+class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameName: String, val playerSkin: PlayerSkin? = null, val entityType: EntityType = EntityType.PLAYER) {
 
     private val viewers = mutableSetOf<Player>()
 
@@ -77,8 +77,6 @@ class PacketNPC(val position: Pos, val hologram: MultilineHologram, val gameName
 
     fun destroy() {
         PacketUtils.sendGroupedPacket(viewers, DestroyEntitiesPacket(playerId))
-
-        hologram.remove()
 
         npcIdMap.remove(playerId)
         viewers.forEach {

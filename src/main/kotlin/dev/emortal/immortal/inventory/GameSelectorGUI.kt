@@ -1,6 +1,9 @@
 package dev.emortal.immortal.inventory
 
 import dev.emortal.immortal.ImmortalExtension
+import dev.emortal.immortal.config.GameListing
+import dev.emortal.immortal.event.PlayerJoinGameEvent
+import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.inventory.GUI
@@ -10,8 +13,10 @@ import net.minestom.server.inventory.Inventory
 import net.minestom.server.inventory.InventoryType
 import net.minestom.server.item.ItemHideFlag
 import net.minestom.server.item.ItemStack
+import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.adventure.noItalic
+import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.item.item
 import world.cepi.kstom.util.setItemStacks
 
@@ -26,26 +31,28 @@ object GameSelectorGUI : GUI() {
         ImmortalExtension.gameListingConfig.gameListings.forEach {
             if (!it.value.itemVisible) return@forEach
 
-            val gameClass = GameManager.gameNameToClassMap[it.key] ?: return@forEach
-            val gameType = GameManager.registeredGameMap[gameClass] ?: return@forEach
-            val games = GameManager.gameMap[it.key] ?: return@forEach
-
-            val loreList = it.value.description.toMutableList()
-            loreList.addAll(listOf(
-                "",
-                "<dark_gray>/play ${it.key}",
-                "<green>● <bold>${games.sumOf { it.players.size }}</bold> playing"
-            ))
-
-            itemStackMap[it.value.slot] = item(it.value.item) {
-                displayName(gameType.gameTitle.noItalic())
-                lore(loreList.map { loreLine -> loreLine.asMini().noItalic() })
-                hideFlag(*ItemHideFlag.values())
-                setTag(GameManager.gameNameTag, it.key)
-            }
+            val item = itemFromListing(it.key, it.value) ?: return@forEach
+            itemStackMap[it.value.slot] = item
         }
 
         inventory.setItemStacks(itemStackMap)
+
+        Manager.globalEvent.listenOnly<PlayerJoinGameEvent> {
+            val gameName = getGame().gameTypeInfo.gameName
+            val gameListing = ImmortalExtension.gameListingConfig.gameListings[gameName] ?: return@listenOnly
+            if (!gameListing.itemVisible) return@listenOnly
+
+            val item = itemFromListing(gameName, gameListing) ?: return@listenOnly
+            inventory.setItemStack(gameListing.slot, item)
+        }
+        Manager.globalEvent.listenOnly<PlayerLeaveGameEvent> {
+            val gameName = getGame().gameTypeInfo.gameName
+            val gameListing = ImmortalExtension.gameListingConfig.gameListings[gameName] ?: return@listenOnly
+            if (!gameListing.itemVisible) return@listenOnly
+
+            val item = itemFromListing(gameName, gameListing) ?: return@listenOnly
+            inventory.setItemStack(gameListing.slot, item)
+        }
 
         inventory.addInventoryCondition { player, _, _, inventoryConditionResult ->
             inventoryConditionResult.isCancel = true
@@ -62,32 +69,24 @@ object GameSelectorGUI : GUI() {
         return inventory
     }
 
-    override fun refresh() {
-        val itemStackMap = mutableMapOf<Int, ItemStack>()
+    private fun itemFromListing(gameName: String, gameListing: GameListing): ItemStack? {
+        val gameClass = GameManager.gameNameToClassMap[gameName] ?: return null
+        val gameType = GameManager.registeredGameMap[gameClass] ?: return null
+        val games = GameManager.gameMap[gameName] ?: return null
 
-        ImmortalExtension.gameListingConfig.gameListings.forEach {
-            if (!it.value.itemVisible) return@forEach
+        val loreList = gameListing.description.toMutableList()
+        loreList.addAll(listOf(
+            "",
+            "<dark_gray>/play $gameName",
+            "<green>● <bold>${games.sumOf { it.players.size }}</bold> playing"
+        ))
 
-            val gameClass = GameManager.gameNameToClassMap[it.key] ?: return@forEach
-            val gameType = GameManager.registeredGameMap[gameClass] ?: return@forEach
-            val games = GameManager.gameMap[it.key] ?: return@forEach
-
-            val loreList = it.value.description.toMutableList()
-            loreList.addAll(listOf(
-                "",
-                "<dark_gray>/play ${it.key}",
-                "<green>● <bold>${games.sumOf { game -> game.players.size }}</bold> playing"
-            ))
-
-            itemStackMap[it.value.slot] = item(it.value.item) {
-                displayName(gameType.gameTitle.noItalic())
-                lore(loreList.map { loreLine -> loreLine.asMini().noItalic() })
-                hideFlag(*ItemHideFlag.values())
-                setTag(GameManager.gameNameTag, it.key)
-            }
+        return item(gameListing.item) {
+            displayName(gameType.gameTitle.noItalic())
+            lore(loreList.map { loreLine -> loreLine.asMini().noItalic() })
+            hideFlag(*ItemHideFlag.values())
+            setTag(GameManager.gameNameTag, gameName)
         }
-
-        inventory.setItemStacks(itemStackMap)
     }
 
 }

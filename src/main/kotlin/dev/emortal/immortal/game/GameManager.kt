@@ -75,8 +75,6 @@ object GameManager {
         game.addPlayer(this).thenAccept { wasSuccessful ->
             if (wasSuccessful) {
                 lastGame?.removePlayer(this)
-
-                GameSelectorGUI.refresh()
             } else {
                 sendMessage(Component.text("Something went wrong while joining ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
                 playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
@@ -140,6 +138,8 @@ object GameManager {
             whenToRegisterEvents,
             mutableMapOf("default" to defaultGameOptions)
         )
+
+        GameSelectorGUI.refresh()
 
         logger.info("Registered game type '${gameName}'")
     }
