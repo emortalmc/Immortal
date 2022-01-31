@@ -28,6 +28,26 @@ object GameSelectorGUI : GUI() {
 
         val itemStackMap = mutableMapOf<Int, ItemStack>()
 
+        fun itemFromListing(gameName: String, gameListing: GameListing): ItemStack? {
+            val gameClass = GameManager.gameNameToClassMap[gameName] ?: return null
+            val gameType = GameManager.registeredGameMap[gameClass] ?: return null
+            val games = GameManager.gameMap[gameName] ?: return null
+
+            val loreList = gameListing.description.toMutableList()
+            loreList.addAll(listOf(
+                "",
+                "<dark_gray>/play $gameName",
+                "<green>● <bold>${games.sumOf { it.players.size }}</bold> playing"
+            ))
+
+            return item(gameListing.item) {
+                displayName(gameType.gameTitle.noItalic())
+                lore(loreList.map { loreLine -> loreLine.asMini().noItalic() })
+                hideFlag(*ItemHideFlag.values())
+                setTag(GameManager.gameNameTag, gameName)
+            }
+        }
+
         ImmortalExtension.gameListingConfig.gameListings.forEach {
             if (!it.value.itemVisible) return@forEach
 
@@ -67,26 +87,6 @@ object GameSelectorGUI : GUI() {
         }
 
         return inventory
-    }
-
-    private fun itemFromListing(gameName: String, gameListing: GameListing): ItemStack? {
-        val gameClass = GameManager.gameNameToClassMap[gameName] ?: return null
-        val gameType = GameManager.registeredGameMap[gameClass] ?: return null
-        val games = GameManager.gameMap[gameName] ?: return null
-
-        val loreList = gameListing.description.toMutableList()
-        loreList.addAll(listOf(
-            "",
-            "<dark_gray>/play $gameName",
-            "<green>● <bold>${games.sumOf { it.players.size }}</bold> playing"
-        ))
-
-        return item(gameListing.item) {
-            displayName(gameType.gameTitle.noItalic())
-            lore(loreList.map { loreLine -> loreLine.asMini().noItalic() })
-            hideFlag(*ItemHideFlag.values())
-            setTag(GameManager.gameNameTag, gameName)
-        }
     }
 
 }

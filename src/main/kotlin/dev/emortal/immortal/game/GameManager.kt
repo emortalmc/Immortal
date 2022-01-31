@@ -1,5 +1,6 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.immortal.inventory.GameSelectorGUI
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -138,7 +139,7 @@ object GameManager {
             mutableMapOf("default" to defaultGameOptions)
         )
 
-        //GameSelectorGUI.refresh()
+        GameSelectorGUI.refresh()
 
         logger.info("Registered game type '${gameName}'")
     }

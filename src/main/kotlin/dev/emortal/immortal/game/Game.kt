@@ -186,13 +186,13 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.remove(player)
         }
 
-        val leaveEvent = PlayerLeaveGameEvent(this, player)
-        EventDispatcher.call(leaveEvent)
-
         //player.reset()
 
         players.remove(player)
         scoreboard?.removeViewer(player)
+
+        val leaveEvent = PlayerLeaveGameEvent(this, player)
+        EventDispatcher.call(leaveEvent)
 
         if (leaveMessage) sendMessage(
             Component.text()
