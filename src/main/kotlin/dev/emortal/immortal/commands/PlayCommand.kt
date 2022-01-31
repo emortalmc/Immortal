@@ -41,11 +41,7 @@ object PlayCommand : Kommand({
     syntax(gamemodeArg) {
         val gamemode = !gamemodeArg ?: return@syntax
 
-        val joinGameFuture = player.joinGameOrNew(gamemode.gameName)
-
-        joinGameFuture.thenAccept {
-            if (it) player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-        }
+        player.joinGameOrNew(gamemode.gameName)
     }
 
     syntax(gamemodeArg, presetArg) {
@@ -53,11 +49,7 @@ object PlayCommand : Kommand({
         val preset = !presetArg
         val options = gamemode.gamePresets[preset] ?: return@syntax
 
-        val joinGameFuture = player.joinGameOrNew(gamemode.gameName, options)
-
-        joinGameFuture.thenAccept {
-            if (it) player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-        }
+        player.joinGameOrNew(gamemode.gameName, options)
     }
 
     default {

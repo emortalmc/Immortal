@@ -9,19 +9,24 @@ import dev.emortal.immortal.config.GameListing
 import dev.emortal.immortal.config.GameListingConfig
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
+import dev.emortal.immortal.util.PacketNPC
 import dev.emortal.immortal.util.PermissionUtils.prefix
 import net.kyori.adventure.text.format.NamedTextColor
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
+import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.player.*
 import net.minestom.server.extensions.Extension
+import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
+import net.minestom.server.network.packet.client.play.ClientPongPacket
 import net.minestom.server.network.packet.server.play.TeamsPacket
 import net.minestom.server.scoreboard.Team
 import net.minestom.server.scoreboard.TeamBuilder
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
+import org.slf4j.LoggerFactory
 import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
@@ -53,6 +58,16 @@ class ImmortalExtension : Extension() {
 
         ConfigHelper.writeObjectToPath(gameListingPath, gameListingConfig)
 
+        eventNode.listenOnly<PlayerChunkUnloadEvent> {
+            val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
+
+            if (chunk.viewers.isEmpty()) {
+                instance.unloadChunk(chunkX, chunkZ)
+            }
+
+
+        }
+
         eventNode.listenOnly<PlayerDisconnectEvent> {
             player.game?.removePlayer(player)
             player.game?.removeSpectator(player)
@@ -63,20 +78,35 @@ class ImmortalExtension : Extension() {
             }
         }
 
+        eventNode.listenOnly<PlayerPacketEvent> {
+            if (packet is ClientInteractEntityPacket) {
+                val packet = packet as ClientInteractEntityPacket
+                if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN)) return@listenOnly
+                PacketNPC.npcIdMap[packet.targetId]?.onClick(player)
+            }
+
+        }
+
         eventNode.listenOnly<PlayerSpawnEvent> {
-            val prefix = player.prefix ?: return@listenOnly
+            if (this.isFirstSpawn) {
+                val prefix = player.prefix ?: return@listenOnly
 
-            this.player.displayName = "$prefix ${player.username}".asMini()
+                this.player.displayName = "$prefix ${player.username}".asMini()
 
-            val team = TeamBuilder(player.username, Manager.team)
-                .teamColor(NamedTextColor.GRAY)
-                .prefix("$prefix ".asMini())
-                .collisionRule(TeamsPacket.CollisionRule.NEVER)
-                .build()
+                val team = TeamBuilder(player.username, Manager.team)
+                    .teamColor(NamedTextColor.DARK_GRAY)
+                    .prefix("$prefix ".asMini())
+                    .collisionRule(TeamsPacket.CollisionRule.NEVER)
+                    .build()
 
-            player.team = team
-            defaultTeamMap[player] = team
-
+                player.team = team
+                defaultTeamMap[player] = team
+            } else {
+                val viewingNpcs = (PacketNPC.viewerMap[player.uuid] ?: return@listenOnly).toMutableList()
+                viewingNpcs.forEach {
+                    it.removeViewer(player)
+                }
+            }
         }
 
         eventNode.listenOnly<PlayerBlockPlaceEvent> {

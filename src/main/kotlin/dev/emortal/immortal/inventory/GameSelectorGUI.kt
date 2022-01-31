@@ -19,7 +19,7 @@ object GameSelectorGUI : GUI() {
 
     override fun createInventory(): Inventory {
         val inventoryTitle = Component.text("Games", NamedTextColor.BLACK)
-        val inventory = Inventory(InventoryType.CHEST_6_ROW, inventoryTitle)
+        val inventory = Inventory(InventoryType.CHEST_4_ROW, inventoryTitle)
 
         val itemStackMap = mutableMapOf<Int, ItemStack>()
 
@@ -28,12 +28,13 @@ object GameSelectorGUI : GUI() {
 
             val gameClass = GameManager.gameNameToClassMap[it.key] ?: return@forEach
             val gameType = GameManager.registeredGameMap[gameClass] ?: return@forEach
+            val games = GameManager.gameMap[it.key] ?: return@forEach
 
             val loreList = it.value.description.toMutableList()
             loreList.addAll(listOf(
                 "",
                 "<dark_gray>/play ${it.key}",
-                "<green>● <bold>${GameManager.gameMap[it.key]?.size ?: 0}</bold> playing"
+                "<green>● <bold>${games.sumOf { it.players.size }}</bold> playing"
             ))
 
             itemStackMap[it.value.slot] = item(it.value.item) {
@@ -54,11 +55,39 @@ object GameSelectorGUI : GUI() {
             if (inventoryConditionResult.clickedItem.hasTag(GameManager.gameNameTag)) {
                 val gameName = inventoryConditionResult.clickedItem.getTag(GameManager.gameNameTag) ?: return@addInventoryCondition
                 player.joinGameOrNew(gameName)
+                player.closeInventory()
             }
         }
 
         return inventory
     }
 
+    override fun refresh() {
+        val itemStackMap = mutableMapOf<Int, ItemStack>()
+
+        ImmortalExtension.gameListingConfig.gameListings.forEach {
+            if (!it.value.itemVisible) return@forEach
+
+            val gameClass = GameManager.gameNameToClassMap[it.key] ?: return@forEach
+            val gameType = GameManager.registeredGameMap[gameClass] ?: return@forEach
+            val games = GameManager.gameMap[it.key] ?: return@forEach
+
+            val loreList = it.value.description.toMutableList()
+            loreList.addAll(listOf(
+                "",
+                "<dark_gray>/play ${it.key}",
+                "<green>● <bold>${games.sumOf { game -> game.players.size }}</bold> playing"
+            ))
+
+            itemStackMap[it.value.slot] = item(it.value.item) {
+                displayName(gameType.gameTitle.noItalic())
+                lore(loreList.map { loreLine -> loreLine.asMini().noItalic() })
+                hideFlag(*ItemHideFlag.values())
+                setTag(GameManager.gameNameTag, it.key)
+            }
+        }
+
+        inventory.setItemStacks(itemStackMap)
+    }
 
 }

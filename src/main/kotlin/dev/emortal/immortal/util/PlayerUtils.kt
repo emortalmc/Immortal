@@ -1,8 +1,8 @@
 package dev.emortal.immortal.util
 
-import dev.emortal.immortal.ImmortalExtension
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import org.slf4j.LoggerFactory
 
 fun Player.reset() {
     inventory.clear()
@@ -15,7 +15,6 @@ fun Player.reset() {
     food = 20
     level = 0
     isEnableRespawnScreen = false
-    team = ImmortalExtension.defaultTeamMap[this]
     setCanPickupItem(true)
     closeInventory()
     setNoGravity(false)

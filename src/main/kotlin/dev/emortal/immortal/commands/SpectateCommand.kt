@@ -10,7 +10,6 @@ import net.minestom.server.command.builder.arguments.ArgumentWord
 import net.minestom.server.command.builder.exception.ArgumentSyntaxException
 import net.minestom.server.command.builder.suggestion.SuggestionEntry
 import world.cepi.kstom.Manager
-import world.cepi.kstom.command.arguments.suggest
 import world.cepi.kstom.command.arguments.suggestComplex
 import world.cepi.kstom.command.kommand.Kommand
 
@@ -35,7 +34,7 @@ object SpectateCommand : Kommand({
         val friend = !friendArg
         val game = friend.game
 
-        if (!player.getFriendsAsync().contains(friend.uuid)) {
+        if (!player.hasPermission("immortal.spectate.admin") && !player.getFriendsAsync().contains(friend.uuid)) {
             player.sendMessage(Component.text("You are not friends with '${friend.username}'", NamedTextColor.RED))
             return@syntaxSuspending
         }
@@ -45,7 +44,7 @@ object SpectateCommand : Kommand({
             return@syntaxSuspending
         }
 
-        if (!game.gameTypeInfo.spectatable) {
+        if (!player.hasPermission("immortal.spectate.admin") && !game.gameTypeInfo.spectatable) {
             player.sendMessage(Component.text("${friend.username}'s game can not be spectated", NamedTextColor.RED))
             return@syntaxSuspending
         }

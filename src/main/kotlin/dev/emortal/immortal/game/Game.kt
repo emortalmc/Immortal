@@ -1,11 +1,15 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.immortal.ImmortalExtension
+import dev.emortal.immortal.event.PlayerJoinGameEvent
+import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.inventory.SpectatingGUI
 import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.reset
+import dev.emortal.immortal.util.showTitle
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -15,6 +19,7 @@ import net.minestom.server.adventure.audience.PacketGroupingAudience
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.player.PlayerUseItemEvent
@@ -28,6 +33,7 @@ import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import org.slf4j.LoggerFactory
 import world.cepi.kstom.Manager
+import world.cepi.kstom.Manager.team
 import world.cepi.kstom.event.listenOnly
 import java.time.Duration
 import java.util.*
@@ -145,9 +151,16 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                     .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
             )
             playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
+            player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
 
             player.scheduleNextTick {
                 player.reset()
+                player.team = ImmortalExtension.defaultTeamMap[player]
+                logger.info("${player.username} joined game '${gameTypeInfo.gameName}'")
+
+                val joinEvent = PlayerJoinGameEvent(this, player)
+                EventDispatcher.call(joinEvent)
+
                 playerJoin(player)
                 funcCompletableFuture.complete(true)
             }
@@ -173,6 +186,9 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.remove(player)
         }
 
+        val leaveEvent = PlayerLeaveGameEvent(this, player)
+        EventDispatcher.call(leaveEvent)
+
         //player.reset()
 
         players.remove(player)
@@ -184,13 +200,25 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                 .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
                 .append(Component.text(player.username, NamedTextColor.RED))
                 .append(Component.text(" left the game ", NamedTextColor.GRAY))
-                .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+                .also {
+                    if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+                }
         )
         playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 0.5f))
 
         if (players.size < gameOptions.minPlayers) {
             if (startingTask != null) {
                 cancelCountdown()
+            }
+        }
+
+        if (gameState == GameState.PLAYING) {
+            val teamsWithPlayers = teams.filter { it.players.isNotEmpty() }
+            if (teamsWithPlayers.size == 1) {
+                victory(teamsWithPlayers.first())
+            }
+            if (players.size == 1) {
+                victory(player)
             }
         }
 
@@ -275,21 +303,28 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             return
         }
 
-        scoreboard?.updateLineContent("infoLine", Component.text("Starting...", NamedTextColor.GRAY))
-
         startingTask = object : MinestomRunnable(timer = timer, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
 
             override fun run() {
-                playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.AMBIENT, 1f, 1.2f))
-                showTitle(
-                    Title.title(
-                        Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
-                        Component.empty(),
-                        Title.Times.of(
-                            Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
+                scoreboard?.updateLineContent(
+                    "infoLine",
+                    Component.text()
+                        .append(Component.text("Starting in ${gameOptions.countdownSeconds - currentIteration} seconds", NamedTextColor.GREEN))
+                        .build()
+                )
+
+                if ((gameOptions.countdownSeconds - currentIteration) < 5 || currentIteration % 5 == 0) {
+                    playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.AMBIENT, 1f, 1.2f))
+                    showTitle(
+                        Title.title(
+                            Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
+                            Component.empty(),
+                            Title.Times.of(
+                                Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
+                            )
                         )
                     )
-                )
+                }
             }
 
             override fun cancelled() {
@@ -311,8 +346,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         startingTask = null
         showTitle(
             Title.title(
+                Component.empty(),
                 Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD),
-                Component.text("Not enough players"),
                 Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))
             )
         )
@@ -350,10 +385,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.joinGameOrNew("lobby")
             //it.joinGameOrNew(gameTypeInfo.gameName, gameOptions)
         }
+        players.clear()
 
         spectators.forEach {
             it.joinGameOrNew("lobby")
         }
+        spectators.clear()
 
         gameDestroyed()
     }
@@ -372,6 +409,44 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     fun registerTeam(team: Team): Team {
         teams.add(team)
         return team
+    }
+
+    fun victory(team: Team) = victory(team.players)
+    fun victory(player: Player) = victory(listOf(player))
+
+    open fun victory(winningPlayers: Collection<Player>) {
+        gameState = GameState.ENDING
+
+        val victoryTitle = Title.title(
+            Component.text("VICTORY!", NamedTextColor.GOLD, TextDecoration.BOLD),
+            Component.text(EndGameQuotes.victory.random(), NamedTextColor.GRAY),
+            Title.Times.of(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
+        )
+        val defeatTitle = Title.title(
+            Component.text("DEFEAT!", NamedTextColor.RED, TextDecoration.BOLD),
+            Component.text(EndGameQuotes.defeat.random(), NamedTextColor.GRAY),
+            Title.Times.of(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
+        )
+
+        val victorySound = Sound.sound(SoundEvent.ENTITY_VILLAGER_CELEBRATE, Sound.Source.MASTER, 1f, 1f)
+        val victorySound2 = Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f)
+
+        val defeatSound = Sound.sound(SoundEvent.ENTITY_VILLAGER_DEATH, Sound.Source.MASTER, 1f, 0.8f)
+
+        players.forEach {
+            scoreboard?.removeViewer(it)
+
+            if (winningPlayers.contains(it)) {
+                it.showTitle(victoryTitle)
+                it.playSound(victorySound)
+                it.playSound(victorySound2)
+            } else {
+                it.showTitle(defeatTitle)
+                it.playSound(defeatSound)
+            }
+        }
+
+        Manager.scheduler.buildTask { destroy() }.delay(Duration.ofSeconds(6)).schedule()
     }
 
     abstract fun instanceCreate(): Instance

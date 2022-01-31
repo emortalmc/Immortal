@@ -1,6 +1,5 @@
 package dev.emortal.immortal.util
 
-import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -9,41 +8,20 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minestom.server.entity.Player
 import net.minestom.server.sound.SoundEvent
-import world.cepi.kstom.Manager
-import world.cepi.kstom.util.MinestomRunnable
 import java.time.Duration
 import kotlin.math.roundToInt
-
-fun Iterable<Duration>.sum(): Duration {
-    var sum = Duration.ZERO
-    for (element in this) {
-        if (element == Duration.ZERO) continue
-        sum += element
-    }
-    return sum
-}
-
-val Title.Times.totalDuration: Duration
-    get() = fadeIn().plus(stay()).plus(fadeOut())
 
 fun Player.counterTitle(color: NamedTextColor, game: String, xp: Int) {
     val ticks = 20
 
-    object : MinestomRunnable() {
-        var i = 0
+    object : MinestomRunnable(repeat = Duration.ofMillis(50), iterations = ticks) {
         var currentXp = 0f
         override fun run() {
-            if (i > ticks) {
-                //player.playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.PLAYER, 1f, 1f), Sound.Emitter.self());
-                cancel()
-                return
-            }
             val lastXp = currentXp
-            val percentage = i.toFloat() / ticks.toFloat()
+            val percentage = currentIteration.toFloat() / ticks.toFloat()
             currentXp = expInterp(0f, xp.toFloat(), percentage)
 
             if (lastXp.roundToInt() == currentXp.roundToInt()) {
-                i++
                 return
             }
 
@@ -63,10 +41,9 @@ fun Player.counterTitle(color: NamedTextColor, game: String, xp: Int) {
                     SoundEvent.BLOCK_NOTE_BLOCK_HAT,
                     Sound.Source.PLAYER,
                     0.6f,
-                    0.5f + i.toFloat() / 10f
+                    0.5f + currentIteration.toFloat() / 10f
                 )
             )
-            i++
         }
-    }.repeat(Duration.ofMillis(50)).schedule()
+    }
 }

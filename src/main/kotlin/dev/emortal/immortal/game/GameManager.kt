@@ -1,9 +1,10 @@
 package dev.emortal.immortal.game
 
-import dev.emortal.acquaintance.RelationshipManager.party
+import dev.emortal.immortal.inventory.GameSelectorGUI
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.title.Title
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
@@ -11,6 +12,7 @@ import net.minestom.server.sound.SoundEvent
 import net.minestom.server.tag.Tag
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -51,10 +53,21 @@ object GameManager {
         }
         setTag(joiningGameTag, 1)
 
-        sendActionBar(
+        /*sendActionBar(
             Component.text()
                 .append(Component.text("Joining ", NamedTextColor.GREEN))
                 .append(game.gameTypeInfo.gameTitle)
+        )*/
+
+        showTitle(
+            Title.title(
+                Component.empty(),//Component.text("\uE00A"),
+                Component.text()
+                    .append(Component.text("Joining ", NamedTextColor.GREEN))
+                    .append(game.gameTypeInfo.gameTitle)
+                    .build(),
+                Title.Times.of(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ZERO)
+            )
         )
 
         playerGameMap[this] = game
@@ -62,6 +75,8 @@ object GameManager {
         game.addPlayer(this).thenAccept { wasSuccessful ->
             if (wasSuccessful) {
                 lastGame?.removePlayer(this)
+
+                GameSelectorGUI.refresh()
             } else {
                 sendMessage(Component.text("Something went wrong while joining ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
                 playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())

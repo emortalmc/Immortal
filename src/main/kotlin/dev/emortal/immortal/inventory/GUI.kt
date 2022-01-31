@@ -6,6 +6,10 @@ abstract class GUI {
 
     abstract fun createInventory(): Inventory
 
-    val inventory = createInventory()
+    var inventory = createInventory()
+
+    open fun refresh() {
+        inventory = createInventory()
+    }
 
 }

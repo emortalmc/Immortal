@@ -5,19 +5,21 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.Style
 import net.kyori.adventure.text.format.TextDecoration
 import java.time.format.TextStyle
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 fun progressBar(percentage: Float, characterCount: Int = 10, character: String = " ", completeColor: NamedTextColor, incompleteColor: NamedTextColor, decoration: TextDecoration? = null): Component {
     val percentage = percentage.coerceIn(0f, 1f)
 
-    val completeCharacters = (percentage * characterCount).roundToInt()
-    val incompleteCharacters = ((1 - percentage) * characterCount).roundToInt()
+    val completeCharacters = ceil((percentage * characterCount)).toInt()
+    val incompleteCharacters = floor((1 - percentage) * characterCount).toInt()
 
-    if (decoration == null) {
-        return Component.text(character.repeat(completeCharacters), completeColor)
+    return if (decoration == null) {
+        Component.text(character.repeat(completeCharacters), completeColor)
             .append(Component.text(character.repeat(incompleteCharacters), incompleteColor))
     } else {
-        return Component.text(character.repeat(completeCharacters), completeColor, decoration)
+        Component.text(character.repeat(completeCharacters), completeColor, decoration)
             .append(Component.text(character.repeat(incompleteCharacters), incompleteColor, decoration))
     }
 

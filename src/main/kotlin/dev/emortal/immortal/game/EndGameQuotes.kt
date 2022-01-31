@@ -8,15 +8,18 @@ object EndGameQuotes {
         "All luck",
         "NoHacksJustSkill",
         "Were you hacking?",
+        "Were you teaming?",
         "skillage",
         "I dropped my popcorn",
         "Defeat... but not for you",
         "Teamwork makes the dream work",
+        "vic roy",
         "call an ambulance... but not for me",
         "What chair do you have?"
     )
 
     val defeat = setOf(
+        "I guess you weren't trying",
         "no",
         "L",
         "Better luck next time!",
@@ -34,8 +37,7 @@ object EndGameQuotes {
         "I bet you didn't even say good game",
         "You did your best... but it wasn't enough",
         "\"i lagged\" says an Australian",
-        "If I had a dollar every time you won a game, I'd be in crippling debt",
-        // "Even {lowest player on leaderboard} is better than you"
+        "If I had a dollar every time you won a game, I'd be in crippling debt"
     )
 
 }
