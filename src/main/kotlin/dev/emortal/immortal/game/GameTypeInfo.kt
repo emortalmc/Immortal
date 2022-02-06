@@ -11,5 +11,5 @@ data class GameTypeInfo(
     val showsInSlashPlay: Boolean = true,
     val spectatable: Boolean = true,
     val whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
-    val gamePresets: MutableMap<String, GameOptions>
+    val gameOptions: GameOptions
 )

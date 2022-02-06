@@ -11,7 +11,7 @@ import net.minestom.server.item.metadata.PlayerHeadMeta
 import net.minestom.server.tag.Tag
 import world.cepi.kstom.item.item
 import world.cepi.kstom.util.asPlayer
-import world.cepi.kstom.util.setItemStack
+import world.cepi.kstom.util.getSlotNumber
 import java.util.*
 
 class SpectatingGUI : GUI() {
@@ -38,7 +38,7 @@ class SpectatingGUI : GUI() {
     }
 
     fun refresh(players: Collection<Player>) {
-        inventory.clear()
+        val contents = inventory.itemStacks
 
         players.forEachIndexed { i, player ->
 
@@ -52,8 +52,10 @@ class SpectatingGUI : GUI() {
                 meta.setTag(playerUUIDTag, player.uuid.toString())
             }
 
-            inventory.setItemStack(i % 8, 1 + (i / 9), headItemStack)
+            contents[inventory.getSlotNumber(i % 8, 1 + (i / 9))] = headItemStack
         }
+
+        inventory.copyContents(contents)
     }
 
 }

@@ -21,43 +21,28 @@ import kotlin.reflect.full.primaryConstructor
 object GameManager {
     val logger: Logger = LoggerFactory.getLogger("GameManager")
 
-    val gameNameTag = Tag.String("gameName")
-    val gameIdTag = Tag.Integer("gameId")
+    internal val gameNameTag = Tag.String("gameName")
+    internal val gameIdTag = Tag.Integer("gameId")
+    internal val joiningGameTag = Tag.Byte("joiningGame")
 
     val playerGameMap = ConcurrentHashMap<Player, Game>()
-    val spectatorToFriendMap = ConcurrentHashMap<Player, Player>()
-
     val gameNameToClassMap = ConcurrentHashMap<String, KClass<out Game>>()
     val registeredGameMap = ConcurrentHashMap<KClass<out Game>, GameTypeInfo>()
     val gameMap = ConcurrentHashMap<String, MutableSet<Game>>()
 
-    val joiningGameTag = Tag.Byte("joiningGame")
-
     @Volatile
-    var nextGameID = 0
+    internal var nextGameID = 0
 
-    var Player.game get() = playerGameMap[this]
-        set(value) {
-            if (value == null) return
-            this.joinGame(value)
-        }
+    val Player.game get() = playerGameMap[this]
 
-    fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
-        val future: CompletableFuture<Boolean> = CompletableFuture()
+    fun Player.joinGame(game: Game): CompletableFuture<Void>? {
         val lastGame = this.game
 
         if (hasTag(joiningGameTag)) {
             sendMessage(Component.text("Already joining a game", NamedTextColor.RED))
-            future.complete(false)
-            return future
+            return null
         }
         setTag(joiningGameTag, 1)
-
-        /*sendActionBar(
-            Component.text()
-                .append(Component.text("Joining ", NamedTextColor.GREEN))
-                .append(game.gameTypeInfo.gameTitle)
-        )*/
 
         showTitle(
             Title.title(
@@ -70,31 +55,29 @@ object GameManager {
             )
         )
 
-        playerGameMap[this] = game
-
-        game.addPlayer(this).thenAccept { wasSuccessful ->
-            if (wasSuccessful) {
-                lastGame?.removePlayer(this)
-            } else {
-                sendMessage(Component.text("Something went wrong while joining ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
-                playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-            }
-            removeTag(joiningGameTag)
-            future.complete(wasSuccessful)
+        val future = game.addPlayer(this)
+        if (future != null) {
+            lastGame?.removePlayer(this)
+            playerGameMap[this] = game
+        } else {
+            sendMessage(Component.text("Something went wrong while joining ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
+            playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
         }
+
+        removeTag(joiningGameTag)
 
         return future
     }
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gamePresets["default"]!!
-    ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
+        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gameOptions
+    ): CompletableFuture<Void>? = this.joinGame(findOrCreateGame(this, gameTypeName, options))
 
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gamePresets["default"]!!
+        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gameOptions
     ): Game {
         val game = gameMap[gameTypeName]?.firstOrNull {
             // TODO: Private games with parties
@@ -123,9 +106,9 @@ object GameManager {
         gameName: String,
         sidebarTitle: Component,
         showsInSlashPlay: Boolean = true,
-        spectatable: Boolean = true,
+        canSpectate: Boolean = true,
         whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
-        defaultGameOptions: GameOptions
+        gameOptions: GameOptions
     ) {
         gameNameToClassMap[gameName] = T::class
 
@@ -134,18 +117,14 @@ object GameManager {
             gameName,
             sidebarTitle,
             showsInSlashPlay,
-            spectatable,
+            canSpectate,
             whenToRegisterEvents,
-            mutableMapOf("default" to defaultGameOptions)
+            gameOptions
         )
 
         GameSelectorGUI.refresh()
 
         logger.info("Registered game type '${gameName}'")
-    }
-
-    inline fun <reified  T : Game> addPreset(presetName: String, presetOptions: GameOptions) {
-        registeredGameMap[T::class]?.gamePresets?.set(presetName, presetOptions)
     }
 
     inline fun <reified T : Game> unregisterGame() {

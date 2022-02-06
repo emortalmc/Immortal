@@ -1,5 +1,6 @@
 package dev.emortal.immortal.commands
 
+import dev.emortal.immortal.util.PermissionUtils.hasLuckPermission
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.command.builder.arguments.ArgumentType
@@ -19,13 +20,13 @@ object InstanceCommand : Kommand({
     syntax(instanceArgument) {
         val instance = !instanceArgument
 
-        if (player.permissionLevel != 4) {
+        if (!player.hasLuckPermission("immortal.instance")) {
             player.sendMessage(Component.text("No permission", NamedTextColor.RED))
             return@syntax
         }
 
         if (instance == null) {
-            sender.sendMessage(Component.text("Invalid instance"))
+            sender.sendMessage(Component.text("Invalid instance", NamedTextColor.RED))
             return@syntax
         }
 

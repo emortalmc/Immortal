@@ -1,6 +1,5 @@
 package dev.emortal.immortal
 
-import dev.emortal.immortal.blockhandler.CampfireHandler
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.*
@@ -9,31 +8,25 @@ import dev.emortal.immortal.config.GameListing
 import dev.emortal.immortal.config.GameListingConfig
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
-import dev.emortal.immortal.inventory.GameSelectorGUI
 import dev.emortal.immortal.util.PacketNPC
 import dev.emortal.immortal.util.PermissionUtils.prefix
-import net.kyori.adventure.text.format.NamedTextColor
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
-import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.player.*
 import net.minestom.server.extensions.Extension
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
-import net.minestom.server.network.packet.client.play.ClientPongPacket
 import net.minestom.server.network.packet.server.play.TeamsPacket
 import net.minestom.server.scoreboard.Team
 import net.minestom.server.scoreboard.TeamBuilder
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
-import org.slf4j.LoggerFactory
 import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
 import java.nio.file.Path
-
 
 class ImmortalExtension : Extension() {
 
@@ -47,7 +40,6 @@ class ImmortalExtension : Extension() {
     }
 
     override fun initialize() {
-
         luckperms = LuckPermsProvider.get()
 
         gameListingConfig = ConfigHelper.initConfigFile(gameListingPath, GameListingConfig())
@@ -66,8 +58,6 @@ class ImmortalExtension : Extension() {
             if (chunk.viewers.isEmpty()) {
                 instance.unloadChunk(chunkX, chunkZ)
             }
-
-
         }
 
         eventNode.listenOnly<PlayerDisconnectEvent> {
@@ -86,23 +76,18 @@ class ImmortalExtension : Extension() {
                 if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN)) return@listenOnly
                 PacketNPC.npcIdMap[packet.targetId]?.onClick(player)
             }
-
         }
 
+        val defaultTeam = TeamBuilder("defaultTeam", Manager.team)
+            .collisionRule(TeamsPacket.CollisionRule.NEVER)
+            .build()
         eventNode.listenOnly<PlayerSpawnEvent> {
             if (this.isFirstSpawn) {
+                player.team = defaultTeam
+                defaultTeamMap[player] = defaultTeam
+
                 val prefix = player.prefix ?: return@listenOnly
-
                 this.player.displayName = "$prefix ${player.username}".asMini()
-
-                val team = TeamBuilder(player.username, Manager.team)
-                    .teamColor(NamedTextColor.DARK_GRAY)
-                    .prefix("$prefix ".asMini())
-                    .collisionRule(TeamsPacket.CollisionRule.NEVER)
-                    .build()
-
-                player.team = team
-                defaultTeamMap[player] = team
             } else {
                 val viewingNpcs = (PacketNPC.viewerMap[player.uuid] ?: return@listenOnly).toMutableList()
                 viewingNpcs.forEach {
@@ -128,15 +113,13 @@ class ImmortalExtension : Extension() {
         Manager.dimensionType.addDimension(dimensionType)
 
         SignHandler.register("minecraft:sign")
-        CampfireHandler.register("minecraft:campfire")
         SkullHandler.register("minecraft:skull")
 
-        //ForceStartCommand.register()
+        ForceStartCommand.register()
         PlayCommand.register()
         SoundCommand.register()
         SpectateCommand.register()
-
-        //InstanceCommand.register()
+        InstanceCommand.register()
 
         logger.info("[Immortal] Initialized!")
     }

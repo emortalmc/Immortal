@@ -8,7 +8,8 @@ import world.cepi.kstom.command.arguments.suggest
 import world.cepi.kstom.command.kommand.Kommand
 
 object SoundCommand : Kommand({
-     onlyPlayers
+
+    onlyPlayers
 
     val soundArgument = ArgumentWord("sound")
         .map { input: String -> SoundEvent.fromNamespaceId(input) }
@@ -19,6 +20,7 @@ object SoundCommand : Kommand({
     syntax(soundArgument, volumeArgument, pitchArgument) {
 
         player.playSound(Sound.sound((!soundArgument)!!, Sound.Source.MASTER, !volumeArgument, !pitchArgument))
+
     }
 
 }, "sound")
