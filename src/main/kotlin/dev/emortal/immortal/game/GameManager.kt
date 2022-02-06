@@ -21,9 +21,9 @@ import kotlin.reflect.full.primaryConstructor
 object GameManager {
     val logger: Logger = LoggerFactory.getLogger("GameManager")
 
-    internal val gameNameTag = Tag.String("gameName")
-    internal val gameIdTag = Tag.Integer("gameId")
-    internal val joiningGameTag = Tag.Byte("joiningGame")
+    val gameNameTag = Tag.String("gameName")
+    val gameIdTag = Tag.Integer("gameId")
+    val joiningGameTag = Tag.Byte("joiningGame")
 
     val playerGameMap = ConcurrentHashMap<Player, Game>()
     val gameNameToClassMap = ConcurrentHashMap<String, KClass<out Game>>()
