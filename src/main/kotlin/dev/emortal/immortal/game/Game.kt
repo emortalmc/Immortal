@@ -138,6 +138,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             )
             playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
             player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
+            player.clearTitle()
 
             val joinEvent = PlayerJoinGameEvent(this, player)
             EventDispatcher.call(joinEvent)
