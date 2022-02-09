@@ -2,11 +2,12 @@ package dev.emortal.immortal.inventory
 
 import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameListing
+import dev.emortal.immortal.event.GameDestroyEvent
 import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
+import dev.emortal.immortal.game.Game
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
-import dev.emortal.immortal.inventory.GUI
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.inventory.Inventory
@@ -59,21 +60,23 @@ object GameSelectorGUI : GUI() {
 
         inventory.setItemStacks(itemStackMap)
 
-        Manager.globalEvent.listenOnly<PlayerJoinGameEvent> {
-            val gameName = getGame().gameTypeInfo.gameName
-            val gameListing = ImmortalExtension.gameListingConfig.gameListings[gameName] ?: return@listenOnly
-            if (!gameListing.itemVisible) return@listenOnly
+        fun refresh(game: Game) {
+            val gameName = game.gameTypeInfo.gameName
+            val gameListing = ImmortalExtension.gameListingConfig.gameListings[gameName] ?: return
+            if (!gameListing.itemVisible) return
 
-            val item = itemFromListing(gameName, gameListing) ?: return@listenOnly
+            val item = itemFromListing(gameName, gameListing) ?: return
             inventory.setItemStack(gameListing.slot, item)
         }
-        Manager.globalEvent.listenOnly<PlayerLeaveGameEvent> {
-            val gameName = getGame().gameTypeInfo.gameName
-            val gameListing = ImmortalExtension.gameListingConfig.gameListings[gameName] ?: return@listenOnly
-            if (!gameListing.itemVisible) return@listenOnly
 
-            val item = itemFromListing(gameName, gameListing) ?: return@listenOnly
-            inventory.setItemStack(gameListing.slot, item)
+        Manager.globalEvent.listenOnly<PlayerJoinGameEvent> {
+            refresh(getGame())
+        }
+        Manager.globalEvent.listenOnly<PlayerLeaveGameEvent> {
+            refresh(getGame())
+        }
+        Manager.globalEvent.listenOnly<GameDestroyEvent> {
+            refresh(getGame())
         }
 
         inventory.addInventoryCondition { player, _, _, inventoryConditionResult ->

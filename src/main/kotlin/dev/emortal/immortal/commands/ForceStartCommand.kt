@@ -21,6 +21,7 @@ object ForceStartCommand : Kommand({
             return@default
         }
 
+        player.game?.startingTask?.cancel()
         player.game!!.start()
     }
 

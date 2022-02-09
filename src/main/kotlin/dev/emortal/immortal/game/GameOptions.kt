@@ -7,5 +7,5 @@ class GameOptions(
     val canJoinDuringGame: Boolean = false,
     val showScoreboard: Boolean = true,
     val showsJoinLeaveMessages: Boolean = true,
-    val onlyFriends: Boolean = false
+    var private: Boolean = false
 )

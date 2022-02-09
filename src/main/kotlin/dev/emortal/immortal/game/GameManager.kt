@@ -1,10 +1,10 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.acquaintance.RelationshipManager.party
 import dev.emortal.immortal.inventory.GameSelectorGUI
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.title.Title
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
@@ -12,7 +12,6 @@ import net.minestom.server.sound.SoundEvent
 import net.minestom.server.tag.Tag
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -35,7 +34,40 @@ object GameManager {
 
     val Player.game get() = playerGameMap[this]
 
+    fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Void>? = joinGame(game) ?: spectateGame(game)
+
+    fun Player.spectateGame(game: Game): CompletableFuture<Void>? {
+        if (!game.gameTypeInfo.spectatable) return null
+        if (game.spectators.contains(this)) {
+            sendMessage(Component.text("Already spectating this game", NamedTextColor.RED))
+            return null
+        }
+
+        val lastGame = this.game
+
+        if (hasTag(joiningGameTag)) {
+            sendMessage(Component.text("Already trying to spectating a game", NamedTextColor.RED))
+            return null
+        }
+        setTag(joiningGameTag, 1)
+
+        val future = game.addSpectator(this)
+        if (future != null) {
+            lastGame?.removePlayer(this)
+            playerGameMap[this] = game
+        } else {
+            sendMessage(Component.text("Something went wrong while spectating ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
+            playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        }
+
+        removeTag(joiningGameTag)
+
+        return future
+    }
+
     fun Player.joinGame(game: Game): CompletableFuture<Void>? {
+        if (!game.canBeJoined(this)) return null
+
         val lastGame = this.game
 
         if (hasTag(joiningGameTag)) {
@@ -43,17 +75,6 @@ object GameManager {
             return null
         }
         setTag(joiningGameTag, 1)
-
-        showTitle(
-            Title.title(
-                Component.empty(),//Component.text("\uE00A"),
-                Component.text()
-                    .append(Component.text("Joining ", NamedTextColor.GREEN))
-                    .append(game.gameTypeInfo.gameTitle)
-                    .build(),
-                Title.Times.of(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ZERO)
-            )
-        )
 
         val future = game.addPlayer(this)
         if (future != null) {
@@ -80,20 +101,22 @@ object GameManager {
         options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gameOptions
     ): Game {
         val game = gameMap[gameTypeName]?.firstOrNull {
-            // TODO: Private games with parties
             it.canBeJoined(player) && it.gameOptions == options
         }
-            ?: createGame(gameTypeName, options)
+            ?: createGame(gameTypeName, options, player)
 
         return game
     }
 
-    fun createGame(gameTypeName: String, options: GameOptions): Game {
+    fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
         nextGameID++
+
+        options.private = creator?.party?.privateGames ?: false
 
         val gameClass = gameNameToClassMap[gameTypeName]
         val game = gameClass?.primaryConstructor?.call(options)
             ?: throw IllegalArgumentException("Primary constructor not found.")
+        game.gameCreator = creator
 
         gameMap.putIfAbsent(gameTypeName, mutableSetOf())
         gameMap[gameTypeName]!!.add(game)

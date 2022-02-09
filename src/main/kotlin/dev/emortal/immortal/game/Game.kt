@@ -1,6 +1,8 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.acquaintance.RelationshipManager.party
 import dev.emortal.immortal.ImmortalExtension
+import dev.emortal.immortal.event.GameDestroyEvent
 import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameIdTag
@@ -68,6 +70,9 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
+    private var destroyed = false
+    var gameCreator: Player? = null
+
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
 
@@ -82,7 +87,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (gameOptions.showScoreboard) {
             scoreboard = Sidebar(gameTypeInfo.gameTitle)
 
-            scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 30))
+            scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
 
             scoreboard?.createLine(
                 Sidebar.ScoreboardLine(
@@ -93,7 +98,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                     0
                 )
             )
-            scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -1))
+            scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -8))
             scoreboard?.createLine(
                 Sidebar.ScoreboardLine(
                     "ipLine",
@@ -101,7 +106,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                         .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
                         .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
                         .build(),
-                    -2
+                    -9
                 )
             )
         }
@@ -120,9 +125,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         player.respawnPoint = spawnPosition
         val lastInstance = player.instance
 
-        return player.safeSetInstance(instance, spawnPosition).thenRun {
-            logger.info("${player.username} joined game '${gameTypeInfo.gameName}'")
-
+        val future = player.safeSetInstance(instance, spawnPosition)
+        future.thenRun {
             player.reset()
             player.team = ImmortalExtension.defaultTeamMap[player]
 
@@ -134,11 +138,14 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                     .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
                     .append(Component.text(player.username, NamedTextColor.GREEN))
                     .append(Component.text(" joined the game ", NamedTextColor.GRAY))
-                    .append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+                    .also {
+                        if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+                    }
             )
             playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
             player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
             player.clearTitle()
+            player.sendActionBar(Component.empty())
 
             val joinEvent = PlayerJoinGameEvent(this, player)
             EventDispatcher.call(joinEvent)
@@ -150,11 +157,13 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             }
 
             if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
-                if (startingTask != null) return@thenRun
-
-                startCountdown()
+                if (startingTask == null) {
+                    startCountdown()
+                }
             }
         }
+
+        return future
     }
 
     internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
@@ -209,27 +218,35 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         playerLeave(player)
     }
 
-    internal fun addSpectator(player: Player) {
-        if (spectators.contains(player)) return
+    internal fun addSpectator(player: Player): CompletableFuture<Void>? {
+        if (spectators.contains(player)) return null
 
         logger.info("${player.username} started spectating game '${gameTypeInfo.gameName}'")
 
-        player.reset()
-        player.respawnPoint = spawnPosition
-        player.setInstance(instance)
-        player.isAutoViewable = false
-        player.isInvisible = true
-        player.gameMode = GameMode.ADVENTURE
-        player.isAllowFlying = true
-        player.isFlying = true
 
-        player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+        player.respawnPoint = spawnPosition
+
+        val lastInstance = player.instance
+        val future = player.safeSetInstance(instance).thenRun {
+            player.reset()
+
+            player.isInvisible = true
+            player.gameMode = GameMode.SPECTATOR
+            player.isAllowFlying = true
+            player.isFlying = true
+            player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+            player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
+            spectatorJoin(player)
+
+            if (lastInstance != instance && lastInstance?.players?.size == 0) {
+                Manager.instance.unregisterInstance(lastInstance)
+            }
+        }
 
         spectators.add(player)
 
-        player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-
-        spectatorJoin(player)
+        return future
     }
 
     internal fun removeSpectator(player: Player) {
@@ -312,6 +329,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     abstract fun registerEvents()
 
     fun start() {
+        if (gameState == GameState.PLAYING) return
+
         playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
         startingTask = null
@@ -323,11 +342,17 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun destroy() {
+        if (destroyed) return
+        destroyed = true
+
         logger.info("A game of '${gameTypeInfo.gameName}' is ending")
 
         gameTypeInfo.eventNode.removeChild(eventNode)
 
         timer.cancel()
+
+        val destroyEvent = GameDestroyEvent(this)
+        EventDispatcher.call(destroyEvent)
 
         GameManager.gameMap[gameTypeInfo.gameName]?.remove(this)
 
@@ -357,6 +382,11 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
         if (gameState == GameState.PLAYING) {
             return gameOptions.canJoinDuringGame
+        }
+        if (gameOptions.private) {
+            val party = gameCreator?.party ?: return false
+
+            return party.players.contains(player)
         }
         return gameState.joinable
     }
@@ -389,8 +419,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         val defeatSound = Sound.sound(SoundEvent.ENTITY_VILLAGER_DEATH, Sound.Source.MASTER, 1f, 0.8f)
 
         players.forEach {
-            scoreboard?.removeViewer(it)
-
             if (winningPlayers.contains(it)) {
                 it.showTitle(victoryTitle)
                 it.playSound(victorySound)

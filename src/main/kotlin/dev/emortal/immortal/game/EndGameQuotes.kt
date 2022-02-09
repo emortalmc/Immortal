@@ -36,7 +36,7 @@ object EndGameQuotes {
         "smh my head",
         "I bet you didn't even say good game",
         "You did your best... but it wasn't enough",
-        "\"i lagged\" says an Australian",
+        "\"i lagged\" said an Australian",
         "If I had a dollar every time you won a game, I'd be in crippling debt"
     )
 

@@ -2,7 +2,10 @@ package dev.emortal.immortal
 
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
-import dev.emortal.immortal.commands.*
+import dev.emortal.immortal.commands.ForceStartCommand
+import dev.emortal.immortal.commands.PlayCommand
+import dev.emortal.immortal.commands.SoundCommand
+import dev.emortal.immortal.commands.SpectateCommand
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameListing
 import dev.emortal.immortal.config.GameListingConfig
@@ -52,13 +55,14 @@ class ImmortalExtension : Extension() {
 
         ConfigHelper.writeObjectToPath(gameListingPath, gameListingConfig)
 
-        eventNode.listenOnly<PlayerChunkUnloadEvent> {
-            val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
-
-            if (chunk.viewers.isEmpty()) {
-                instance.unloadChunk(chunkX, chunkZ)
-            }
-        }
+        // Causes issues but also saves RAM usage /shrug
+//        eventNode.listenOnly<PlayerChunkUnloadEvent> {
+//            val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
+//
+//            if (chunk.viewers.isEmpty()) {
+//                instance.unloadChunk(chunkX, chunkZ)
+//            }
+//        }
 
         eventNode.listenOnly<PlayerDisconnectEvent> {
             player.game?.removePlayer(player)
@@ -119,18 +123,15 @@ class ImmortalExtension : Extension() {
         PlayCommand.register()
         SoundCommand.register()
         SpectateCommand.register()
-        InstanceCommand.register()
 
         logger.info("[Immortal] Initialized!")
     }
 
     override fun terminate() {
-        //ForceStartCommand.unregister()
+        ForceStartCommand.unregister()
         PlayCommand.unregister()
         SoundCommand.unregister()
         SpectateCommand.unregister()
-
-        //InstanceCommand.unregister()
 
         logger.info("[Immortal] Terminated!")
     }
