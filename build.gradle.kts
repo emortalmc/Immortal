@@ -37,7 +37,7 @@ dependencies {
     // Use the Kotlin reflect library.
     compileOnly(kotlin("reflect"))
 
-    compileOnly("net.luckperms:api:5.3")
+    compileOnly("net.luckperms:api:5.4")
 
     // Compile Minestom into project
     compileOnly("com.github.Minestom:Minestom:517d6a3b7c")
