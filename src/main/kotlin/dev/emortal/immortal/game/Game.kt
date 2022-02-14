@@ -24,10 +24,10 @@ import net.minestom.server.entity.Player
 import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
-import net.minestom.server.event.player.PlayerUseItemEvent
+import net.minestom.server.event.player.PlayerEntityInteractEvent
+import net.minestom.server.event.player.PlayerStartSneakingEvent
+import net.minestom.server.event.trait.PlayerEvent
 import net.minestom.server.instance.Instance
-import net.minestom.server.item.ItemStack
-import net.minestom.server.item.Material
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.slf4j.LoggerFactory
@@ -56,10 +56,27 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         it.setTag(gameIdTag, id)
     }
 
-    val eventNode = EventNode.tag(
-        "${gameTypeInfo.gameName}-$id", EventFilter.INSTANCE,
-        gameIdTag
-    ) { it == id }
+    val eventNode = EventNode.type(
+        "${gameTypeInfo.gameName}-$id",
+        EventFilter.INSTANCE
+    ) { a, b ->
+        if (a is PlayerEvent) {
+            return@type players.contains(a.player)
+        } else {
+            return@type b.getTag(gameIdTag) == id
+        }
+    }
+
+    val spectatorNode = EventNode.type(
+        "${gameTypeInfo.gameName}-$id-spectator",
+        EventFilter.INSTANCE
+    ) { a, b ->
+        if (a is PlayerEvent) {
+            return@type spectators.contains(a.player)
+        } else {
+            return@type b.getTag(gameIdTag) == id
+        }
+    }
 
     val timer = Timer()
 
@@ -75,11 +92,21 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     init {
         gameTypeInfo.eventNode.addChild(eventNode)
+        gameTypeInfo.eventNode.addChild(spectatorNode)
 
-        eventNode.listenOnly<PlayerUseItemEvent> {
+        //eventNode.listenOnly<PlayerUseItemEvent> {
+        //    if (!spectators.contains(player)) return@listenOnly
+        //    if (player.itemInMainHand.material != Material.COMPASS) return@listenOnly
+        //    player.openInventory(spectatorGUI.inventory)
+        //}
+        spectatorNode.listenOnly<PlayerStartSneakingEvent> {
             if (!spectators.contains(player)) return@listenOnly
-            if (player.itemInMainHand.material != Material.COMPASS) return@listenOnly
-            player.openInventory(spectatorGUI.inventory)
+            player.stopSpectating()
+        }
+        spectatorNode.listenOnly<PlayerEntityInteractEvent> {
+            if (!spectators.contains(player)) return@listenOnly
+            val playerToSpectate = entity as? Player ?: return@listenOnly
+            player.spectate(playerToSpectate)
         }
 
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
@@ -123,7 +150,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         spectatorGUI.refresh(players)
 
         player.respawnPoint = spawnPosition
-        val lastInstance = player.instance
 
         val future = player.safeSetInstance(instance, spawnPosition)
         future.thenRun {
@@ -151,10 +177,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             EventDispatcher.call(joinEvent)
 
             playerJoin(player)
-
-            if (lastInstance != instance && lastInstance?.players?.size == 0) {
-                Manager.instance.unregisterInstance(lastInstance)
-            }
 
             if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
                 if (startingTask == null) {
@@ -220,6 +242,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     internal fun addSpectator(player: Player): CompletableFuture<Void>? {
         if (spectators.contains(player)) return null
+        if (players.contains(player)) return null
 
         logger.info("${player.username} started spectating game '${gameTypeInfo.gameName}'")
 
@@ -234,7 +257,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             player.gameMode = GameMode.SPECTATOR
             player.isAllowFlying = true
             player.isFlying = true
-            player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+            //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
             player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
             spectatorJoin(player)
@@ -255,8 +278,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         logger.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
 
         spectators.remove(player)
-        player.joinGameOrNew("lobby")
-        player.reset()
 
         spectatorLeave(player)
     }

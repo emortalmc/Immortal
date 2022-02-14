@@ -1,6 +1,7 @@
 package dev.emortal.immortal.commands
 
 import dev.emortal.immortal.game.GameManager.game
+import dev.emortal.immortal.game.GameManager.spectateGame
 import dev.emortal.immortal.util.PermissionUtils.hasLuckPermission
 import kotlinx.coroutines.Dispatchers
 import net.kyori.adventure.text.Component
@@ -46,7 +47,8 @@ object SpectateCommand : Kommand({
             return@syntaxSuspending
         }
 
-        game.addSpectator(player)
+        //player.sendMessage(Component.text("Spectating is currently disabled", NamedTextColor.RED))
+        player.spectateGame(game)
     }
 
 }, "spectate")

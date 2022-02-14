@@ -1,8 +1,8 @@
 package dev.emortal.immortal.util
 
+import net.minestom.server.attribute.Attribute
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
-import org.slf4j.LoggerFactory
 
 fun Player.reset() {
     inventory.clear()
@@ -15,6 +15,8 @@ fun Player.reset() {
     food = 20
     level = 0
     isEnableRespawnScreen = false
+    vehicle?.removePassenger(this)
+    getAttribute(Attribute.MOVEMENT_SPEED).baseValue = 0.1f
     setCanPickupItem(true)
     closeInventory()
     setNoGravity(false)

@@ -2,10 +2,7 @@ package dev.emortal.immortal
 
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
-import dev.emortal.immortal.commands.ForceStartCommand
-import dev.emortal.immortal.commands.PlayCommand
-import dev.emortal.immortal.commands.SoundCommand
-import dev.emortal.immortal.commands.SpectateCommand
+import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameListing
 import dev.emortal.immortal.config.GameListingConfig
@@ -17,6 +14,7 @@ import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.extensions.Extension
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
@@ -55,23 +53,84 @@ class ImmortalExtension : Extension() {
 
         ConfigHelper.writeObjectToPath(gameListingPath, gameListingConfig)
 
+
         // Causes issues but also saves RAM usage /shrug
-//        eventNode.listenOnly<PlayerChunkUnloadEvent> {
-//            val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
+//      eventNode.listenOnly<PlayerChunkUnloadEvent> {
+//          val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
 //
-//            if (chunk.viewers.isEmpty()) {
-//                instance.unloadChunk(chunkX, chunkZ)
+//          if (chunk.viewers.isEmpty()) {
+//              instance.unloadChunk(chunkX, chunkZ)
+//          }
+//      }
+
+        val globalEvent = Manager.globalEvent
+
+        val maxDistanceSurvival = 10*10
+        val maxDistanceCreative = 50*50
+        val maxDistanceSpectator = 100*100
+        globalEvent.listenOnly<PlayerMoveEvent> {
+            val distanceSquared = player.position.distanceSquared(newPosition)
+
+            val aboveMax = when (player.gameMode) {
+                GameMode.SURVIVAL, GameMode.ADVENTURE -> distanceSquared > maxDistanceSurvival
+                GameMode.SPECTATOR -> distanceSquared > maxDistanceSpectator
+                GameMode.CREATIVE -> distanceSquared > maxDistanceCreative
+                else -> false
+            }
+
+            if (aboveMax) isCancelled = true
+        }
+
+//        val maxReachSurvival = 4.2
+//        globalEvent.listenOnly<EntityAttackEvent> {
+//            val player = entity as Player
+//            val playerEyePos = player.position.add(0.0, 1.0, 0.0)
+//            val playerEyeDir = playerEyePos.direction()
+//
+//            val area = entity.area3d
+//            val entityIntersection = area.lineIntersection(
+//                playerEyePos.x(), playerEyePos.y(), playerEyePos.z(),
+//                playerEyeDir.x(), playerEyeDir.y(), playerEyeDir.z()
+//            )
+//            if (entityIntersection == null) {
+//                this.
+//                return@listenOnly
 //            }
+//
+//            val gridIterator = GridCast.createExactGridIterator(
+//                playerEyePos.x(), playerEyePos.y(), playerEyePos.z(),
+//                playerEyeDir.x(), playerEyeDir.y(), playerEyeDir.z(),
+//                1.0, maxReachSurvival + 1
+//            )
+//
+//            while (gridIterator.hasNext()) {
+//                val gridUnit = gridIterator.next()
+//                val pos = Pos(gridUnit[0], gridUnit[1], gridUnit[2])
+//                val hitBlock = instance.getBlock(pos)
+//
+//                if (hitBlock.isSolid)
+//            }
+//
+//            val distanceSquared = playerEyePos.distanceSquared(target.position.add(0.0, 1.0, 0.0))
 //        }
+
+        eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
+            if (this.entity !is Player) return@listenOnly
+
+            this.instance.scheduleNextTick {
+                if (it.players.isEmpty()) {
+                    if (it.hasTag(GameManager.doNotUnregisterTag)) return@scheduleNextTick
+
+                    Manager.instance.unregisterInstance(it)
+                    logger.info("Instance was unregistered. Instance count: ${Manager.instance.instances.size}")
+                }
+            }
+        }
 
         eventNode.listenOnly<PlayerDisconnectEvent> {
             player.game?.removePlayer(player)
             player.game?.removeSpectator(player)
             GameManager.playerGameMap.remove(player)
-
-            if (instance.players.size == 0) {
-                Manager.instance.unregisterInstance(instance)
-            }
         }
 
         eventNode.listenOnly<PlayerPacketEvent> {
@@ -119,21 +178,27 @@ class ImmortalExtension : Extension() {
         SignHandler.register("minecraft:sign")
         SkullHandler.register("minecraft:skull")
 
+        CheckForEmptyInstanceCommand.register()
         ForceStartCommand.register()
         PlayCommand.register()
         SoundCommand.register()
         SpectateCommand.register()
+        StatsCommand.register()
+        ListCommand.register()
 
-        logger.info("[Immortal] Initialized!")
+        logger.info("[${origin.name}] Initialized!")
     }
 
     override fun terminate() {
+        CheckForEmptyInstanceCommand.unregister()
         ForceStartCommand.unregister()
         PlayCommand.unregister()
         SoundCommand.unregister()
         SpectateCommand.unregister()
+        StatsCommand.unregister()
+        ListCommand.unregister()
 
-        logger.info("[Immortal] Terminated!")
+        logger.info("[${origin.name}] Terminated!")
     }
 
 }

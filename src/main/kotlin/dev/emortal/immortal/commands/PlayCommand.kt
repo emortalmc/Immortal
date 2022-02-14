@@ -24,6 +24,8 @@ object PlayCommand : Kommand({
     syntax(gamemodeArg) {
         val gamemode = !gamemodeArg ?: return@syntax
 
+        if (!gamemode.showsInSlashPlay) return@syntax
+
         player.joinGameOrNew(gamemode.gameName)
     }
 

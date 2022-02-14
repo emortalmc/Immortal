@@ -46,6 +46,8 @@ dependencies {
     //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
     api("com.github.emortaldev:Particable:e98f138cda")
 
+    //implementation("com.github.EmortalMC:Rayfast:07d8daf030")
+
     // import kotlinx serialization
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
