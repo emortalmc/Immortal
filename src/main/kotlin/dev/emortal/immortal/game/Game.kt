@@ -253,6 +253,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         val future = player.safeSetInstance(instance).thenRun {
             player.reset()
 
+            scoreboard?.addViewer(player)
+
             player.isInvisible = true
             player.gameMode = GameMode.SPECTATOR
             player.isAllowFlying = true
@@ -278,6 +280,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         logger.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
 
         spectators.remove(player)
+        scoreboard?.addViewer(player)
 
         spectatorLeave(player)
     }

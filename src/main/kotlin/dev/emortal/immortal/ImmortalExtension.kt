@@ -8,8 +8,13 @@ import dev.emortal.immortal.config.GameListing
 import dev.emortal.immortal.config.GameListingConfig
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
+import dev.emortal.immortal.luckperms.LuckpermsListener
 import dev.emortal.immortal.util.PacketNPC
-import dev.emortal.immortal.util.PermissionUtils.prefix
+import dev.emortal.immortal.util.PermissionUtils
+import dev.emortal.immortal.util.PermissionUtils.hasLuckPermission
+import dev.emortal.immortal.util.resetTeam
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.entity.GameMode
@@ -18,13 +23,10 @@ import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.extensions.Extension
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
-import net.minestom.server.network.packet.server.play.TeamsPacket
 import net.minestom.server.scoreboard.Team
-import net.minestom.server.scoreboard.TeamBuilder
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import world.cepi.kstom.Manager
-import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
 import java.nio.file.Path
@@ -38,10 +40,13 @@ class ImmortalExtension : Extension() {
 
         lateinit var gameListingConfig: GameListingConfig
         val gameListingPath = Path.of("./gameListings.json")
+
+        var whitelisted = false
     }
 
     override fun initialize() {
         luckperms = LuckPermsProvider.get()
+        LuckpermsListener(this, luckperms)
 
         gameListingConfig = ConfigHelper.initConfigFile(gameListingPath, GameListingConfig())
 
@@ -62,6 +67,12 @@ class ImmortalExtension : Extension() {
 //              instance.unloadChunk(chunkX, chunkZ)
 //          }
 //      }
+
+        eventNode.listenOnly<AsyncPlayerPreLoginEvent> {
+            if (whitelisted && !player.hasLuckPermission("immortal.bypasswhitelist")) {
+                player.kick(Component.text("EmortalMC is currently whitelisted", NamedTextColor.RED))
+            }
+        }
 
         val globalEvent = Manager.globalEvent
 
@@ -141,16 +152,11 @@ class ImmortalExtension : Extension() {
             }
         }
 
-        val defaultTeam = TeamBuilder("defaultTeam", Manager.team)
-            .collisionRule(TeamsPacket.CollisionRule.NEVER)
-            .build()
         eventNode.listenOnly<PlayerSpawnEvent> {
             if (this.isFirstSpawn) {
-                player.team = defaultTeam
-                defaultTeamMap[player] = defaultTeam
+                player.resetTeam()
 
-                val prefix = player.prefix ?: return@listenOnly
-                this.player.displayName = "$prefix ${player.username}".asMini()
+                PermissionUtils.refreshPrefix(player)
             } else {
                 val viewingNpcs = (PacketNPC.viewerMap[player.uuid] ?: return@listenOnly).toMutableList()
                 viewingNpcs.forEach {
@@ -179,11 +185,12 @@ class ImmortalExtension : Extension() {
         SkullHandler.register("minecraft:skull")
 
         CheckForEmptyInstanceCommand.register()
+        ToggleMaintenanceCommand.register()
         ForceStartCommand.register()
-        PlayCommand.register()
-        SoundCommand.register()
         SpectateCommand.register()
+        SoundCommand.register()
         StatsCommand.register()
+        PlayCommand.register()
         ListCommand.register()
 
         logger.info("[${origin.name}] Initialized!")
@@ -191,11 +198,12 @@ class ImmortalExtension : Extension() {
 
     override fun terminate() {
         CheckForEmptyInstanceCommand.unregister()
+        ToggleMaintenanceCommand.register()
         ForceStartCommand.unregister()
-        PlayCommand.unregister()
-        SoundCommand.unregister()
         SpectateCommand.unregister()
+        SoundCommand.unregister()
         StatsCommand.unregister()
+        PlayCommand.unregister()
         ListCommand.unregister()
 
         logger.info("[${origin.name}] Terminated!")

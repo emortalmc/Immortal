@@ -1,8 +1,13 @@
 package dev.emortal.immortal.util
 
+import dev.emortal.immortal.util.PermissionUtils.prefix
 import net.minestom.server.attribute.Attribute
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import net.minestom.server.network.packet.server.play.TeamsPacket
+import net.minestom.server.scoreboard.TeamBuilder
+import world.cepi.kstom.Manager
+import world.cepi.kstom.adventure.asMini
 
 fun Player.reset() {
     inventory.clear()
@@ -25,4 +30,14 @@ fun Player.reset() {
     clearEffects()
     stopSpectating()
     askSynchronization()
+}
+
+fun Player.resetTeam() {
+    PermissionUtils.refreshPrefix(this)
+    val playerTeam = TeamBuilder(username, Manager.team)
+        .collisionRule(TeamsPacket.CollisionRule.NEVER)
+        .prefix("$prefix ".asMini())
+        .build()
+
+    team = playerTeam
 }

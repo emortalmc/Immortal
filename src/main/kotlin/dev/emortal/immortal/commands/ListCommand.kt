@@ -28,7 +28,7 @@ object ListCommand : Kommand({
         val message = Component.text()
         val instances = Manager.instance.instances
 
-        message.append(Component.text("${instances.size} instances...\n\n", NamedTextColor.GOLD))
+        message.append(Component.text("${instances.size} instances...\n", NamedTextColor.GOLD))
 
         instances.forEach {
             val isShared = it is SharedInstance
@@ -37,7 +37,7 @@ object ListCommand : Kommand({
             
             message.append(
                 Component.text()
-                    .append(Component.text(" - ", NamedTextColor.GRAY))
+                    .append(Component.text("\n - ", NamedTextColor.GRAY))
                     .append(Component.text(name, NamedTextColor.YELLOW))
                     .append(Component.text(" Shared: $isShared,", NamedTextColor.GRAY))
                     .append(Component.text(" No Unregister: $noUnregister", NamedTextColor.GRAY))
@@ -57,12 +57,12 @@ object ListCommand : Kommand({
         val message = Component.text()
         val players = Manager.connection.onlinePlayers
 
-        message.append(Component.text("${players.size} players...\n\n", NamedTextColor.GOLD))
+        message.append(Component.text("${players.size} players...\n", NamedTextColor.GOLD))
 
         players.forEach {
             message.append(
                 Component.text()
-                    .append(Component.text(" - ", NamedTextColor.GRAY))
+                    .append(Component.text("\n - ", NamedTextColor.GRAY))
                     .append(Component.text(player.username, NamedTextColor.YELLOW))
                     .append(Component.text(" (${it.uuid})", NamedTextColor.DARK_GRAY))
             )
