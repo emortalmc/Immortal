@@ -1,7 +1,6 @@
 package dev.emortal.immortal.game
 
 import dev.emortal.acquaintance.RelationshipManager.party
-import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.event.GameDestroyEvent
 import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
@@ -11,6 +10,7 @@ import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.inventory.SpectatingGUI
 import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.reset
+import dev.emortal.immortal.util.resetTeam
 import dev.emortal.immortal.util.safeSetInstance
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -154,7 +154,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         val future = player.safeSetInstance(instance, spawnPosition)
         future.thenRun {
             player.reset()
-            player.team = ImmortalExtension.defaultTeamMap[player]
+            player.resetTeam()
 
             scoreboard?.addViewer(player)
 
@@ -249,7 +249,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = spawnPosition
 
-        val lastInstance = player.instance
         val future = player.safeSetInstance(instance).thenRun {
             player.reset()
 
@@ -263,10 +262,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
             spectatorJoin(player)
-
-            if (lastInstance != instance && lastInstance?.players?.size == 0) {
-                Manager.instance.unregisterInstance(lastInstance)
-            }
         }
 
         spectators.add(player)
@@ -280,7 +275,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         logger.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
 
         spectators.remove(player)
-        scoreboard?.addViewer(player)
+        scoreboard?.removeViewer(player)
 
         spectatorLeave(player)
     }

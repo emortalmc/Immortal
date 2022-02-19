@@ -45,6 +45,7 @@ dependencies {
     api("com.github.emortaldev:Kstom:def1719826")
     //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
     api("com.github.emortaldev:Particable:e98f138cda")
+    api(files("libs/Blocky-1.0-SNAPSHOT.jar"))
 
     //implementation("com.github.EmortalMC:Rayfast:07d8daf030")
 

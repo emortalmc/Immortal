@@ -13,8 +13,6 @@ import dev.emortal.immortal.util.PacketNPC
 import dev.emortal.immortal.util.PermissionUtils
 import dev.emortal.immortal.util.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.util.resetTeam
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.entity.GameMode
@@ -40,8 +38,6 @@ class ImmortalExtension : Extension() {
 
         lateinit var gameListingConfig: GameListingConfig
         val gameListingPath = Path.of("./gameListings.json")
-
-        var whitelisted = false
     }
 
     override fun initialize() {
@@ -60,17 +56,14 @@ class ImmortalExtension : Extension() {
 
 
         // Causes issues but also saves RAM usage /shrug
-//      eventNode.listenOnly<PlayerChunkUnloadEvent> {
-//          val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
-//
-//          if (chunk.viewers.isEmpty()) {
-//              instance.unloadChunk(chunkX, chunkZ)
-//          }
-//      }
+        eventNode.listenOnly<PlayerChunkUnloadEvent> {
+            val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
 
-        eventNode.listenOnly<AsyncPlayerPreLoginEvent> {
-            if (whitelisted && !player.hasLuckPermission("immortal.bypasswhitelist")) {
-                player.kick(Component.text("EmortalMC is currently whitelisted", NamedTextColor.RED))
+            if (chunk.viewers.isEmpty()) {
+                try {
+                    instance.unloadChunk(chunkX, chunkZ)
+                } catch (_: NullPointerException) {
+                }
             }
         }
 
@@ -156,6 +149,10 @@ class ImmortalExtension : Extension() {
             if (this.isFirstSpawn) {
                 player.resetTeam()
 
+                if (player.hasLuckPermission("*")) {
+                    player.permissionLevel = 4
+                }
+
                 PermissionUtils.refreshPrefix(player)
             } else {
                 val viewingNpcs = (PacketNPC.viewerMap[player.uuid] ?: return@listenOnly).toMutableList()
@@ -177,7 +174,7 @@ class ImmortalExtension : Extension() {
         }
 
         val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
-            .ambientLight(1f)
+            .ambientLight(2f)
             .build()
         Manager.dimensionType.addDimension(dimensionType)
 
@@ -185,7 +182,6 @@ class ImmortalExtension : Extension() {
         SkullHandler.register("minecraft:skull")
 
         CheckForEmptyInstanceCommand.register()
-        ToggleMaintenanceCommand.register()
         ForceStartCommand.register()
         SpectateCommand.register()
         SoundCommand.register()
@@ -198,7 +194,6 @@ class ImmortalExtension : Extension() {
 
     override fun terminate() {
         CheckForEmptyInstanceCommand.unregister()
-        ToggleMaintenanceCommand.register()
         ForceStartCommand.unregister()
         SpectateCommand.unregister()
         SoundCommand.unregister()
