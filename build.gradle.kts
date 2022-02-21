@@ -40,9 +40,9 @@ dependencies {
     compileOnly("net.luckperms:api:5.3")
 
     // Compile Minestom into project
-    compileOnly("com.github.Minestom:Minestom:be100fa5b8")
+    compileOnly("com.github.Minestom:Minestom:338ffb80db")
     compileOnly("com.github.EmortalMC:Acquaintance:50149c95b2")
-    api("com.github.emortaldev:Kstom:def1719826")
+    api("com.github.emortaldev:Kstom:c88272ef05")
     //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
     api("com.github.emortaldev:Particable:e98f138cda")
 
