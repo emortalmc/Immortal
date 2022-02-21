@@ -22,7 +22,6 @@ import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.extensions.Extension
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
-import net.minestom.server.scoreboard.Team
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import world.cepi.kstom.Manager
@@ -34,8 +33,6 @@ import java.time.Duration
 class ImmortalExtension : Extension() {
 
     companion object {
-        val defaultTeamMap = mutableMapOf<Player, Team>()
-
         lateinit var luckperms: LuckPerms
 
         lateinit var gameListingConfig: GameListingConfig
