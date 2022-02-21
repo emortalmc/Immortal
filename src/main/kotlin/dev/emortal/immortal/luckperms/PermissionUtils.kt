@@ -1,4 +1,4 @@
-package dev.emortal.immortal.util
+package dev.emortal.immortal.luckperms
 
 import dev.emortal.immortal.ImmortalExtension
 import net.luckperms.api.model.user.User

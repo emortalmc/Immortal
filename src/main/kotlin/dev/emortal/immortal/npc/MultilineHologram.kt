@@ -1,8 +1,9 @@
-package dev.emortal.immortal.util
+package dev.emortal.immortal.npc
 
 import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
-import net.minestom.server.entity.*
+import net.minestom.server.entity.Entity
+import net.minestom.server.entity.EntityType
 import net.minestom.server.entity.metadata.other.AreaEffectCloudMeta
 import net.minestom.server.instance.Instance
 

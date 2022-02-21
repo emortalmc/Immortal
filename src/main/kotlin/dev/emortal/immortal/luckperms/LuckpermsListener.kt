@@ -1,6 +1,5 @@
 package dev.emortal.immortal.luckperms
 
-import dev.emortal.immortal.util.PermissionUtils
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.event.user.UserDataRecalculateEvent
 import net.minestom.server.extensions.Extension

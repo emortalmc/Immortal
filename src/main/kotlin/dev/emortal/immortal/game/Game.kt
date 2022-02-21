@@ -415,8 +415,26 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         return team
     }
 
-    fun victory(team: Team) = victory(team.players)
-    fun victory(player: Player) = victory(listOf(player))
+    fun victory(team: Team) {
+//        sendMessage(
+//            Component.text()
+//                .append(Component.text("${" ".repeat(25)} VICTORY", NamedTextColor.GOLD, TextDecoration.BOLD))
+//                .append(Component.text("\n${team.teamName} won the game!\n", NamedTextColor.GRAY))
+//                .armify()
+//        )
+
+        victory(team.players)
+    }
+    fun victory(player: Player) {
+//        sendMessage(
+//            Component.text()
+//                .append(Component.text("${" ".repeat(25)} VICTORY", NamedTextColor.GOLD, TextDecoration.BOLD))
+//                .append(Component.text("\n${player.username} won the game!\n", NamedTextColor.GRAY))
+//                .armify()
+//        )
+
+        victory(listOf(player))
+    }
 
     open fun victory(winningPlayers: Collection<Player>) {
         gameState = GameState.ENDING

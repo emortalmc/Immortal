@@ -1,4 +1,4 @@
-package dev.emortal.immortal.util
+package dev.emortal.immortal.npc
 
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import net.kyori.adventure.text.Component

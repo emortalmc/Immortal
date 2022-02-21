@@ -1,7 +1,7 @@
 package dev.emortal.immortal.commands
 
 import dev.emortal.immortal.game.GameManager
-import dev.emortal.immortal.util.PermissionUtils.hasLuckPermission
+import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.instance.SharedInstance

@@ -1,6 +1,7 @@
 package dev.emortal.immortal.util
 
-import dev.emortal.immortal.util.PermissionUtils.prefix
+import dev.emortal.immortal.luckperms.PermissionUtils
+import dev.emortal.immortal.luckperms.PermissionUtils.prefix
 import net.minestom.server.attribute.Attribute
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player

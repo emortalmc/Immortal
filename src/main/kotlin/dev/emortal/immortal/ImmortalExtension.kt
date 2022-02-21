@@ -9,9 +9,10 @@ import dev.emortal.immortal.config.GameListingConfig
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.luckperms.LuckpermsListener
-import dev.emortal.immortal.util.PacketNPC
-import dev.emortal.immortal.util.PermissionUtils
-import dev.emortal.immortal.util.PermissionUtils.hasLuckPermission
+import dev.emortal.immortal.luckperms.PermissionUtils
+import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
+import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
+import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.resetTeam
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
@@ -28,6 +29,7 @@ import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
 import java.nio.file.Path
+import java.time.Duration
 
 class ImmortalExtension : Extension() {
 
@@ -85,39 +87,6 @@ class ImmortalExtension : Extension() {
             if (aboveMax) isCancelled = true
         }
 
-//        val maxReachSurvival = 4.2
-//        globalEvent.listenOnly<EntityAttackEvent> {
-//            val player = entity as Player
-//            val playerEyePos = player.position.add(0.0, 1.0, 0.0)
-//            val playerEyeDir = playerEyePos.direction()
-//
-//            val area = entity.area3d
-//            val entityIntersection = area.lineIntersection(
-//                playerEyePos.x(), playerEyePos.y(), playerEyePos.z(),
-//                playerEyeDir.x(), playerEyeDir.y(), playerEyeDir.z()
-//            )
-//            if (entityIntersection == null) {
-//                this.
-//                return@listenOnly
-//            }
-//
-//            val gridIterator = GridCast.createExactGridIterator(
-//                playerEyePos.x(), playerEyePos.y(), playerEyePos.z(),
-//                playerEyeDir.x(), playerEyeDir.y(), playerEyeDir.z(),
-//                1.0, maxReachSurvival + 1
-//            )
-//
-//            while (gridIterator.hasNext()) {
-//                val gridUnit = gridIterator.next()
-//                val pos = Pos(gridUnit[0], gridUnit[1], gridUnit[2])
-//                val hitBlock = instance.getBlock(pos)
-//
-//                if (hitBlock.isSolid)
-//            }
-//
-//            val distanceSquared = playerEyePos.distanceSquared(target.position.add(0.0, 1.0, 0.0))
-//        }
-
         eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
             if (this.entity !is Player) return@listenOnly
 
@@ -135,6 +104,7 @@ class ImmortalExtension : Extension() {
             player.game?.removePlayer(player)
             player.game?.removeSpectator(player)
             GameManager.playerGameMap.remove(player)
+            PermissionUtils.userToPlayerMap.remove(player.lpUser)
         }
 
         eventNode.listenOnly<PlayerPacketEvent> {
@@ -148,6 +118,7 @@ class ImmortalExtension : Extension() {
         eventNode.listenOnly<PlayerSpawnEvent> {
             if (this.isFirstSpawn) {
                 player.resetTeam()
+                player.setCustomSynchronizationCooldown(Duration.ofSeconds(20))
 
                 if (player.hasLuckPermission("*")) {
                     player.permissionLevel = 4
@@ -181,25 +152,25 @@ class ImmortalExtension : Extension() {
         SignHandler.register("minecraft:sign")
         SkullHandler.register("minecraft:skull")
 
-        CheckForEmptyInstanceCommand.register()
         ForceStartCommand.register()
         SpectateCommand.register()
         SoundCommand.register()
         StatsCommand.register()
         PlayCommand.register()
         ListCommand.register()
+        GCCommand.register()
 
         logger.info("[${origin.name}] Initialized!")
     }
 
     override fun terminate() {
-        CheckForEmptyInstanceCommand.unregister()
         ForceStartCommand.unregister()
         SpectateCommand.unregister()
         SoundCommand.unregister()
         StatsCommand.unregister()
         PlayCommand.unregister()
         ListCommand.unregister()
+        GCCommand.unregister()
 
         logger.info("[${origin.name}] Terminated!")
     }
