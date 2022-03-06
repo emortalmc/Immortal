@@ -39,7 +39,7 @@ object GameManager {
 
     fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Void>? = joinGame(game) ?: spectateGame(game)
 
-    fun Player.spectateGame(game: Game): CompletableFuture<Void>? {
+    @Synchronized fun Player.spectateGame(game: Game): CompletableFuture<Void>? {
         if (!game.gameTypeInfo.spectatable) return null
         if (game.spectators.contains(this)) {
             sendMessage(Component.text("Already spectating this game", NamedTextColor.RED))
@@ -49,6 +49,7 @@ object GameManager {
         val lastGame = this.game
 
         if (hasTag(joiningGameTag)) {
+            logger.info("Join on cooldown")
             sendMessage(Component.text("Already trying to spectating a game", NamedTextColor.RED))
             return null
         }
@@ -62,7 +63,7 @@ object GameManager {
 
             Manager.scheduler.buildTask {
                 removeTag(joiningGameTag)
-            }.delay(Duration.ofSeconds(3)).schedule()
+            }.delay(Duration.ofSeconds(1)).schedule()
         } else {
             sendMessage(Component.text("Something went wrong while spectating ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
             playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
@@ -73,7 +74,7 @@ object GameManager {
         return future
     }
 
-    fun Player.joinGame(game: Game): CompletableFuture<Void>? {
+    @Synchronized fun Player.joinGame(game: Game): CompletableFuture<Void>? {
         if (!game.canBeJoined(this)) return null
 
         logger.info("Joining game ${game.gameTypeInfo.gameName}")
@@ -81,6 +82,7 @@ object GameManager {
         val lastGame = this.game
 
         if (hasTag(joiningGameTag)) {
+            logger.info("Join on cooldown")
             sendMessage(Component.text("You are joining games too quickly", NamedTextColor.RED))
             return null
         }
@@ -89,13 +91,14 @@ object GameManager {
         val future = game.addPlayer(this)
         if (future != null) {
             future.thenRun {
+                if (lastGame == null) logger.warn("Last game is null")
                 lastGame?.removePlayer(this)
                 lastGame?.removeSpectator(this)
                 playerGameMap[this] = game
 
                 Manager.scheduler.buildTask {
                     removeTag(joiningGameTag)
-                }.delay(Duration.ofSeconds(3)).schedule()
+                }.delay(Duration.ofSeconds(1)).schedule()
             }
         } else {
             sendMessage(Component.text("Something went wrong while joining ${game.gameTypeInfo.gameName}", NamedTextColor.RED))

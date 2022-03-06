@@ -14,6 +14,7 @@ import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.resetTeam
+import kotlinx.coroutines.NonCancellable.isCancelled
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.entity.GameMode
@@ -54,7 +55,6 @@ class ImmortalExtension : Extension() {
         ConfigHelper.writeObjectToPath(gameListingPath, gameListingConfig)
 
 
-        // Causes issues but also saves RAM usage /shrug
         eventNode.listenOnly<PlayerChunkUnloadEvent> {
             val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
 
@@ -107,7 +107,7 @@ class ImmortalExtension : Extension() {
         eventNode.listenOnly<PlayerPacketEvent> {
             if (packet is ClientInteractEntityPacket) {
                 val packet = packet as ClientInteractEntityPacket
-                if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN)) return@listenOnly
+                if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN) && packet.type != ClientInteractEntityPacket.Attack()) return@listenOnly
                 PacketNPC.npcIdMap[packet.targetId]?.onClick(player)
             }
         }

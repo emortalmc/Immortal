@@ -12,7 +12,7 @@ fun Player.safeSetInstance(instance: Instance, pos: Pos? = null): CompletableFut
         if (pos == null) return CompletableFuture.completedFuture(null)
         return this.teleport(pos)
     }
-    return setInstance(instance)
+    return if (pos == null) setInstance(instance) else setInstance(instance, pos)
 }
 
 fun Player.safeSetInstance(instance: UUID, pos: Pos? = null): CompletableFuture<Void> {
@@ -23,5 +23,5 @@ fun Player.safeSetInstance(instance: UUID, pos: Pos? = null): CompletableFuture<
         return this.teleport(pos)
     }
 
-    return setInstance(newInstance)
+    return if (pos == null) setInstance(newInstance) else setInstance(newInstance, pos)
 }

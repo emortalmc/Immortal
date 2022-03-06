@@ -1,6 +1,6 @@
 package dev.emortal.immortal.util
 
-import net.minestom.server.timer.Task
+import world.cepi.kstom.Manager
 import java.time.Duration
 import java.util.*
 import kotlin.concurrent.scheduleAtFixedRate
@@ -15,20 +15,26 @@ abstract class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat:
 
     init {
 
-        if (iterations < 2 && delay.toMillis() == 0L && repeat.toMillis() == 0L) {
-            this@MinestomRunnable.run()
-            this@MinestomRunnable.cancel()
-        } else {
-            task = timer.scheduleAtFixedRate(delay.toMillis(), repeat.toMillis()) {
-                if (iterations != -1 && currentIteration >= iterations) {
-                    this@MinestomRunnable.cancel()
-                    cancelled()
-                    return@scheduleAtFixedRate
-                }
-
+        try {
+            if (iterations < 2 && delay.toMillis() == 0L && repeat.toMillis() == 0L) {
                 this@MinestomRunnable.run()
-                currentIteration++
+                this@MinestomRunnable.cancel()
+            } else {
+                task = timer.scheduleAtFixedRate(delay.toMillis(), repeat.toMillis()) {
+                    if (iterations != -1 && currentIteration >= iterations) {
+                        this@MinestomRunnable.cancel()
+                        cancelled()
+                        return@scheduleAtFixedRate
+                    }
+
+                    //if (cancelled) return@scheduleAtFixedRate
+
+                    this@MinestomRunnable.run()
+                    currentIteration++
+                }
             }
+        } catch (e: Exception) {
+            Manager.exception.handleException(e)
         }
     }
     var currentIteration = 0

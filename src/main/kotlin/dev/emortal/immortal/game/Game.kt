@@ -7,7 +7,6 @@ import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
-import dev.emortal.immortal.inventory.SpectatingGUI
 import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.reset
 import dev.emortal.immortal.util.resetTeam
@@ -51,6 +50,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     val logger = LoggerFactory.getLogger(gameTypeInfo.gameName)
 
+    open var spawnPosition = Pos(0.5, 70.0, 0.5)
+
     val instance: Instance = instanceCreate().also {
         it.setTag(gameNameTag, gameTypeInfo.gameName)
         it.setTag(gameIdTag, id)
@@ -83,9 +84,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
-    val spectatorGUI = SpectatingGUI()
-
-    open var spawnPosition = Pos(0.5, 70.0, 0.5)
+    //val spectatorGUI = SpectatingGUI()
 
     private var destroyed = false
     var gameCreator: Player? = null
@@ -141,13 +140,23 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         logger.info("A game of '${gameTypeInfo.gameName}' was created")
     }
 
-    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Void>? {
+    @Synchronized internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Void>? {
         if (players.contains(player)) return null
 
         logger.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
         players.add(player)
-        spectatorGUI.refresh(players)
+        //spectatorGUI.refresh(players)
+
+        if (gameOptions.minPlayers > players.size) {
+            scoreboard?.updateLineContent(
+                "infoLine",
+                Component.text(
+                    "Waiting for players... (${gameOptions.minPlayers - players.size} more)",
+                    NamedTextColor.GRAY
+                )
+            )
+        }
 
         player.respawnPoint = spawnPosition
 
@@ -188,7 +197,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         return future
     }
 
-    internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+    @Synchronized internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (!players.contains(player)) return
 
         logger.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
@@ -196,9 +205,19 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         teams.forEach {
             it.remove(player)
         }
-
         players.remove(player)
-        spectatorGUI.refresh(players)
+
+        if (gameOptions.minPlayers > players.size) {
+            scoreboard?.updateLineContent(
+                "infoLine",
+                Component.text(
+                    "Waiting for players... (${gameOptions.minPlayers - players.size} more)",
+                    NamedTextColor.GRAY
+                )
+            )
+        }
+
+        //spectatorGUI.refresh(players)
         scoreboard?.removeViewer(player)
 
         val leaveEvent = PlayerLeaveGameEvent(this, player)
@@ -240,12 +259,11 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         playerLeave(player)
     }
 
-    internal fun addSpectator(player: Player): CompletableFuture<Void>? {
+    @Synchronized internal fun addSpectator(player: Player): CompletableFuture<Void>? {
         if (spectators.contains(player)) return null
         if (players.contains(player)) return null
 
         logger.info("${player.username} started spectating game '${gameTypeInfo.gameName}'")
-
 
         player.respawnPoint = spawnPosition
 
@@ -269,7 +287,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         return future
     }
 
-    internal fun removeSpectator(player: Player) {
+    @Synchronized internal fun removeSpectator(player: Player) {
         if (!spectators.contains(player)) return
 
         logger.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
@@ -326,15 +344,9 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun cancelCountdown() {
-        scoreboard?.updateLineContent(
-            "infoLine",
-            Component.text(
-                "Waiting for players... (${gameOptions.minPlayers - players.size} more)",
-                NamedTextColor.GRAY
-            )
-        )
         startingTask?.cancel()
         startingTask = null
+
         showTitle(
             Title.title(
                 Component.empty(),
@@ -370,6 +382,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         timer.cancel()
 
+        gameDestroyed()
+
         val destroyEvent = GameDestroyEvent(this)
         EventDispatcher.call(destroyEvent)
 
@@ -390,8 +404,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.joinGameOrNew("lobby")
         }
         spectators.clear()
-
-        gameDestroyed()
     }
 
     open fun canBeJoined(player: Player): Boolean {

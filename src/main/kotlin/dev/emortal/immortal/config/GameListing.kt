@@ -1,11 +1,9 @@
 package dev.emortal.immortal.config
 
 import kotlinx.serialization.Serializable
-import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.EntityType
 import net.minestom.server.item.Material
-import world.cepi.kstom.serializer.ComponentSerializer
 import world.cepi.kstom.serializer.MaterialSerializer
 import world.cepi.kstom.serializer.PositionSerializer
 

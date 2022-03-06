@@ -1,6 +1,8 @@
 package dev.emortal.immortal.npc
 
+import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
+import dev.emortal.immortal.util.MinestomRunnable
 import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.*
@@ -14,6 +16,9 @@ import java.util.concurrent.ConcurrentHashMap
 class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameName: String, val playerSkin: PlayerSkin? = null, val entityType: EntityType = EntityType.PLAYER) {
 
     private val viewers = mutableSetOf<Player>()
+
+    private val timer = Timer()
+    private var lookingTaskMap = mutableMapOf<UUID, MutableList<MinestomRunnable>>()
 
     companion object {
         val viewerMap = ConcurrentHashMap<UUID, MutableList<PacketNPC>>()
@@ -50,15 +55,34 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             val metaPacket = EntityMetaDataPacket(playerId, listOf(Metadata.Entry(17, Metadata.Byte(127 /*All layers enabled*/))))
             val removeFromList = PlayerInfoPacket(PlayerInfoPacket.Action.REMOVE_PLAYER, PlayerInfoPacket.RemovePlayer(uuid))
 
+
             viewer.sendPacket(playerInfo)
             viewer.sendPacket(spawnPlayer)
             viewer.sendPacket(metaPacket)
             viewer.sendPacket(createTeamPacket)
             viewer.sendPacket(teamPacket)
 
+            if (position.yaw != 0f) {
+                val rotatePacket = EntityHeadLookPacket(playerId, position.yaw)
+
+                viewer.sendPacket(rotatePacket)
+            }
+
             Manager.scheduler.buildTask {
                 viewer.sendPacket(removeFromList)
             }.delay(Duration.ofSeconds(3)).schedule()
+
+            object : MinestomRunnable(timer = timer, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
+                override fun run() {
+                    if (position.distanceSquared(viewer.position) > 10*10) return
+                    val pos = position.withDirection(viewer.position.sub(position))
+
+                    val lookPacket = EntityRotationPacket(playerId, pos.yaw, pos.pitch, true)
+                    val headLook = EntityHeadLookPacket(playerId, pos.yaw)
+                    viewer.sendPacket(lookPacket)
+                    viewer.sendPacket(headLook)
+                }
+            }
         } else {
             val entitySpawn = SpawnEntityPacket(playerId, uuid, entityType.id(), position, 0, 0, 0, 0)
 
@@ -71,6 +95,10 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     fun removeViewer(viewer: Player) {
         viewers.remove(viewer)
         viewerMap[viewer.uuid]?.remove(this)
+        //lookingTaskMap[viewer.uuid]?.forEach {
+        //    it.cancel()
+        //}
+        //lookingTaskMap.remove(viewer.uuid)
 
         viewer.sendPackets(DestroyEntitiesPacket(playerId))
     }
@@ -78,6 +106,8 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     fun destroy() {
         PacketUtils.sendGroupedPacket(viewers, DestroyEntitiesPacket(playerId))
 
+        //timer.cancel()
+        //lookingTaskMap.clear()
         npcIdMap.remove(playerId)
         viewers.forEach {
             viewerMap[it.uuid]?.remove(this)
@@ -85,7 +115,8 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     }
 
     fun onClick(clicker: Player) {
-        clicker.joinGameOrNew(gameName)
+        if (GameManager.gameNameToClassMap.containsKey(gameName))
+            clicker.joinGameOrNew(gameName)
     }
 
 }

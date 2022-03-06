@@ -6,7 +6,6 @@ import net.minestom.server.attribute.Attribute
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.network.packet.server.play.TeamsPacket
-import net.minestom.server.scoreboard.TeamBuilder
 import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.asMini
 
@@ -20,10 +19,12 @@ fun Player.reset() {
     isFlying = false
     food = 20
     level = 0
+    additionalHearts = 0f
     isEnableRespawnScreen = false
     vehicle?.removePassenger(this)
     getAttribute(Attribute.MOVEMENT_SPEED).baseValue = 0.1f
     setCanPickupItem(true)
+    setBoundingBox(0.6, 1.8, 0.6)
     closeInventory()
     setNoGravity(false)
     refreshCommands()
@@ -35,7 +36,7 @@ fun Player.reset() {
 
 fun Player.resetTeam() {
     PermissionUtils.refreshPrefix(this)
-    val playerTeam = TeamBuilder(username, Manager.team)
+    val playerTeam = Manager.team.createBuilder(username)
         .collisionRule(TeamsPacket.CollisionRule.NEVER)
         .prefix("$prefix ".asMini())
         .build()
