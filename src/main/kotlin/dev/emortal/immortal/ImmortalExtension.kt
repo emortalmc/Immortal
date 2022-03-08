@@ -17,6 +17,7 @@ import dev.emortal.immortal.util.resetTeam
 import kotlinx.coroutines.NonCancellable.isCancelled
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
+import net.minestom.server.adventure.audience.Audiences.players
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
@@ -54,6 +55,7 @@ class ImmortalExtension : Extension() {
 
         ConfigHelper.writeObjectToPath(gameListingPath, gameListingConfig)
 
+        val instanceManager = Manager.instance
 
         eventNode.listenOnly<PlayerChunkUnloadEvent> {
             val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
@@ -84,16 +86,38 @@ class ImmortalExtension : Extension() {
             if (aboveMax) isCancelled = true
         }
 
+        val cooldown = Duration.ofMinutes(20)
+        Manager.scheduler.buildTask {
+            var leftoverInstances = 0
+            instanceManager.instances.forEach {
+                if (it.players.isEmpty()) {
+                    if (it.hasTag(GameManager.doNotUnregisterTag)) return@buildTask
+
+                    instanceManager.unregisterInstance(it)
+                    leftoverInstances++
+                }
+            }
+            if (leftoverInstances != 0) logger.warn("$leftoverInstances empty instances were found and unregistered.")
+        }.delay(cooldown).repeat(cooldown).schedule()
+
         eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
             if (this.entity !is Player) return@listenOnly
+            logger.info("Player removed!")
 
             this.instance.scheduleNextTick {
-                if (it.players.isEmpty()) {
-                    if (it.hasTag(GameManager.doNotUnregisterTag)) return@scheduleNextTick
+                // Delay even longer (Placeholder solution, idfk)
+                Manager.scheduler.buildTask {
+                    if (it.players.isEmpty()) {
+                        if (it.hasTag(GameManager.doNotUnregisterTag)) return@buildTask
 
-                    Manager.instance.unregisterInstance(it)
-                    logger.info("Instance was unregistered. Instance count: ${Manager.instance.instances.size}")
-                }
+                        instanceManager.unregisterInstance(it)
+                        logger.info("Instance was unregistered. Instance count: ${instanceManager.instances.size}")
+                    } else {
+                        logger.warn("Couldn't unregister instance, players: ${it.players.joinToString(separator = ", ") { it.username }}")
+                    }
+                }.delay(Duration.ofSeconds(2)).schedule()
+
+
             }
         }
 
@@ -113,6 +137,7 @@ class ImmortalExtension : Extension() {
         }
 
         eventNode.listenOnly<PlayerSpawnEvent> {
+            logger.info("PLAYER ${player.username} JUST SPAWNED!!")
             if (this.isFirstSpawn) {
                 player.resetTeam()
                 player.setCustomSynchronizationCooldown(Duration.ofSeconds(20))

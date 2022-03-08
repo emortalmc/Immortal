@@ -6,8 +6,8 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.6.10"
     kotlin("plugin.serialization") version "1.6.10"
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    `maven-publish`
 
+    `maven-publish`
     java
 }
 
@@ -24,9 +24,9 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:338ffb80db")
+    compileOnly("com.github.Minestom:Minestom:f36304f613")
     compileOnly("com.github.EmortalMC:Acquaintance:50149c95b2")
-    api("com.github.emortaldev:Kstom:732edcdd9a")
+    api("com.github.emortaldev:Kstom:ad51d80983")
     //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
     api("com.github.emortaldev:Particable:e98f138cda")
 
@@ -34,9 +34,6 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
-}
-tasks.withType<Test> {
-    useJUnitPlatform()
 }
 
 tasks {
