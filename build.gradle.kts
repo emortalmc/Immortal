@@ -25,14 +25,13 @@ dependencies {
     compileOnly("net.luckperms:api:5.4")
 
     compileOnly("com.github.Minestom:Minestom:f36304f613")
-    compileOnly("com.github.EmortalMC:Acquaintance:50149c95b2")
-    api("com.github.emortaldev:Kstom:ad51d80983")
-    //api("com.github.Project-Cepi:Particable:9d08bbd4cc")
-    api("com.github.emortaldev:Particable:e98f138cda")
+    compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
+    api("com.github.emortaldev:Kstom:08da0d2c49")
+    api("com.github.emortaldev:Particable:fadfbe0213")
 
-    //implementation("com.github.EmortalMC:Rayfast:07d8daf030")
+    api("com.github.EmortalMC:Rayfast:ad94541f92")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 }
 
@@ -47,6 +46,10 @@ tasks {
         archiveBaseName.set(project.name)
         mergeServiceFiles()
         minimize()
+        dependencies {
+            exclude(dependency("com.github.emortaldev:Particable"))
+            exclude(dependency("com.github.emortaldev:Kstom"))
+        }
     }
 
     build { dependsOn(shadowJar) }

@@ -105,19 +105,14 @@ class ImmortalExtension : Extension() {
             logger.info("Player removed!")
 
             this.instance.scheduleNextTick {
-                // Delay even longer (Placeholder solution, idfk)
-                Manager.scheduler.buildTask {
-                    if (it.players.isEmpty()) {
-                        if (it.hasTag(GameManager.doNotUnregisterTag)) return@buildTask
+                if (it.players.isEmpty()) {
+                    if (it.hasTag(GameManager.doNotUnregisterTag)) return@scheduleNextTick
 
-                        instanceManager.unregisterInstance(it)
-                        logger.info("Instance was unregistered. Instance count: ${instanceManager.instances.size}")
-                    } else {
-                        logger.warn("Couldn't unregister instance, players: ${it.players.joinToString(separator = ", ") { it.username }}")
-                    }
-                }.delay(Duration.ofSeconds(2)).schedule()
-
-
+                    instanceManager.unregisterInstance(it)
+                    logger.info("Instance was unregistered. Instance count: ${instanceManager.instances.size}")
+                } else {
+                    logger.warn("Couldn't unregister instance, players: ${it.players.joinToString(separator = ", ") { it.username }}")
+                }
             }
         }
 
