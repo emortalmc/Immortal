@@ -18,17 +18,22 @@ import kotlinx.coroutines.NonCancellable.isCancelled
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.adventure.audience.Audiences.players
+import net.minestom.server.entity.EntityType
 import net.minestom.server.entity.GameMode
+import net.minestom.server.entity.LivingEntity
 import net.minestom.server.entity.Player
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.extensions.Extension
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
+import net.minestom.server.scoreboard.BelowNameTag
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import world.cepi.kstom.Manager
+import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
+import java.lang.management.ManagementFactory
 import java.nio.file.Path
 import java.time.Duration
 
@@ -88,6 +93,7 @@ class ImmortalExtension : Extension() {
 
         val cooldown = Duration.ofMinutes(20)
         Manager.scheduler.buildTask {
+
             var leftoverInstances = 0
             instanceManager.instances.forEach {
                 if (it.players.isEmpty()) {
@@ -133,6 +139,7 @@ class ImmortalExtension : Extension() {
 
         eventNode.listenOnly<PlayerSpawnEvent> {
             logger.info("PLAYER ${player.username} JUST SPAWNED!!")
+
             if (this.isFirstSpawn) {
                 player.resetTeam()
                 player.setCustomSynchronizationCooldown(Duration.ofSeconds(20))

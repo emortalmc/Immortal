@@ -29,6 +29,7 @@ import net.minestom.server.event.trait.PlayerEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
+import net.minestom.server.timer.Scheduler
 import org.slf4j.LoggerFactory
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
@@ -36,6 +37,7 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Future
 
 abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
@@ -140,8 +142,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         logger.info("A game of '${gameTypeInfo.gameName}' was created")
     }
 
-    @Synchronized internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Void>? {
-        if (players.contains(player)) return null
+    @Synchronized internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Boolean> {
+        if (players.contains(player)) return CompletableFuture.completedFuture(false)
 
         logger.info("${player.username} joining game '${gameTypeInfo.gameName}'")
 
@@ -160,8 +162,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = spawnPosition
 
-        val future = player.safeSetInstance(instance, spawnPosition)
-        future.thenRun {
+        val future = CompletableFuture<Boolean>()
+        player.safeSetInstance(instance, spawnPosition).thenRun {
             player.reset()
             player.resetTeam()
 
@@ -192,6 +194,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                     startCountdown()
                 }
             }
+
+            future.complete(true)
         }
 
         return future
@@ -259,15 +263,16 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         playerLeave(player)
     }
 
-    @Synchronized internal fun addSpectator(player: Player): CompletableFuture<Void>? {
-        if (spectators.contains(player)) return null
-        if (players.contains(player)) return null
+    @Synchronized internal fun addSpectator(player: Player): CompletableFuture<Boolean> {
+        if (spectators.contains(player)) return CompletableFuture.completedFuture(false)
+        if (players.contains(player)) return CompletableFuture.completedFuture(false)
 
         logger.info("${player.username} started spectating game '${gameTypeInfo.gameName}'")
 
         player.respawnPoint = spawnPosition
 
-        val future = player.safeSetInstance(instance).thenRun {
+        val future = CompletableFuture<Boolean>()
+        player.safeSetInstance(instance).thenRun {
             player.reset()
 
             scoreboard?.addViewer(player)
@@ -280,6 +285,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
             spectatorJoin(player)
+
+            future.complete(true)
         }
 
         spectators.add(player)
@@ -393,16 +400,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.destroy()
         }
 
-        players.forEach {
+        // Both spectators and players
+        getPlayers().forEach {
             scoreboard?.removeViewer(it)
             it.joinGameOrNew("lobby")
-            //it.joinGameOrNew(gameTypeInfo.gameName, gameOptions)
         }
         players.clear()
-
-        spectators.forEach {
-            it.joinGameOrNew("lobby")
-        }
         spectators.clear()
     }
 

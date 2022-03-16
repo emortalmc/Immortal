@@ -37,74 +37,59 @@ object GameManager {
 
     val Player.game get() = playerGameMap[this]
 
-    fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Void>? = joinGame(game) ?: spectateGame(game)
+    fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
-    @Synchronized fun Player.spectateGame(game: Game): CompletableFuture<Void>? {
-        if (!game.gameTypeInfo.spectatable) return null
-        if (game.spectators.contains(this)) {
+    @Synchronized private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, future: CompletableFuture<Boolean>) = future.thenAcceptAsync { successful ->
+        if (successful) {
+            lastGame?.removePlayer(player)
+            lastGame?.removeSpectator(player)
+            playerGameMap[player] = newGame
+
+            Manager.scheduler.buildTask {
+                player.removeTag(joiningGameTag)
+            }.delay(Duration.ofSeconds(1)).schedule()
+        } else {
+            player.sendMessage(Component.text("Something went wrong while spectating ${newGame.gameTypeInfo.gameName}", NamedTextColor.RED))
+            player.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
+            player.removeTag(joiningGameTag)
+        }
+    }
+
+    @Synchronized fun Player.spectateGame(game: Game): CompletableFuture<Boolean> {
+        if (!game.gameTypeInfo.spectatable) return CompletableFuture.completedFuture(false)
+        if (game.spectators.contains(this) || hasTag(joiningGameTag)) {
             sendMessage(Component.text("Already spectating this game", NamedTextColor.RED))
-            return null
+            return CompletableFuture.completedFuture(false)
         }
 
         val lastGame = this.game
+        sendMessage(Component.text("Spectating ${game.gameTypeInfo.gameName}...", NamedTextColor.GREEN))
 
-        if (hasTag(joiningGameTag)) {
-            logger.info("Join on cooldown")
-            sendMessage(Component.text("Already trying to spectating a game", NamedTextColor.RED))
-            return null
-        }
         setTag(joiningGameTag, 1)
 
         val future = game.addSpectator(this)
-        if (future != null) {
-            lastGame?.removePlayer(this)
-            lastGame?.removeSpectator(this)
-            playerGameMap[this] = game
-
-            Manager.scheduler.buildTask {
-                removeTag(joiningGameTag)
-            }.delay(Duration.ofSeconds(1)).schedule()
-        } else {
-            sendMessage(Component.text("Something went wrong while spectating ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
-            playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-
-            removeTag(joiningGameTag)
-        }
+        handleJoin(this, lastGame, game, future)
 
         return future
     }
 
-    @Synchronized fun Player.joinGame(game: Game): CompletableFuture<Void>? {
-        if (!game.canBeJoined(this)) return null
+    @Synchronized fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
+        if (!game.canBeJoined(this)) return CompletableFuture.completedFuture(false)
 
         logger.info("Joining game ${game.gameTypeInfo.gameName}")
 
         val lastGame = this.game
+        if (lastGame != null) sendMessage(Component.text("Joining ${game.gameTypeInfo.gameName}...", NamedTextColor.GREEN))
 
         if (hasTag(joiningGameTag)) {
-            logger.info("Join on cooldown")
             sendMessage(Component.text("You are joining games too quickly", NamedTextColor.RED))
-            return null
+            return CompletableFuture.completedFuture(false)
         }
         setTag(joiningGameTag, 1)
 
         val future = game.addPlayer(this)
-        if (future != null) {
-            future.thenRun {
-                if (lastGame == null) logger.warn("Last game is null")
-                lastGame?.removePlayer(this)
-                lastGame?.removeSpectator(this)
-                playerGameMap[this] = game
-
-                Manager.scheduler.buildTask {
-                    removeTag(joiningGameTag)
-                }.delay(Duration.ofSeconds(1)).schedule()
-            }
-        } else {
-            sendMessage(Component.text("Something went wrong while joining ${game.gameTypeInfo.gameName}", NamedTextColor.RED))
-            playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-            removeTag(joiningGameTag)
-        }
+        handleJoin(this, lastGame, game, future)
 
         return future
     }
@@ -112,7 +97,7 @@ object GameManager {
     fun Player.joinGameOrNew(
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gameOptions
-    ): CompletableFuture<Void>? = this.joinGame(findOrCreateGame(this, gameTypeName, options))
+    ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
 
     fun findOrCreateGame(
         player: Player,
@@ -137,7 +122,6 @@ object GameManager {
             ?: throw IllegalArgumentException("Primary constructor not found.")
         game.gameCreator = creator
 
-        gameMap.putIfAbsent(gameTypeName, mutableSetOf())
         gameMap[gameTypeName]!!.add(game)
 
         return game

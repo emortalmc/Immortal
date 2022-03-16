@@ -21,8 +21,9 @@ object ForceStartCommand : Kommand({
             return@default
         }
 
-        player.game?.startingTask?.cancel()
+        player.game!!.startingTask?.cancel()
         player.game!!.start()
+        player.game!!.sendMessage(Component.text("${player.username} started the game early", NamedTextColor.GOLD))
     }
 
 }, "forcestart")
