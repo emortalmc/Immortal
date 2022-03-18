@@ -95,7 +95,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         gameTypeInfo.eventNode.addChild(eventNode)
         gameTypeInfo.eventNode.addChild(spectatorNode)
 
-        //eventNode.listenOnly<PlayerUseItemEvent> {
+        //spectatorNode.listenOnly<PlayerUseItemEvent> {
         //    if (!spectators.contains(player)) return@listenOnly
         //    if (player.itemInMainHand.material != Material.COMPASS) return@listenOnly
         //    player.openInventory(spectatorGUI.inventory)
