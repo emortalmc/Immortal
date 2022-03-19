@@ -5,7 +5,6 @@ import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameConfig
-import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.luckperms.LuckpermsListener
@@ -13,11 +12,9 @@ import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.RedisStorage
-import dev.emortal.immortal.util.RedisStorage.pool
+import dev.emortal.immortal.util.RedisStorage.jedisPool
 import dev.emortal.immortal.util.SuperflatGenerator
 import dev.emortal.immortal.util.resetTeam
-import net.kyori.adventure.text.Component
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.coordinate.Pos
@@ -60,9 +57,11 @@ class ImmortalExtension : Extension() {
                 setSpawningInstance(waitingInstance)
                 this.player.respawnPoint = Pos(0.0, 70.0, 0.0)
 
+                val jedis = jedisPool.resource
+
                 Logger.info("Player logged in, reading subgame")
                 // Read then delete value
-                Logger.info(pool.getDel("${player.uuid}-subgame"))
+                Logger.info(jedis.getDel("${player.uuid}-subgame"))
             }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {

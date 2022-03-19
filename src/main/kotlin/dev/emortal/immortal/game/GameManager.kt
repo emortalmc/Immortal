@@ -4,7 +4,7 @@ import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
-import dev.emortal.immortal.util.RedisStorage.pool
+import dev.emortal.immortal.util.RedisStorage.jedisPool
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -135,8 +135,9 @@ object GameManager {
             options
         )
 
-        pool.sadd("registeredGameTypes", name)
-        pool.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
+        val jedis = jedisPool.resource
+        jedis.sadd("registeredGameTypes", name)
+        jedis.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
 
         gameMap[name] = ConcurrentHashMap.newKeySet()
 
