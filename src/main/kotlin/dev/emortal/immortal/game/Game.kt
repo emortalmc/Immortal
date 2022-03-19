@@ -46,20 +46,20 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     var gameState = GameState.WAITING_FOR_PLAYERS
 
-    val gameTypeInfo = GameManager.registeredGameMap[this::class] ?: throw Error("Game type not registered")
+    val gameTypeInfo = GameManager.registeredGameMap[GameManager.registeredClassMap[this::class]] ?: throw Error("Game type not registered")
     val id = GameManager.nextGameID
 
-    val logger = LoggerFactory.getLogger(gameTypeInfo.gameName)
+    val logger = LoggerFactory.getLogger(gameTypeInfo.name)
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
     val instance: Instance = instanceCreate().also {
-        it.setTag(gameNameTag, gameTypeInfo.gameName)
+        it.setTag(gameNameTag, gameTypeInfo.name)
         it.setTag(gameIdTag, id)
     }
 
     val eventNode = EventNode.type(
-        "${gameTypeInfo.gameName}-$id",
+        "${gameTypeInfo.name}-$id",
         EventFilter.INSTANCE
     ) { a, b ->
         if (a is PlayerEvent) {
@@ -70,7 +70,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     val spectatorNode = EventNode.type(
-        "${gameTypeInfo.gameName}-$id-spectator",
+        "${gameTypeInfo.name}-$id-spectator",
         EventFilter.INSTANCE
     ) { a, b ->
         if (a is PlayerEvent) {
@@ -112,7 +112,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
         if (gameOptions.showScoreboard) {
-            scoreboard = Sidebar(gameTypeInfo.gameTitle)
+            scoreboard = Sidebar(gameTypeInfo.title)
 
             scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
 
@@ -138,13 +138,13 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             )
         }
 
-        logger.info("A game of '${gameTypeInfo.gameName}' was created")
+        logger.info("A game of '${gameTypeInfo.name}' was created")
     }
 
     @Synchronized internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Boolean> {
         if (players.contains(player)) return CompletableFuture.completedFuture(false)
 
-        logger.info("${player.username} joining game '${gameTypeInfo.gameName}'")
+        logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 
         players.add(player)
         //spectatorGUI.refresh(players)
@@ -203,7 +203,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     @Synchronized internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (!players.contains(player)) return
 
-        logger.info("${player.username} leaving game '${gameTypeInfo.gameName}'")
+        logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
 
         teams.forEach {
             it.remove(player)
@@ -266,7 +266,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (spectators.contains(player)) return CompletableFuture.completedFuture(false)
         if (players.contains(player)) return CompletableFuture.completedFuture(false)
 
-        logger.info("${player.username} started spectating game '${gameTypeInfo.gameName}'")
+        logger.info("${player.username} started spectating game '${gameTypeInfo.name}'")
 
         player.respawnPoint = spawnPosition
 
@@ -296,7 +296,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     @Synchronized internal fun removeSpectator(player: Player) {
         if (!spectators.contains(player)) return
 
-        logger.info("${player.username} stopped spectating game '${gameTypeInfo.gameName}'")
+        logger.info("${player.username} stopped spectating game '${gameTypeInfo.name}'")
 
         spectators.remove(player)
         scoreboard?.removeViewer(player)
@@ -382,7 +382,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (destroyed) return
         destroyed = true
 
-        logger.info("A game of '${gameTypeInfo.gameName}' is ending")
+        logger.info("A game of '${gameTypeInfo.name}' is ending")
 
         Manager.globalEvent.removeChild(eventNode)
 
@@ -393,7 +393,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         val destroyEvent = GameDestroyEvent(this)
         EventDispatcher.call(destroyEvent)
 
-        GameManager.gameMap[gameTypeInfo.gameName]?.remove(this)
+        GameManager.gameMap[gameTypeInfo.name]?.remove(this)
 
         teams.forEach {
             it.destroy()

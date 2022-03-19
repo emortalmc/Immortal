@@ -3,6 +3,7 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.config.GameOptions
+import dev.emortal.immortal.config.GameTypeInfo
 import dev.emortal.immortal.util.RedisStorage
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -29,8 +30,8 @@ object GameManager {
     val joiningGameTag = Tag.Byte("joiningGame")
 
     val playerGameMap = ConcurrentHashMap<Player, Game>()
-    val gameNameToClassMap = ConcurrentHashMap<String, KClass<out Game>>()
-    val registeredGameMap = ConcurrentHashMap<KClass<out Game>, GameConfig>()
+    val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
+    val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()
     val gameMap = ConcurrentHashMap<String, MutableSet<Game>>()
 
     @Volatile
@@ -38,7 +39,7 @@ object GameManager {
 
     val Player.game get() = playerGameMap[this]
 
-    fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
+    //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
     @Synchronized private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, future: CompletableFuture<Boolean>) = future.thenAcceptAsync { successful ->
         if (successful) {
@@ -50,44 +51,32 @@ object GameManager {
                 player.removeTag(joiningGameTag)
             }.delay(Duration.ofSeconds(1)).schedule()
         } else {
-            player.sendMessage(Component.text("Something went wrong while spectating ${newGame.gameTypeInfo.gameName}", NamedTextColor.RED))
+            player.sendMessage(Component.text("Something went wrong while joining ${newGame.gameTypeInfo.name}", NamedTextColor.RED))
             player.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
             player.removeTag(joiningGameTag)
         }
     }
 
-    @Synchronized fun Player.spectateGame(game: Game): CompletableFuture<Boolean> {
-        if (!game.gameTypeInfo.spectatable) return CompletableFuture.completedFuture(false)
-        if (game.spectators.contains(this) || hasTag(joiningGameTag)) {
-            sendMessage(Component.text("Already spectating this game", NamedTextColor.RED))
-            return CompletableFuture.completedFuture(false)
-        }
-
-        val lastGame = this.game
-        sendMessage(Component.text("Spectating ${game.gameTypeInfo.gameName}...", NamedTextColor.GREEN))
-
-        setTag(joiningGameTag, 1)
-
-        val future = game.addSpectator(this)
-        handleJoin(this, lastGame, game, future)
-
-        return future
-    }
+//    @Synchronized fun Player.spectateGame(game: Game): CompletableFuture<Boolean> {
+//        if (!game.gameTypeInfo.spectatable) return CompletableFuture.completedFuture(false)
+//        if (game.spectators.contains(this) || hasTag(joiningGameTag)) {
+//            sendMessage(Component.text("Already spectating this game", NamedTextColor.RED))
+//            return CompletableFuture.completedFuture(false)
+//        }
+//
+//        val lastGame = this.game
+//
+//        val future = game.addSpectator(this)
+//        handleJoin(this, lastGame, game, future)
+//
+//        return future
+//    }
 
     @Synchronized fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
         if (!game.canBeJoined(this)) return CompletableFuture.completedFuture(false)
 
-        logger.info("Joining game ${game.gameTypeInfo.gameName}")
-
         val lastGame = this.game
-        if (lastGame != null) sendMessage(Component.text("Joining ${game.gameTypeInfo.gameName}...", NamedTextColor.GREEN))
-
-        if (hasTag(joiningGameTag)) {
-            sendMessage(Component.text("You are joining games too quickly", NamedTextColor.RED))
-            return CompletableFuture.completedFuture(false)
-        }
-        setTag(joiningGameTag, 1)
 
         val future = game.addPlayer(this)
         handleJoin(this, lastGame, game, future)
@@ -97,13 +86,13 @@ object GameManager {
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gameOptions
+        options: GameOptions = registeredGameMap[gameTypeName]?.options!!
     ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
 
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameNameToClassMap[gameTypeName]]!!.gameOptions
+        options: GameOptions = registeredGameMap[gameTypeName]?.options!!
     ): Game {
         val game = gameMap[gameTypeName]?.firstOrNull {
             it.canBeJoined(player) && it.gameOptions == options
@@ -118,41 +107,40 @@ object GameManager {
 
         //options.private = creator?.party?.privateGames ?: false
 
-        val gameClass = gameNameToClassMap[gameTypeName]
-        val game = gameClass?.primaryConstructor?.call(options)
+        val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call(options)
             ?: throw IllegalArgumentException("Primary constructor not found.")
         game.gameCreator = creator
 
-        gameMap[gameTypeName]!!.add(game)
+        gameMap[gameTypeName]?.add(game)
 
         return game
     }
 
     inline fun <reified T : Game> registerGame(
-        gameName: String,
-        sidebarTitle: String,
+        name: String,
+        title: Component,
         showsInSlashPlay: Boolean = true,
         canSpectate: Boolean = true,
         whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
-        gameOptions: GameOptions
+        options: GameOptions
     ) {
-        gameNameToClassMap[gameName] = T::class
 
-        registeredGameMap[T::class] = GameConfig(
-            gameName,
-            ImmortalExtension.gameConfig.serverName,
-            sidebarTitle,
+        registeredClassMap[T::class] = name
+        registeredGameMap[name] = GameTypeInfo(
+            T::class,
+            name,
+            title,
             showsInSlashPlay,
             canSpectate,
             whenToRegisterEvents,
-            gameOptions
+            options
         )
 
-        gameMap[gameName] = mutableSetOf()
+        RedisStorage.pool.sadd("registeredGameTypes", name)
+        RedisStorage.pool.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
 
-        RedisStorage.pool.sadd("registeredGameTypes", gameName)
-        RedisStorage.pool.set("${gameName}-serverName", ImmortalExtension.gameConfig.serverName)
+        gameMap[name] = ConcurrentHashMap.newKeySet()
 
-        logger.info("Registered game type '${gameName}'")
+        logger.info("Registered game type '${name}'")
     }
 }

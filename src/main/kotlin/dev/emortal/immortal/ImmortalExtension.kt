@@ -46,7 +46,7 @@ class ImmortalExtension : Extension() {
             luckperms = LuckPermsProvider.get()
             LuckpermsListener(ImmortalExtension, luckperms)
 
-            gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("", "", "", gameOptions = GameOptions()))
+            gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig(""))
 
 
             val instanceManager = Manager.instance
@@ -162,7 +162,6 @@ class ImmortalExtension : Extension() {
             SkullHandler.register("minecraft:skull")
 
             ForceStartCommand.register()
-            SpectateCommand.register()
             SoundCommand.register()
             StatsCommand.register()
             ListCommand.register()
@@ -177,7 +176,6 @@ class ImmortalExtension : Extension() {
 
     override fun terminate() {
         ForceStartCommand.unregister()
-        SpectateCommand.unregister()
         SoundCommand.unregister()
         StatsCommand.unregister()
         ListCommand.unregister()

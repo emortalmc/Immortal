@@ -119,8 +119,8 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     }
 
     fun onClick(clicker: Player) {
-        if (GameManager.gameNameToClassMap.containsKey(gameName))
-            clicker.joinGameOrNew(gameName)
+        //if (GameManager.gameNameToClassMap.containsKey(gameName))
+        //    clicker.joinGameOrNew(gameName)
     }
 
 }
