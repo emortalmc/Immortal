@@ -13,10 +13,14 @@ import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
+import dev.emortal.immortal.util.RedisStorage
+import dev.emortal.immortal.util.RedisStorage.pool
+import dev.emortal.immortal.util.SuperflatGenerator
 import dev.emortal.immortal.util.resetTeam
 import net.kyori.adventure.text.Component
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
+import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
@@ -40,16 +44,26 @@ class ImmortalExtension : Extension() {
         lateinit var luckperms: LuckPerms
 
         lateinit var gameConfig: GameConfig
-        val configPath = Path.of("./gameListings.json")
+        val configPath = Path.of("./immortalconfig.json")
 
         fun init(eventNode: EventNode<Event> = Manager.globalEvent) {
-            luckperms = LuckPermsProvider.get()
-            LuckpermsListener(ImmortalExtension, luckperms)
-
-            gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig(""))
+            gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("Gaming"))
 
 
             val instanceManager = Manager.instance
+
+            val waitingInstance = instanceManager.createInstanceContainer()
+            waitingInstance.chunkGenerator = SuperflatGenerator
+            waitingInstance.setTag(GameManager.doNotUnregisterTag, 1)
+
+            eventNode.listenOnly<PlayerLoginEvent> {
+                setSpawningInstance(waitingInstance)
+                this.player.respawnPoint = Pos(0.0, 70.0, 0.0)
+
+                Logger.info("Player logged in, reading subgame")
+                // Read then delete value
+                Logger.info(pool.getDel("${player.uuid}-subgame"))
+            }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {
                 val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
@@ -171,6 +185,8 @@ class ImmortalExtension : Extension() {
     }
 
     override fun initialize() {
+        luckperms = LuckPermsProvider.get()
+        LuckpermsListener(this, luckperms)
         init()
     }
 

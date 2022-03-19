@@ -4,7 +4,7 @@ import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
-import dev.emortal.immortal.util.RedisStorage
+import dev.emortal.immortal.util.RedisStorage.pool
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -124,7 +124,6 @@ object GameManager {
         whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
         options: GameOptions
     ) {
-
         registeredClassMap[T::class] = name
         registeredGameMap[name] = GameTypeInfo(
             T::class,
@@ -136,8 +135,8 @@ object GameManager {
             options
         )
 
-        RedisStorage.pool.sadd("registeredGameTypes", name)
-        RedisStorage.pool.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
+        pool.sadd("registeredGameTypes", name)
+        pool.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
 
         gameMap[name] = ConcurrentHashMap.newKeySet()
 
