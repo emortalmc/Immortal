@@ -1,5 +1,6 @@
-package dev.emortal.immortal.game
+package dev.emortal.immortal.config
 
+@kotlinx.serialization.Serializable
 class GameOptions(
     val maxPlayers: Int = 10,
     val minPlayers: Int = 2,
@@ -7,5 +8,5 @@ class GameOptions(
     val canJoinDuringGame: Boolean = false,
     val showScoreboard: Boolean = true,
     val showsJoinLeaveMessages: Boolean = true,
-    var private: Boolean = false
+    //var private: Boolean = false
 )

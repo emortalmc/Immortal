@@ -1,5 +1,6 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.immortal.config.GameOptions
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player

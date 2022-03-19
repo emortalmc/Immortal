@@ -1,12 +1,13 @@
 package dev.emortal.immortal.game
 
-import dev.emortal.immortal.inventory.GameSelectorGUI
+import dev.emortal.immortal.ImmortalExtension
+import dev.emortal.immortal.config.GameConfig
+import dev.emortal.immortal.config.GameOptions
+import dev.emortal.immortal.util.RedisStorage
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
-import net.minestom.server.event.Event
-import net.minestom.server.event.EventNode
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.tag.Tag
 import org.slf4j.Logger
@@ -29,7 +30,7 @@ object GameManager {
 
     val playerGameMap = ConcurrentHashMap<Player, Game>()
     val gameNameToClassMap = ConcurrentHashMap<String, KClass<out Game>>()
-    val registeredGameMap = ConcurrentHashMap<KClass<out Game>, GameTypeInfo>()
+    val registeredGameMap = ConcurrentHashMap<KClass<out Game>, GameConfig>()
     val gameMap = ConcurrentHashMap<String, MutableSet<Game>>()
 
     @Volatile
@@ -128,9 +129,8 @@ object GameManager {
     }
 
     inline fun <reified T : Game> registerGame(
-        eventNode: EventNode<Event>,
         gameName: String,
-        sidebarTitle: Component,
+        sidebarTitle: String,
         showsInSlashPlay: Boolean = true,
         canSpectate: Boolean = true,
         whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
@@ -138,9 +138,9 @@ object GameManager {
     ) {
         gameNameToClassMap[gameName] = T::class
 
-        registeredGameMap[T::class] = GameTypeInfo(
-            eventNode,
+        registeredGameMap[T::class] = GameConfig(
             gameName,
+            ImmortalExtension.gameConfig.serverName,
             sidebarTitle,
             showsInSlashPlay,
             canSpectate,
@@ -150,21 +150,9 @@ object GameManager {
 
         gameMap[gameName] = mutableSetOf()
 
-        GameSelectorGUI.refresh()
+        RedisStorage.pool.sadd("registeredGameTypes", gameName)
+        RedisStorage.pool.set("${gameName}-serverName", ImmortalExtension.gameConfig.serverName)
 
         logger.info("Registered game type '${gameName}'")
-    }
-
-    inline fun <reified T : Game> unregisterGame() {
-        val gameName = registeredGameMap[T::class]!!.gameName
-
-        gameMap[gameName]?.forEach {
-            it.destroy()
-        }
-        gameMap.remove(gameName)
-        gameNameToClassMap.remove(gameName)
-        registeredGameMap.remove(T::class)
-
-        logger.info("Unregistered game type '${gameName}'")
     }
 }

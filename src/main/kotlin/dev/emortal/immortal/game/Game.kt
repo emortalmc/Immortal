@@ -1,6 +1,7 @@
 package dev.emortal.immortal.game
 
 import dev.emortal.acquaintance.RelationshipManager.party
+import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.event.GameDestroyEvent
 import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
@@ -29,7 +30,6 @@ import net.minestom.server.event.trait.PlayerEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
-import net.minestom.server.timer.Scheduler
 import org.slf4j.LoggerFactory
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
@@ -37,7 +37,6 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Future
 
 abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
@@ -92,8 +91,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     var gameCreator: Player? = null
 
     init {
-        gameTypeInfo.eventNode.addChild(eventNode)
-        gameTypeInfo.eventNode.addChild(spectatorNode)
+        Manager.globalEvent.addChild(eventNode)
+        Manager.globalEvent.addChild(spectatorNode)
 
         //eventNode.listenOnly<PlayerUseItemEvent> {
         //    if (!spectators.contains(player)) return@listenOnly
@@ -385,7 +384,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         logger.info("A game of '${gameTypeInfo.gameName}' is ending")
 
-        gameTypeInfo.eventNode.removeChild(eventNode)
+        Manager.globalEvent.removeChild(eventNode)
 
         timer.cancel()
 
@@ -417,11 +416,11 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (gameState == GameState.PLAYING) {
             return gameOptions.canJoinDuringGame
         }
-        if (gameOptions.private) {
-            val party = gameCreator?.party ?: return false
-
-            return party.players.contains(player)
-        }
+        //if (gameOptions.private) {
+        //    val party = gameCreator?.party ?: return false
+        //
+        //    return party.players.contains(player)
+        //}
         return gameState.joinable
     }
 

@@ -31,6 +31,8 @@ dependencies {
 
     api("com.github.EmortalMC:Rayfast:ad94541f92")
 
+    compileOnly("org.tinylog:tinylog-api-kotlin:2.4.1")
+    implementation("redis.clients:jedis:4.1.1")
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 }
@@ -47,8 +49,8 @@ tasks {
         mergeServiceFiles()
         minimize()
         dependencies {
-            exclude(dependency("com.github.emortaldev:Particable"))
-            exclude(dependency("com.github.emortaldev:Kstom"))
+            //exclude(dependency("com.github.emortaldev:Particable"))
+            //exclude(dependency("com.github.emortaldev:Kstom"))
         }
     }
 
