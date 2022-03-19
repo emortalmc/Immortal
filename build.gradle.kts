@@ -47,8 +47,8 @@ tasks {
         mergeServiceFiles()
         minimize()
         dependencies {
-            exclude(dependency("com.github.emortaldev:Particable"))
-            exclude(dependency("com.github.emortaldev:Kstom"))
+            //exclude(dependency("com.github.emortaldev:Particable"))
+            //exclude(dependency("com.github.emortaldev:Kstom"))
         }
     }
 
