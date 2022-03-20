@@ -20,6 +20,7 @@ import dev.emortal.immortal.util.resetTeam
 import kotlinx.coroutines.*
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
+import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
@@ -50,7 +51,7 @@ class ImmortalExtension : Extension() {
         val configPath = Path.of("./immortalconfig.json")
 
         fun init(eventNode: EventNode<Event> = Manager.globalEvent) = CoroutineScope(Dispatchers.IO).launch {
-            gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("replaceme"))
+            gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("replaceme", 42069))
 
 
             val instanceManager = Manager.instance
@@ -88,7 +89,7 @@ class ImmortalExtension : Extension() {
 
                 }
 
-                jedis.subscribe(pubSub, "playerpubsub")
+                jedis.subscribe(pubSub, "playerpubsub${gameConfig.serverName}")
             }
 
             eventNode.listenOnly<PlayerLoginEvent> {

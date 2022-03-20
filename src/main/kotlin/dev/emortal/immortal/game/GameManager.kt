@@ -138,7 +138,7 @@ object GameManager {
         val jedis = jedisPool.resource
         //jedis.sadd("registeredGameTypes", name)
         //jedis.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
-        jedis.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${MinecraftServer.getServer().port}")
+        jedis.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
         gameMap[name] = ConcurrentHashMap.newKeySet()
 
