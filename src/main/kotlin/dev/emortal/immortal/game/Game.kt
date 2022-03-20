@@ -31,6 +31,7 @@ import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.slf4j.LoggerFactory
+import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.time.Duration
@@ -46,16 +47,14 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     var gameState = GameState.WAITING_FOR_PLAYERS
 
-    val gameTypeInfo = GameManager.registeredGameMap[GameManager.registeredClassMap[this::class]] ?: throw Error("Game type not registered")
-    val id = GameManager.nextGameID
-
-    val logger = LoggerFactory.getLogger(gameTypeInfo.name)
+    val gameName = GameManager.registeredClassMap[this::class]
+    val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
+    val id = GameManager.gameMap[gameName]!!.size + 1
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
     val instance: Instance = instanceCreate().also {
         it.setTag(gameNameTag, gameTypeInfo.name)
-        it.setTag(gameIdTag, id)
     }
 
     val eventNode = EventNode.type(
@@ -65,7 +64,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (a is PlayerEvent) {
             return@type players.contains(a.player)
         } else {
-            return@type b.getTag(gameIdTag) == id
+            return@type b.uniqueId == instance.uniqueId
         }
     }
 
@@ -138,13 +137,13 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             )
         }
 
-        logger.info("A game of '${gameTypeInfo.name}' was created")
+        Logger.info("A game of '${gameTypeInfo.name}' was created")
     }
 
     @Synchronized internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Boolean> {
         if (players.contains(player)) return CompletableFuture.completedFuture(false)
 
-        logger.info("${player.username} joining game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 
         players.add(player)
         //spectatorGUI.refresh(players)
@@ -203,7 +202,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     @Synchronized internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (!players.contains(player)) return
 
-        logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
 
         teams.forEach {
             it.remove(player)
@@ -266,7 +265,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (spectators.contains(player)) return CompletableFuture.completedFuture(false)
         if (players.contains(player)) return CompletableFuture.completedFuture(false)
 
-        logger.info("${player.username} started spectating game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} started spectating game '${gameTypeInfo.name}'")
 
         player.respawnPoint = spawnPosition
 
@@ -296,7 +295,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     @Synchronized internal fun removeSpectator(player: Player) {
         if (!spectators.contains(player)) return
 
-        logger.info("${player.username} stopped spectating game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} stopped spectating game '${gameTypeInfo.name}'")
 
         spectators.remove(player)
         scoreboard?.removeViewer(player)
@@ -382,7 +381,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (destroyed) return
         destroyed = true
 
-        logger.info("A game of '${gameTypeInfo.name}' is ending")
+        Logger.info("A game of '${gameTypeInfo.name}' is ending")
 
         Manager.globalEvent.removeChild(eventNode)
 

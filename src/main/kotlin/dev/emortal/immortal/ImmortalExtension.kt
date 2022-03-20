@@ -44,7 +44,7 @@ class ImmortalExtension : Extension() {
         val configPath = Path.of("./immortalconfig.json")
 
         fun init(eventNode: EventNode<Event> = Manager.globalEvent) {
-            gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("Gaming"))
+            gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("replaceme"))
 
 
             val instanceManager = Manager.instance
@@ -54,14 +54,21 @@ class ImmortalExtension : Extension() {
             waitingInstance.setTag(GameManager.doNotUnregisterTag, 1)
 
             eventNode.listenOnly<PlayerLoginEvent> {
-                setSpawningInstance(waitingInstance)
-                this.player.respawnPoint = Pos(0.0, 70.0, 0.0)
-
                 val jedis = jedisPool.resource
 
-                Logger.info("Player logged in, reading subgame")
+                Logger.info("Player joined, reading subgame then creating a game!")
                 // Read then delete value
-                Logger.info(jedis.getDel("${player.uuid}-subgame"))
+                val subgame = jedis.getDel("${player.uuid}-subgame")
+
+                if (subgame == null) {
+                    this.player.kick("Error while joining")
+                    Logger.info("Player ${player.username} unable to connect because subgame is null")
+                    return@listenOnly
+                }
+
+                val newGame = GameManager.findOrCreateGame(player, subgame)
+                player.respawnPoint = newGame.spawnPosition
+                setSpawningInstance(newGame.instance)
             }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {

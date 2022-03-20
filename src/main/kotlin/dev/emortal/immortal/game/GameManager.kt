@@ -11,8 +11,8 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.tag.Tag
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
@@ -21,8 +21,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 
 object GameManager {
-    val logger: Logger = LoggerFactory.getLogger("GameManager")
-
     val doNotUnregisterTag = Tag.Byte("doNotUnregister")
 
     val gameNameTag = Tag.String("gameName")
@@ -33,9 +31,6 @@ object GameManager {
     val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
     val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()
     val gameMap = ConcurrentHashMap<String, MutableSet<Game>>()
-
-    @Volatile
-    internal var nextGameID = 0
 
     val Player.game get() = playerGameMap[this]
 
@@ -103,7 +98,6 @@ object GameManager {
     }
 
     fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
-        nextGameID++
 
         //options.private = creator?.party?.privateGames ?: false
 
@@ -141,6 +135,6 @@ object GameManager {
 
         gameMap[name] = ConcurrentHashMap.newKeySet()
 
-        logger.info("Registered game type '${name}'")
+        Logger.info("Registered game type '${name}'")
     }
 }
