@@ -116,6 +116,15 @@ object GameManager {
         return game
     }
 
+    inline fun <reified T : Game> registerGame(
+        name: String,
+        title: Component,
+        showsInSlashPlay: Boolean = true,
+        canSpectate: Boolean = true,
+        whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
+        options: GameOptions
+    ) = registerGame(T::class, name, title, showsInSlashPlay, canSpectate, whenToRegisterEvents, options)
+
     fun registerGame(
         clazz: KClass<out Game>,
         name: String,
@@ -141,7 +150,6 @@ object GameManager {
         //jedis.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
         jedis.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
-        //gameMap[name] = ConcurrentHashMap.newKeySet()
         gameMap[name] = mutableSetOf()
 
         Logger.info("Registered game type '${name}'")
