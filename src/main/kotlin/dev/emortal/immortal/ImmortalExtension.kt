@@ -2,7 +2,10 @@ package dev.emortal.immortal
 
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
-import dev.emortal.immortal.commands.*
+import dev.emortal.immortal.commands.ForceStartCommand
+import dev.emortal.immortal.commands.ListCommand
+import dev.emortal.immortal.commands.SoundCommand
+import dev.emortal.immortal.commands.StatsCommand
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.game.GameManager
@@ -14,14 +17,15 @@ import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.RedisStorage.jedisPool
+import dev.emortal.immortal.util.RedisStorage.redisson
 import dev.emortal.immortal.util.SuperflatGenerator
 import dev.emortal.immortal.util.resetTeam
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
-import net.minestom.server.MinecraftServer
-import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
@@ -33,14 +37,12 @@ import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import org.tinylog.kotlin.Logger
-import redis.clients.jedis.JedisPubSub
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
 import java.nio.file.Path
 import java.time.Duration
 import java.util.*
-import kotlin.reflect.jvm.internal.impl.incremental.components.ScopeKind
 
 class ImmortalExtension : Extension() {
 
@@ -61,45 +63,35 @@ class ImmortalExtension : Extension() {
             waitingInstance.setTag(GameManager.doNotUnregisterTag, 1)
 
             // Create changegame listener
-            launch {
-                val jedis = jedisPool.resource
-                val pubSub = object : JedisPubSub() {
 
-                    override fun onMessage(channel: String, message: String) {
-                        val args = message.split(" ")
+            redisson.getTopic("playerpubsub${gameConfig.serverName}").addListenerAsync(String::class.java) { ch, msg ->
+                val args = msg.split(" ")
 
-                        println("Recieved message: ${message}")
+                println("Recieved message: ${msg}")
 
-                        when (args[0].lowercase()) {
-                            "changegame" -> {
-                                val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
-                                val subgame = args[2]
-                                if (!GameManager.gameMap.containsKey(subgame)) {
-                                    // Invalid subgame, ignore message
-                                    return
-                                }
-
-                                player.joinGameOrNew(subgame)
-                            }
-
+                when (args[0].lowercase()) {
+                    "changegame" -> {
+                        val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return@addListenerAsync
+                        val subgame = args[2]
+                        if (!GameManager.gameMap.containsKey(subgame)) {
+                            // Invalid subgame, ignore message
+                            return@addListenerAsync
                         }
 
-
+                        player.joinGameOrNew(subgame)
                     }
 
                 }
-
-                jedis.subscribe(pubSub, "playerpubsub${gameConfig.serverName}")
             }
 
-            eventNode.listenOnly<PlayerLoginEvent> {
-                val jedis = jedisPool.resource
 
+            eventNode.listenOnly<PlayerLoginEvent> {
                 this.player.gameMode = GameMode.ADVENTURE
 
                 Logger.info("Player joined, reading subgame then creating a game!")
+
                 // Read then delete value
-                val subgame = jedis.getDel("${player.uuid}-subgame")
+                val subgame = redisson.getBucket<String>("${player.uuid}-subgame").andDelete
                 println("Subgame: ${subgame}")
 
                 if (subgame == null) {
@@ -108,9 +100,6 @@ class ImmortalExtension : Extension() {
                     return@listenOnly
                 }
 
-                GameManager.registeredGameMap.forEach {
-                    println("key:${it.key}, val:${it.value.options}")
-                }
                 val newGame = GameManager.findOrCreateGame(player, subgame)
                 player.respawnPoint = newGame.spawnPosition
                 setSpawningInstance(newGame.instance)

@@ -1,18 +1,15 @@
 package dev.emortal.immortal.game
 
 import dev.emortal.immortal.ImmortalExtension
-import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
-import dev.emortal.immortal.util.RedisStorage.jedisPool
+import dev.emortal.immortal.util.RedisStorage.redisson
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.tag.Tag
-import org.slf4j.LoggerFactory
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import java.time.Duration
@@ -145,10 +142,8 @@ object GameManager {
             options
         )
 
-        val jedis = jedisPool.resource
-        //jedis.sadd("registeredGameTypes", name)
-        //jedis.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
-        jedis.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
+        redisson.getTopic("registergame")
+            .publishAsync("$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
         gameMap[name] = mutableSetOf()
 

@@ -1,11 +1,11 @@
 package dev.emortal.immortal.util
 
-import dev.emortal.immortal.ImmortalExtension
-import redis.clients.jedis.JedisPool
-import redis.clients.jedis.JedisPoolConfig
+import org.redisson.Redisson
+import org.redisson.config.Config
+
 
 object RedisStorage {
 
-    val jedisPool = JedisPool(JedisPoolConfig().also { it.jmxNameBase = ImmortalExtension.gameConfig.serverName }, "localhost", 6379)
+    val redisson = Redisson.create(Config().also { it.useSingleServer().setAddress("redis://localhost:6379").setClientName("Proxy") })
 
 }
