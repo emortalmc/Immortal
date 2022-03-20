@@ -100,6 +100,7 @@ class ImmortalExtension : Extension() {
                 Logger.info("Player joined, reading subgame then creating a game!")
                 // Read then delete value
                 val subgame = jedis.getDel("${player.uuid}-subgame")
+                println("Subgame: ${subgame}")
 
                 if (subgame == null) {
                     this.player.kick("Error while joining")
@@ -107,6 +108,9 @@ class ImmortalExtension : Extension() {
                     return@listenOnly
                 }
 
+                GameManager.registeredGameMap.forEach {
+                    println("key:${it.key}, val:${it.value.options}")
+                }
                 val newGame = GameManager.findOrCreateGame(player, subgame)
                 player.respawnPoint = newGame.spawnPosition
                 setSpawningInstance(newGame.instance)
