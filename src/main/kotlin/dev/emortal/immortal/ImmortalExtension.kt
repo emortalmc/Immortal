@@ -7,6 +7,8 @@ import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
+import dev.emortal.immortal.game.GameManager.joinGame
+import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.luckperms.LuckpermsListener
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
@@ -15,6 +17,7 @@ import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.RedisStorage.jedisPool
 import dev.emortal.immortal.util.SuperflatGenerator
 import dev.emortal.immortal.util.resetTeam
+import kotlinx.coroutines.*
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.coordinate.Pos
@@ -29,11 +32,14 @@ import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import org.tinylog.kotlin.Logger
+import redis.clients.jedis.JedisPubSub
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
 import java.nio.file.Path
 import java.time.Duration
+import java.util.*
+import kotlin.reflect.jvm.internal.impl.incremental.components.ScopeKind
 
 class ImmortalExtension : Extension() {
 
@@ -43,7 +49,7 @@ class ImmortalExtension : Extension() {
         lateinit var gameConfig: GameConfig
         val configPath = Path.of("./immortalconfig.json")
 
-        fun init(eventNode: EventNode<Event> = Manager.globalEvent) {
+        fun init(eventNode: EventNode<Event> = Manager.globalEvent) = CoroutineScope(Dispatchers.IO).launch {
             gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("replaceme"))
 
 
@@ -53,8 +59,42 @@ class ImmortalExtension : Extension() {
             waitingInstance.chunkGenerator = SuperflatGenerator
             waitingInstance.setTag(GameManager.doNotUnregisterTag, 1)
 
+            // Create changegame listener
+            launch {
+                val jedis = jedisPool.resource
+                val pubSub = object : JedisPubSub() {
+
+                    override fun onMessage(channel: String, message: String) {
+                        val args = message.split(" ")
+
+                        println("Recieved message: ${message}")
+
+                        when (args[0].lowercase()) {
+                            "changegame" -> {
+                                val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
+                                val subgame = args[2]
+                                if (!GameManager.gameMap.containsKey(subgame)) {
+                                    // Invalid subgame, ignore message
+                                    return
+                                }
+
+                                player.joinGameOrNew(subgame)
+                            }
+
+                        }
+
+
+                    }
+
+                }
+
+                jedis.subscribe(pubSub, "playerpubsub")
+            }
+
             eventNode.listenOnly<PlayerLoginEvent> {
                 val jedis = jedisPool.resource
+
+                this.player.gameMode = GameMode.ADVENTURE
 
                 Logger.info("Player joined, reading subgame then creating a game!")
                 // Read then delete value
@@ -69,6 +109,10 @@ class ImmortalExtension : Extension() {
                 val newGame = GameManager.findOrCreateGame(player, subgame)
                 player.respawnPoint = newGame.spawnPosition
                 setSpawningInstance(newGame.instance)
+
+                player.scheduleNextTick {
+                    player.joinGame(newGame)
+                }
             }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {
@@ -190,9 +234,9 @@ class ImmortalExtension : Extension() {
         }
     }
 
-    override fun initialize() {
+    override fun initialize(): Unit = runBlocking {
         luckperms = LuckPermsProvider.get()
-        LuckpermsListener(this, luckperms)
+        LuckpermsListener(this@ImmortalExtension, luckperms)
         init()
     }
 

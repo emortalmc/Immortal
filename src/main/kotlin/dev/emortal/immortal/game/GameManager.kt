@@ -8,6 +8,7 @@ import dev.emortal.immortal.util.RedisStorage.jedisPool
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.tag.Tag
@@ -36,21 +37,30 @@ object GameManager {
 
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
-    @Synchronized private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, future: CompletableFuture<Boolean>) = future.thenAcceptAsync { successful ->
-        if (successful) {
-            lastGame?.removePlayer(player)
-            lastGame?.removeSpectator(player)
-            playerGameMap[player] = newGame
+    @Synchronized private fun handleJoin(player: Player, lastGame: Game?, newGame: Game): CompletableFuture<Boolean> {
+        if (player.hasTag(joiningGameTag)) return CompletableFuture.completedFuture(false)
+        player.setTag(joiningGameTag, 1)
 
-            Manager.scheduler.buildTask {
+        lastGame?.removePlayer(player)
+        lastGame?.removeSpectator(player)
+
+        val future = newGame.addPlayer(player)
+        future.thenAcceptAsync { successful ->
+            if (successful) {
+                playerGameMap[player] = newGame
+
+                Manager.scheduler.buildTask {
+                    player.removeTag(joiningGameTag)
+                }.delay(Duration.ofSeconds(1)).schedule()
+            } else {
+                player.sendMessage(Component.text("Something went wrong while joining ${newGame.gameTypeInfo.name}", NamedTextColor.RED))
+                player.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
                 player.removeTag(joiningGameTag)
-            }.delay(Duration.ofSeconds(1)).schedule()
-        } else {
-            player.sendMessage(Component.text("Something went wrong while joining ${newGame.gameTypeInfo.name}", NamedTextColor.RED))
-            player.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-
-            player.removeTag(joiningGameTag)
+            }
         }
+
+        return future
     }
 
 //    @Synchronized fun Player.spectateGame(game: Game): CompletableFuture<Boolean> {
@@ -72,11 +82,7 @@ object GameManager {
         if (!game.canBeJoined(this)) return CompletableFuture.completedFuture(false)
 
         val lastGame = this.game
-
-        val future = game.addPlayer(this)
-        handleJoin(this, lastGame, game, future)
-
-        return future
+        return handleJoin(this, lastGame, game)
     }
 
     fun Player.joinGameOrNew(
@@ -130,8 +136,9 @@ object GameManager {
         )
 
         val jedis = jedisPool.resource
-        jedis.sadd("registeredGameTypes", name)
-        jedis.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
+        //jedis.sadd("registeredGameTypes", name)
+        //jedis.set("${name}-serverName", ImmortalExtension.gameConfig.serverName)
+        jedis.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${MinecraftServer.getServer().port}")
 
         gameMap[name] = ConcurrentHashMap.newKeySet()
 

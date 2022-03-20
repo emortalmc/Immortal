@@ -47,7 +47,7 @@ tasks {
     named<ShadowJar>("shadowJar") {
         archiveBaseName.set(project.name)
         mergeServiceFiles()
-        minimize()
+        //minimize()
         dependencies {
             //exclude(dependency("com.github.emortaldev:Particable"))
             //exclude(dependency("com.github.emortaldev:Kstom"))
