@@ -3,7 +3,6 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
-import dev.emortal.immortal.config.RegisteredServerConfig
 import dev.emortal.immortal.util.RedisStorage.redisson
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -151,8 +150,6 @@ object GameManager {
             options
         )
 
-        redisson.getSet<RegisteredServerConfig>("registeredservers")
-            .add(RegisteredServerConfig(ImmortalExtension.gameConfig.serverName, ImmortalExtension.gameConfig.serverPort, name))
         redisson.getTopic("registergame")
             .publishAsync("$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 

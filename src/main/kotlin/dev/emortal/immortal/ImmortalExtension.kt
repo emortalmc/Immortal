@@ -62,8 +62,16 @@ class ImmortalExtension : Extension() {
             waitingInstance.chunkGenerator = SuperflatGenerator
             waitingInstance.setTag(GameManager.doNotUnregisterTag, 1)
 
-            // Create changegame listener
+            // Create proxyhello listener
+            redisson.getTopic("proxyhello").addListenerAsync(String::class.java) { ch, msg ->
+                val registerTopic = redisson.getTopic("registergame")
+                GameManager.gameMap.keys.forEach {
+                    Logger.info("Received proxyhello, resending register request $it")
+                    registerTopic.publishAsync("$it ${gameConfig.serverName} ${gameConfig.serverPort}")
+                }
+            }
 
+            // Create changegame listener
             redisson.getTopic("playerpubsub${gameConfig.serverName}").addListenerAsync(String::class.java) { ch, msg ->
                 val args = msg.split(" ")
 
