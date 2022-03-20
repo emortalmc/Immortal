@@ -1,17 +1,15 @@
 package dev.emortal.immortal.game
 
-import dev.emortal.acquaintance.RelationshipManager.party
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.event.GameDestroyEvent
 import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
-import dev.emortal.immortal.game.GameManager.joinGameOrNew
-import dev.emortal.immortal.util.MinestomRunnable
-import dev.emortal.immortal.util.reset
-import dev.emortal.immortal.util.resetTeam
-import dev.emortal.immortal.util.safeSetInstance
+import dev.emortal.immortal.util.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -30,7 +28,6 @@ import net.minestom.server.event.trait.PlayerEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
-import org.slf4j.LoggerFactory
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
@@ -47,7 +44,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
     var gameState = GameState.WAITING_FOR_PLAYERS
 
-    val gameName = GameManager.registeredClassMap[this::class]
+    val gameName = GameManager.registeredClassMap[this::class]!!
     val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
     val id = GameManager.gameMap[gameName]!!.size + 1
 
@@ -141,7 +138,10 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     @Synchronized internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Boolean> {
-        if (players.contains(player)) return CompletableFuture.completedFuture(false)
+        if (players.contains(player)) {
+            Logger.warn("Game already contains player")
+            return CompletableFuture.completedFuture(false)
+        }
 
         Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 
@@ -185,7 +185,9 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             val joinEvent = PlayerJoinGameEvent(this, player)
             EventDispatcher.call(joinEvent)
 
-            playerJoin(player)
+            CoroutineScope(Dispatchers.IO).launch {
+                playerJoin(player)
+            }
 
             if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
                 if (startingTask == null) {
@@ -392,7 +394,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         val destroyEvent = GameDestroyEvent(this)
         EventDispatcher.call(destroyEvent)
 
-        GameManager.gameMap[gameTypeInfo.name]?.remove(this)
+        GameManager.gameMap[gameName]?.remove(this)
 
         teams.forEach {
             it.destroy()
@@ -401,7 +403,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         // Both spectators and players
         getPlayers().forEach {
             scoreboard?.removeViewer(it)
-            it.joinGameOrNew("lobby")
+            it.sendServer("lobby")
         }
         players.clear()
         spectators.clear()

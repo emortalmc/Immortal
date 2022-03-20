@@ -75,10 +75,13 @@ class ImmortalExtension : Extension() {
                         val subgame = args[2]
                         if (!GameManager.gameMap.containsKey(subgame)) {
                             // Invalid subgame, ignore message
+                            Logger.warn("Invalid subgame ${subgame}")
                             return@addListenerAsync
                         }
 
-                        player.joinGameOrNew(subgame)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            player.joinGameOrNew(subgame)
+                        }
                     }
 
                 }

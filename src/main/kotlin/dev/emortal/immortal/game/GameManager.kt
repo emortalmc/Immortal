@@ -3,6 +3,7 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
+import dev.emortal.immortal.config.RegisteredServerConfig
 import dev.emortal.immortal.util.RedisStorage.redisson
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -35,11 +36,16 @@ object GameManager {
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
     @Synchronized private fun handleJoin(player: Player, lastGame: Game?, newGame: Game): CompletableFuture<Boolean> {
-        if (player.hasTag(joiningGameTag)) return CompletableFuture.completedFuture(false)
+        if (player.hasTag(joiningGameTag)) {
+            return CompletableFuture.completedFuture(false)
+        }
         player.setTag(joiningGameTag, 1)
+
+        Logger.info("Attempting to join ${newGame.gameName}")
 
         lastGame?.removePlayer(player)
         lastGame?.removeSpectator(player)
+        playerGameMap.remove(player)
 
         val future = newGame.addPlayer(player)
         future.thenAcceptAsync { successful ->
@@ -76,7 +82,10 @@ object GameManager {
 //    }
 
     @Synchronized fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
-        if (!game.canBeJoined(this)) return CompletableFuture.completedFuture(false)
+        if (!game.canBeJoined(this)) {
+            Logger.warn("Game count not be joined")
+            return CompletableFuture.completedFuture(false)
+        }
 
         val lastGame = this.game
         return handleJoin(this, lastGame, game)
@@ -84,13 +93,13 @@ object GameManager {
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameTypeName]?.options!!
+        options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
 
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameTypeName]?.options!!
+        options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ): Game {
         val game = gameMap[gameTypeName]?.firstOrNull {
             it.canBeJoined(player) && it.gameOptions == options
@@ -142,10 +151,12 @@ object GameManager {
             options
         )
 
+        redisson.getSet<RegisteredServerConfig>("registeredservers")
+            .add(RegisteredServerConfig(ImmortalExtension.gameConfig.serverName, ImmortalExtension.gameConfig.serverPort, name))
         redisson.getTopic("registergame")
             .publishAsync("$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
-        gameMap[name] = mutableSetOf()
+        gameMap[name] = ConcurrentHashMap.newKeySet()
 
         Logger.info("Registered game type '${name}'")
     }

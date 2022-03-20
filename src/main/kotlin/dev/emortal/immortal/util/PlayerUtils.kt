@@ -2,9 +2,12 @@ package dev.emortal.immortal.util
 
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.prefix
+import io.netty.buffer.ByteBufAllocator
+import io.netty.buffer.ByteBufOutputStream
 import net.minestom.server.attribute.Attribute
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import net.minestom.server.network.packet.server.play.PluginMessagePacket
 import net.minestom.server.network.packet.server.play.TeamsPacket
 import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.asMini
@@ -42,4 +45,15 @@ fun Player.resetTeam() {
         .build()
 
     team = playerTeam
+}
+
+fun Player.sendServer(serverName: String) {
+    val out = ByteBufOutputStream(ByteBufAllocator.DEFAULT.buffer())
+    out.writeUTF("Connect")
+    out.writeUTF(serverName)
+    val buffer = out.buffer()
+    val bytes = ByteArray(buffer.readableBytes())
+    buffer.duplicate().readBytes(bytes)
+    out.flush()
+    sendPacket(PluginMessagePacket("BungeeCord", bytes))
 }
