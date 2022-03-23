@@ -251,6 +251,8 @@ class ImmortalExtension : Extension() {
         StatsCommand.unregister()
         ListCommand.unregister()
 
+        redisson.shutdown()
+
         Logger.info("Immortal terminated!")
     }
 
