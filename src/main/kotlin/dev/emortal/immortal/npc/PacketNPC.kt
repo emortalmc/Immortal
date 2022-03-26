@@ -1,15 +1,13 @@
 package dev.emortal.immortal.npc
 
-import dev.emortal.immortal.game.GameManager
-import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.MinestomRunnable
+import dev.emortal.immortal.util.RedisStorage.redisson
 import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.*
 import net.minestom.server.network.packet.server.play.*
 import net.minestom.server.utils.PacketUtils
 import world.cepi.kstom.Manager
-import world.cepi.kstom.util.entity
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -119,8 +117,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     }
 
     fun onClick(clicker: Player) {
-        //if (GameManager.gameNameToClassMap.containsKey(gameName))
-        //    clicker.joinGameOrNew(gameName)
+        redisson.getTopic("joingame").publishAsync("$gameName ${clicker.uuid}")
     }
 
 }

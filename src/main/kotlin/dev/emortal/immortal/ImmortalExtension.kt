@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
+import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
@@ -55,6 +56,7 @@ class ImmortalExtension : Extension() {
         fun init(eventNode: EventNode<Event> = Manager.globalEvent) = CoroutineScope(Dispatchers.IO).launch {
             gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("replaceme", 42069))
 
+            MinecraftServer.setBrandName("Minestom")
 
             val instanceManager = Manager.instance
 
@@ -86,6 +88,8 @@ class ImmortalExtension : Extension() {
                             Logger.warn("Invalid subgame ${subgame}")
                             return@addListenerAsync
                         }
+
+                        if (player.game?.gameName == subgame) return@addListenerAsync
 
                         CoroutineScope(Dispatchers.IO).launch {
                             player.joinGameOrNew(subgame)
