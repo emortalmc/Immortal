@@ -30,6 +30,8 @@ object PermissionUtils {
 
     internal fun refreshPrefix(player: Player) {
         val prefix = player.prefix ?: return
-        player.displayName = "$prefix ${player.username}".asMini()
+        val component = "$prefix ${player.username}".asMini()
+        player.customName = component
+        player.displayName = component
     }
 }

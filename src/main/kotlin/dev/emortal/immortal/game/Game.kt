@@ -7,8 +7,10 @@ import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.util.*
+import dev.emortal.immortal.util.RedisStorage.redisson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
@@ -32,15 +34,16 @@ import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.time.Duration
-import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
+    private val playerCountTopic = redisson.getTopic("playercount")
+
     val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val spectators: MutableSet<Player> = ConcurrentHashMap.newKeySet()
-    val teams = mutableSetOf<Team>()
+    val teams: MutableSet<Team> = ConcurrentHashMap.newKeySet()
 
     var gameState = GameState.WAITING_FOR_PLAYERS
 
@@ -76,7 +79,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
     }
 
-    val timer = Timer()
+    val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
@@ -185,6 +188,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             val joinEvent = PlayerJoinGameEvent(this, player)
             EventDispatcher.call(joinEvent)
 
+            playerCountTopic.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+
             CoroutineScope(Dispatchers.IO).launch {
                 playerJoin(player)
             }
@@ -210,6 +215,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.remove(player)
         }
         players.remove(player)
+
+        playerCountTopic.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size) {
             scoreboard?.updateLineContent(
@@ -257,7 +264,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         if (players.size == 0) {
             destroy()
-            return
+            //return
         }
 
         playerLeave(player)
@@ -319,21 +326,23 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             return
         }
 
-        startingTask = object : MinestomRunnable(timer = timer, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
+        startingTask = object : MinestomRunnable(coroutineScope = coroutineScope, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
 
-            override fun run() {
+            override suspend fun run() {
+                val currentIter = currentIteration.get()
+
                 scoreboard?.updateLineContent(
                     "infoLine",
                     Component.text()
-                        .append(Component.text("Starting in ${gameOptions.countdownSeconds - currentIteration} seconds", NamedTextColor.GREEN))
+                        .append(Component.text("Starting in ${gameOptions.countdownSeconds - currentIter} seconds", NamedTextColor.GREEN))
                         .build()
                 )
 
-                if ((gameOptions.countdownSeconds - currentIteration) < 5 || currentIteration % 5 == 0) {
+                if ((gameOptions.countdownSeconds - currentIter) < 5 || currentIter % 5 == 0) {
                     playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.AMBIENT, 1f, 1.2f))
                     showTitle(
                         Title.title(
-                            Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
+                            Component.text(gameOptions.countdownSeconds - currentIter, NamedTextColor.GREEN, TextDecoration.BOLD),
                             Component.empty(),
                             Title.Times.of(
                                 Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
@@ -387,7 +396,11 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         Manager.globalEvent.removeChild(eventNode)
 
-        timer.cancel()
+        try {
+            coroutineScope.cancel()
+        } catch(ignored: Throwable) {
+            Logger.warn("Coroutine scope cancelled without a Job, likely not an issue")
+        }
 
         gameDestroyed()
 
@@ -407,6 +420,8 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
         players.clear()
         spectators.clear()
+
+        playerCountTopic.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
     }
 
     open fun canBeJoined(player: Player): Boolean {

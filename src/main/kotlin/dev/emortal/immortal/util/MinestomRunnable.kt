@@ -1,10 +1,13 @@
 package dev.emortal.immortal.util
 
-import world.cepi.kstom.Manager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.tinylog.kotlin.Logger
 import java.time.Duration
-import java.util.*
-import kotlin.concurrent.schedule
-import kotlin.concurrent.scheduleAtFixedRate
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Creates a task using Java's scheduler instead of Minestom's
@@ -13,48 +16,61 @@ import kotlin.concurrent.scheduleAtFixedRate
  * @param delay How long to delay the task from running
  * @param repeat How long between intervals of running
  * @param iterations How many times to iterate, -1 being infinite (also default)
- * @param timer Custom timer to use, should be set to the game's timer if created inside a game as the tasks will automatically cancel, use MinestomRunnable.defaultTimer otherwise
+ * @param coroutineScope The coroutine scope to use, should be set to the game's scope if created inside a game as the tasks will be automatically cancelled on end, use GlobalScope otherwise
  */
-abstract class MinestomRunnable(val delay: Duration = Duration.ZERO, val repeat: Duration = Duration.ZERO, var iterations: Int = -1, timer: Timer) {
+abstract class MinestomRunnable(
+    var delay: Duration = Duration.ZERO,
+    var repeat: Duration = Duration.ZERO,
+    var iterations: Int = -1,
+    val coroutineScope: CoroutineScope
+) {
 
-    companion object {
-        val defaultTimer = Timer()
-    }
+    abstract suspend fun run()
 
-    private var task: TimerTask? = null
-    var currentIteration = 0
-
-    init {
-
+    private val keepRunning = AtomicBoolean(true)
+    private var job: Job? = null
+    private val tryRun = suspend {
         try {
-            if (repeat.toMillis() == 0L) {
-                if (delay.toMillis() != 0L) timer.schedule(delay.toMillis()) { this@MinestomRunnable.run() }
-            }
-
-            if (iterations < 2 && delay.toMillis() == 0L && repeat.toMillis() == 0L) {
-                this@MinestomRunnable.run()
-                this@MinestomRunnable.cancel()
-            } else {
-                task = timer.scheduleAtFixedRate(delay.toMillis(), repeat.toMillis()) {
-                    if (iterations != -1 && currentIteration >= iterations) {
-                        this@MinestomRunnable.cancel()
-                        cancelled()
-                        return@scheduleAtFixedRate
-                    }
-
-                    this@MinestomRunnable.run()
-                    currentIteration++
-                }
-            }
-        } catch (e: Exception) {
-            Manager.exception.handleException(e)
+            run()
+        } catch (e: Throwable) {
+            Logger.warn("Timer action failed:")
+            e.printStackTrace()
         }
     }
 
-    abstract fun run()
+    var currentIteration = AtomicInteger(0)
+
+    init {
+
+        job = coroutineScope.launch {
+            delay(delay.toMillis())
+            if (repeat.toMillis() != 0L) {
+                while (keepRunning.get()) {
+                    val currentIter = currentIteration.getAndIncrement()
+                    if (currentIter != -1 && currentIter >= iterations) {
+                        cancel()
+                        return@launch
+                    }
+                    tryRun()
+                    delay(repeat.toMillis())
+                }
+            } else {
+                if (keepRunning.get()) {
+                    tryRun()
+                }
+            }
+        }
+    }
+
     open fun cancelled() {}
 
     fun cancel() {
-        task?.cancel()
+        keepRunning.set(false)
+        cancelled()
+    }
+
+    fun cancelImmediate() {
+        cancel()
+        job?.cancel()
     }
 }

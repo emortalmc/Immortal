@@ -2,10 +2,7 @@ package dev.emortal.immortal
 
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
-import dev.emortal.immortal.commands.ForceStartCommand
-import dev.emortal.immortal.commands.ListCommand
-import dev.emortal.immortal.commands.SoundCommand
-import dev.emortal.immortal.commands.StatsCommand
+import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.game.GameManager
@@ -77,8 +74,6 @@ class ImmortalExtension : Extension() {
             redisson.getTopic("playerpubsub${gameConfig.serverName}").addListenerAsync(String::class.java) { ch, msg ->
                 val args = msg.split(" ")
 
-                println("Recieved message: ${msg}")
-
                 when (args[0].lowercase()) {
                     "changegame" -> {
                         val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return@addListenerAsync
@@ -103,15 +98,12 @@ class ImmortalExtension : Extension() {
             eventNode.listenOnly<PlayerLoginEvent> {
                 this.player.gameMode = GameMode.ADVENTURE
 
-                Logger.info("Player joined, reading subgame then creating a game!")
-
                 // Read then delete value
                 val subgame = redisson.getBucket<String>("${player.uuid}-subgame").andDelete
-                println("Subgame: ${subgame}")
 
                 if (subgame == null) {
                     this.player.kick("Error while joining")
-                    Logger.info("Player ${player.username} unable to connect because subgame is null")
+                    Logger.info("Player ${player.username} unable to connect because subgame was null")
                     return@listenOnly
                 }
 
@@ -152,7 +144,7 @@ class ImmortalExtension : Extension() {
                 if (aboveMax) isCancelled = true
             }
 
-            val cooldown = Duration.ofMinutes(20)
+            val cooldown = Duration.ofMinutes(60)
             Manager.scheduler.buildTask {
 
                 var leftoverInstances = 0
@@ -238,6 +230,7 @@ class ImmortalExtension : Extension() {
             SoundCommand.register()
             StatsCommand.register()
             ListCommand.register()
+            VersionCommand.register()
 
             Logger.info("Immortal initialized!")
         }
@@ -254,6 +247,7 @@ class ImmortalExtension : Extension() {
         SoundCommand.unregister()
         StatsCommand.unregister()
         ListCommand.unregister()
+        VersionCommand.unregister()
 
         redisson.shutdown()
 

@@ -20,7 +20,7 @@ object StatsCommand : Kommand({
         val ramUsage = Manager.benchmark.usedMemory / 1024 / 1024
         val monitor = LAST_TICK.get()
         val tickMs = monitor.tickTime
-        val tps = floor(1000 / tickMs).toInt()
+        val tps = floor(1000 / tickMs).toInt().coerceAtMost(20)
 
         val onlinePlayers = Manager.connection.onlinePlayers.size
         val entities = Manager.instance.instances.sumOf { it.entities.size } - onlinePlayers

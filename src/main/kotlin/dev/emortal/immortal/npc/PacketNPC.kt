@@ -1,7 +1,10 @@
 package dev.emortal.immortal.npc
 
 import dev.emortal.immortal.util.MinestomRunnable
-import dev.emortal.immortal.util.RedisStorage.redisson
+import dev.emortal.immortal.util.sendServer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.*
@@ -16,7 +19,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
 
     private val viewers = mutableSetOf<Player>()
 
-    private val timer = Timer()
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private var lookingTaskMap = mutableMapOf<UUID, MutableList<MinestomRunnable>>()
 
     companion object {
@@ -76,8 +79,8 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             viewer.sendPacket(entitySpawn)
         }
 
-        object : MinestomRunnable(timer = timer, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
-            override fun run() {
+        object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
+            override suspend fun run() {
                 val lookFromPos = position.add(0.0, entityType.height(), 0.0)
                 val lookToPos = viewer.position.add(0.0, EntityType.PLAYER.height(), 0.0)
 
@@ -108,7 +111,10 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     fun destroy() {
         PacketUtils.sendGroupedPacket(viewers, DestroyEntitiesPacket(playerId))
 
-        timer.cancel()
+        try {
+            coroutineScope.cancel()
+        } catch (ignored: Throwable) {
+        }
         //lookingTaskMap.clear()
         npcIdMap.remove(playerId)
         viewers.forEach {
@@ -117,7 +123,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     }
 
     fun onClick(clicker: Player) {
-        redisson.getTopic("joingame").publishAsync("$gameName ${clicker.uuid}")
+        clicker.sendServer(gameName)
     }
 
 }
