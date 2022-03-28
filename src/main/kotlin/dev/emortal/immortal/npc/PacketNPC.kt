@@ -17,10 +17,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameName: String, val playerSkin: PlayerSkin? = null, val entityType: EntityType = EntityType.PLAYER) {
 
-    private val viewers = mutableSetOf<Player>()
+    private val viewers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private var lookingTaskMap = mutableMapOf<UUID, MutableList<MinestomRunnable>>()
+    //private var lookingTaskMap = ConcurrentHashMap<UUID, MutableList<MinestomRunnable>>()
 
     companion object {
         val viewerMap = ConcurrentHashMap<UUID, MutableList<PacketNPC>>()
