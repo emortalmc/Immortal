@@ -9,7 +9,6 @@ import net.minestom.server.entity.Player
 import net.minestom.server.network.packet.server.play.TeamsPacket
 import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.asMini
-import java.util.*
 
 fun Player.reset() {
     inventory.clear()
@@ -49,5 +48,3 @@ fun Player.resetTeam() {
 fun Player.sendServer(gameName: String) {
     redisson.getTopic("joingame").publishAsync("$gameName ${this.uuid}")
 }
-
-fun UUID.getCachedUsername(): String = redisson.getBucket<String>("${this}username").get()
