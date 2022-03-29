@@ -33,6 +33,8 @@ fun Player.reset() {
     clearEffects()
     stopSpectating()
     askSynchronization()
+    updateViewableRule()
+    updateViewerRule()
 }
 
 fun Player.resetTeam() {

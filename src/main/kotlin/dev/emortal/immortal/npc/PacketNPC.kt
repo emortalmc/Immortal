@@ -82,7 +82,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
         object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
             override suspend fun run() {
                 val lookFromPos = position.add(0.0, entityType.height(), 0.0)
-                val lookToPos = viewer.position.add(0.0, EntityType.PLAYER.height(), 0.0)
+                val lookToPos = viewer.position.add(0.0, if (viewer.isSneaking) 1.5 else 1.8, 0.0)
 
                 if (lookFromPos.distanceSquared(lookToPos) > 10*10) return
                 val pos = lookFromPos.withDirection(lookToPos.sub(lookFromPos))
