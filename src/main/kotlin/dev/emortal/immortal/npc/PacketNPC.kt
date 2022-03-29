@@ -10,6 +10,7 @@ import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.*
 import net.minestom.server.network.packet.server.play.*
 import net.minestom.server.utils.PacketUtils
+import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import java.time.Duration
 import java.util.*
@@ -78,6 +79,8 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
 
             viewer.sendPacket(entitySpawn)
         }
+
+        Logger.info("new viewer")
 
         object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
             override suspend fun run() {

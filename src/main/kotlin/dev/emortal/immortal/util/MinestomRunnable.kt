@@ -46,7 +46,7 @@ abstract class MinestomRunnable(
             delay(delay.toMillis())
             if (repeat.toMillis() != 0L) {
                 while (keepRunning.get()) {
-                    val currentIter = currentIteration.getAndIncrement()
+                    val currentIter = currentIteration.incrementAndGet()
                     if (currentIter != -1 && currentIter >= iterations) {
                         cancel()
                         return@launch

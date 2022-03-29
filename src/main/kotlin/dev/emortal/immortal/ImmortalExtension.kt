@@ -53,7 +53,7 @@ class ImmortalExtension : Extension() {
         fun init(eventNode: EventNode<Event> = Manager.globalEvent) = CoroutineScope(Dispatchers.IO).launch {
             gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("replaceme", 42069))
 
-            MinecraftServer.setBrandName("Minestom")
+            MinecraftServer.setBrandName("Minestom ${MinecraftServer.VERSION_NAME}")
 
             val instanceManager = Manager.instance
 
@@ -150,7 +150,7 @@ class ImmortalExtension : Extension() {
                 var leftoverInstances = 0
                 instanceManager.instances.forEach {
                     if (it.players.isEmpty()) {
-                        if (it.hasTag(GameManager.doNotUnregisterTag)) return@buildTask
+                        if (it.hasTag(GameManager.doNotUnregisterTag)) return@forEach
 
                         instanceManager.unregisterInstance(it)
                         leftoverInstances++
