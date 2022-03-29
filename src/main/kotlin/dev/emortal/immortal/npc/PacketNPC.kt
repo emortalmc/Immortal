@@ -1,25 +1,26 @@
 package dev.emortal.immortal.npc
 
-import dev.emortal.immortal.game.GameManager
-import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.MinestomRunnable
+import dev.emortal.immortal.util.sendServer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.*
 import net.minestom.server.network.packet.server.play.*
 import net.minestom.server.utils.PacketUtils
 import world.cepi.kstom.Manager
-import world.cepi.kstom.util.entity
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameName: String, val playerSkin: PlayerSkin? = null, val entityType: EntityType = EntityType.PLAYER) {
 
-    private val viewers = mutableSetOf<Player>()
+    private val viewers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
 
-    private val timer = Timer()
-    private var lookingTaskMap = mutableMapOf<UUID, MutableList<MinestomRunnable>>()
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    //private var lookingTaskMap = ConcurrentHashMap<UUID, MutableList<MinestomRunnable>>()
 
     companion object {
         val viewerMap = ConcurrentHashMap<UUID, MutableList<PacketNPC>>()
@@ -78,10 +79,10 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             viewer.sendPacket(entitySpawn)
         }
 
-        object : MinestomRunnable(timer = timer, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
-            override fun run() {
+        object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
+            override suspend fun run() {
                 val lookFromPos = position.add(0.0, entityType.height(), 0.0)
-                val lookToPos = viewer.position.add(0.0, EntityType.PLAYER.height(), 0.0)
+                val lookToPos = viewer.position.add(0.0, if (viewer.isSneaking) 1.5 else 1.8, 0.0)
 
                 if (lookFromPos.distanceSquared(lookToPos) > 10*10) return
                 val pos = lookFromPos.withDirection(lookToPos.sub(lookFromPos))
@@ -110,7 +111,10 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     fun destroy() {
         PacketUtils.sendGroupedPacket(viewers, DestroyEntitiesPacket(playerId))
 
-        timer.cancel()
+        try {
+            coroutineScope.cancel()
+        } catch (ignored: Throwable) {
+        }
         //lookingTaskMap.clear()
         npcIdMap.remove(playerId)
         viewers.forEach {
@@ -119,8 +123,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     }
 
     fun onClick(clicker: Player) {
-        if (GameManager.gameNameToClassMap.containsKey(gameName))
-            clicker.joinGameOrNew(gameName)
+        clicker.sendServer(gameName)
     }
 
 }

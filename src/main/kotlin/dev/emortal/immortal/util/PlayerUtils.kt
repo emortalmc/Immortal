@@ -2,6 +2,7 @@ package dev.emortal.immortal.util
 
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.prefix
+import dev.emortal.immortal.util.RedisStorage.redisson
 import net.minestom.server.attribute.Attribute
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
@@ -32,6 +33,8 @@ fun Player.reset() {
     clearEffects()
     stopSpectating()
     askSynchronization()
+    updateViewableRule()
+    updateViewerRule()
 }
 
 fun Player.resetTeam() {
@@ -42,4 +45,8 @@ fun Player.resetTeam() {
         .build()
 
     team = playerTeam
+}
+
+fun Player.sendServer(gameName: String) {
+    redisson.getTopic("joingame").publishAsync("$gameName ${this.uuid}")
 }

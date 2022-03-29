@@ -63,7 +63,7 @@ object ListCommand : Kommand({
             message.append(
                 Component.text()
                     .append(Component.text("\n - ", NamedTextColor.GRAY))
-                    .append(Component.text(player.username, NamedTextColor.YELLOW))
+                    .append(Component.text(it.username, NamedTextColor.YELLOW))
                     .append(Component.text(" (${it.uuid})", NamedTextColor.DARK_GRAY))
             )
         }

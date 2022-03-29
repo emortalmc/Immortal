@@ -2,9 +2,8 @@ package dev.emortal.immortal.luckperms
 
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.event.user.UserDataRecalculateEvent
-import net.minestom.server.extensions.Extension
 
-class LuckpermsListener(extension: Extension, luckperms: LuckPerms) {
+class LuckpermsListener(extension: Any, luckperms: LuckPerms) {
 
     init {
 
