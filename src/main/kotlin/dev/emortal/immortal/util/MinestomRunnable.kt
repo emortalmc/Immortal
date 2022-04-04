@@ -49,6 +49,7 @@ abstract class MinestomRunnable(
                     val currentIter = currentIteration.incrementAndGet()
                     if (iterations != -1 && currentIter >= iterations) {
                         cancel()
+                        cancelled()
                         return@launch
                     }
                     tryRun()
@@ -66,7 +67,6 @@ abstract class MinestomRunnable(
 
     fun cancel() {
         keepRunning.set(false)
-        cancelled()
     }
 
     fun cancelImmediate() {

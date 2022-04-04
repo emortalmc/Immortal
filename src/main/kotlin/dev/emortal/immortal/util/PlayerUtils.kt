@@ -2,6 +2,7 @@ package dev.emortal.immortal.util
 
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.prefix
+import dev.emortal.immortal.luckperms.PermissionUtils.rankWeight
 import dev.emortal.immortal.util.RedisStorage.redisson
 import net.minestom.server.attribute.Attribute
 import net.minestom.server.entity.GameMode
@@ -39,14 +40,15 @@ fun Player.reset() {
 
 fun Player.resetTeam() {
     PermissionUtils.refreshPrefix(this)
-    val playerTeam = Manager.team.createBuilder(username)
+    val playerTeam = Manager.team.createBuilder("${rankWeight?.orElseGet { 0 } ?: 0}${username}")
         .collisionRule(TeamsPacket.CollisionRule.NEVER)
         .prefix("$prefix ".asMini())
         .build()
 
     team = playerTeam
+    playerTeam.sendUpdatePacket()
 }
 
 fun Player.sendServer(gameName: String) {
-    redisson.getTopic("joingame").publishAsync("$gameName ${this.uuid}")
+    redisson?.getTopic("joingame")?.publishAsync("$gameName ${this.uuid}")
 }

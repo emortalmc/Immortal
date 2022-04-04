@@ -25,34 +25,39 @@ fun Entity.takeKnockback(attacker: Entity) {
 }
 
 fun Entity.takeKnockback(attacker: Player) {
-    val verticalKnockback = 0.4 * 20
     val horizontalKnockback = 0.4 * 20
-    val extraHorizontalKnockback = 0.3 * 20
+    val verticalKnockback = 0.4 * 20
+    val vertialKnockbackLimit = 0.4 * 20
+    val extraHorizontalKnockback = 0.5 * 20
     val extraVerticalKnockback = 0.1 * 20
     val limitVerticalKnockback = 0.4 * 20
 
-    val distanceX = attacker.position.x() - position.x()
-    val distanceY = attacker.position.z() - position.z()
+    var d0: Double = attacker.position.x - this.position.x
+    var d1: Double = attacker.position.z - this.position.z
+    while (d0 * d0 + d1 * d1 < 1.0E-4) {
+        d0 = (Math.random() - Math.random()) * 0.01
+        d1 = (Math.random() - Math.random()) * 0.01
+    }
 
-    val magnitude = attacker.position.distance(position)
+    val magnitude = sqrt(d0 * d0 + d1 * d1)
 
     val knockbackLevel = attacker.itemInMainHand.meta.enchantmentMap[Enchantment.KNOCKBACK] ?: 0
     var i = knockbackLevel.toDouble()
 
-    if (attacker.isSprinting) i += 1.25
+    if (attacker.isSprinting) i += 1.0
 
     var newVelocity = velocity
-        .withX { x -> (x / 2) - (distanceX / magnitude * horizontalKnockback) }
+        .withX { x -> (x / 2) - (d0 / magnitude * horizontalKnockback) }
         .withY { y -> (y / 2) + verticalKnockback }
-        .withZ { z -> (z / 2) - (distanceY / magnitude * horizontalKnockback) }
-
-    if (i > 0) newVelocity = newVelocity.add(
-        -sin(attacker.position.yaw() * PI / 180.0f) * i.toFloat() * extraHorizontalKnockback,
-        extraVerticalKnockback,
-        cos(attacker.position.yaw() * PI / 180.0f) * i.toFloat() * extraHorizontalKnockback
-    )
+        .withZ { z -> (z / 2) - (d1 / magnitude * horizontalKnockback) }
 
     if (newVelocity.y() > limitVerticalKnockback) newVelocity = newVelocity.withY(limitVerticalKnockback)
+
+    if (i > 0) newVelocity = newVelocity.add(
+        -sin(attacker.position.yaw * PI / 180.0f) * (i * extraHorizontalKnockback).toFloat(),
+        extraVerticalKnockback,
+        cos(attacker.position.yaw * PI / 180.0f) * (i * extraHorizontalKnockback).toFloat()
+    )
 
     velocity = newVelocity
 }

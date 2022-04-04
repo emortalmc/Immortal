@@ -7,6 +7,6 @@ import org.redisson.config.Config
 
 object RedisStorage {
 
-    val redisson = Redisson.create(Config().also { it.useSingleServer().setAddress(ImmortalExtension.gameConfig.address).setClientName(ImmortalExtension.gameConfig.serverName) })
+    val redisson = if (System.getProperty("debug") != "true") Redisson.create(Config().also { it.useSingleServer().setAddress(ImmortalExtension.gameConfig.address).setClientName(ImmortalExtension.gameConfig.serverName) }) else null
 
 }

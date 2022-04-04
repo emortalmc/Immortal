@@ -6,6 +6,8 @@ import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameIdTag
 import dev.emortal.immortal.game.GameManager.gameNameTag
+import dev.emortal.immortal.game.GameManager.joinGame
+import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.*
 import dev.emortal.immortal.util.RedisStorage.redisson
 import kotlinx.coroutines.CoroutineScope
@@ -33,13 +35,14 @@ import net.minestom.server.sound.SoundEvent
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
+import java.lang.ref.WeakReference
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
-    private val playerCountTopic = redisson.getTopic("playercount")
+    private val playerCountTopic = redisson?.getTopic("playercount")
 
     val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val spectators: MutableSet<Player> = ConcurrentHashMap.newKeySet()
@@ -87,7 +90,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     //val spectatorGUI = SpectatingGUI()
 
     private var destroyed = false
-    var gameCreator: Player? = null
 
     init {
         Manager.globalEvent.addChild(eventNode)
@@ -188,7 +190,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             val joinEvent = PlayerJoinGameEvent(this, player)
             EventDispatcher.call(joinEvent)
 
-            playerCountTopic.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+            playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
             CoroutineScope(Dispatchers.IO).launch {
                 playerJoin(player)
@@ -216,7 +218,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
         players.remove(player)
 
-        playerCountTopic.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+        playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size) {
             scoreboard?.updateLineContent(
@@ -413,15 +415,23 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             it.destroy()
         }
 
+        val debugMode = System.getProperty("debug").toBoolean()
+        val debugGame = System.getProperty("debuggame")
+
         // Both spectators and players
         getPlayers().forEach {
             scoreboard?.removeViewer(it)
-            it.sendServer("lobby")
+
+            if (debugMode) {
+                it.joinGameOrNew(debugGame)
+            } else {
+                it.sendServer("lobby")
+            }
         }
         players.clear()
         spectators.clear()
 
-        playerCountTopic.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+        playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
     }
 
     open fun canBeJoined(player: Player): Boolean {

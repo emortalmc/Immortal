@@ -55,6 +55,10 @@ class ImmortalExtension : Extension() {
 
             MinecraftServer.setBrandName("Minestom ${MinecraftServer.VERSION_NAME}")
 
+            val debugMode = System.getProperty("debug").toBoolean()
+            val debugGame = System.getProperty("debuggame")
+            if (debugMode) Logger.warn("Running in debug mode, debug game: ${debugGame}")
+
             val instanceManager = Manager.instance
 
             val waitingInstance = instanceManager.createInstanceContainer()
@@ -62,7 +66,7 @@ class ImmortalExtension : Extension() {
             waitingInstance.setTag(GameManager.doNotUnregisterTag, 1)
 
             // Create proxyhello listener
-            redisson.getTopic("proxyhello").addListenerAsync(String::class.java) { ch, msg ->
+            redisson?.getTopic("proxyhello")?.addListenerAsync(String::class.java) { ch, msg ->
                 val registerTopic = redisson.getTopic("registergame")
                 GameManager.gameMap.keys.forEach {
                     Logger.info("Received proxyhello, resending register request $it")
@@ -71,7 +75,7 @@ class ImmortalExtension : Extension() {
             }
 
             // Create changegame listener
-            redisson.getTopic("playerpubsub${gameConfig.serverName}").addListenerAsync(String::class.java) { ch, msg ->
+            redisson?.getTopic("playerpubsub${gameConfig.serverName}")?.addListenerAsync(String::class.java) { ch, msg ->
                 val args = msg.split(" ")
 
                 when (args[0].lowercase()) {
@@ -80,7 +84,7 @@ class ImmortalExtension : Extension() {
                         val subgame = args[2]
                         if (!GameManager.gameMap.containsKey(subgame)) {
                             // Invalid subgame, ignore message
-                            Logger.warn("Invalid subgame ${subgame}")
+                            Logger.warn("Invalid subgame $subgame")
                             return@addListenerAsync
                         }
 
@@ -99,7 +103,11 @@ class ImmortalExtension : Extension() {
                 this.player.gameMode = GameMode.ADVENTURE
 
                 // Read then delete value
-                val subgame = redisson.getBucket<String>("${player.uuid}-subgame").andDelete
+                var subgame = redisson?.getBucket<String>("${player.uuid}-subgame")?.andDelete
+
+                if (System.getProperty("debug") == "true") {
+                   subgame = System.getProperty("debuggame")
+                }
 
                 if (subgame == null) {
                     this.player.kick("Error while joining")
@@ -144,20 +152,20 @@ class ImmortalExtension : Extension() {
                 if (aboveMax) isCancelled = true
             }
 
-            val cooldown = Duration.ofMinutes(60)
-            Manager.scheduler.buildTask {
-
-                var leftoverInstances = 0
-                instanceManager.instances.forEach {
-                    if (it.players.isEmpty()) {
-                        if (it.hasTag(GameManager.doNotUnregisterTag)) return@forEach
-
-                        instanceManager.unregisterInstance(it)
-                        leftoverInstances++
-                    }
-                }
-                if (leftoverInstances != 0) Logger.warn("$leftoverInstances empty instances were found and unregistered.")
-            }.delay(cooldown).repeat(cooldown).schedule()
+//            val cooldown = Duration.ofMinutes(60)
+//            Manager.scheduler.buildTask {
+//
+//                var leftoverInstances = 0
+//                instanceManager.instances.forEach {
+//                    if (it.players.isEmpty()) {
+//                        if (it.hasTag(GameManager.doNotUnregisterTag)) return@forEach
+//
+//                        instanceManager.unregisterInstance(it)
+//                        leftoverInstances++
+//                    }
+//                }
+//                if (leftoverInstances != 0) Logger.warn("$leftoverInstances empty instances were found and unregistered.")
+//            }.delay(cooldown).repeat(cooldown).schedule()
 
             eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
                 if (this.entity !is Player) return@listenOnly
@@ -165,11 +173,11 @@ class ImmortalExtension : Extension() {
                 this.instance.scheduleNextTick {
                     if (it.players.isEmpty()) {
                         if (it.hasTag(GameManager.doNotUnregisterTag)) return@scheduleNextTick
-
+                        if (!it.isRegistered) return@scheduleNextTick
                         instanceManager.unregisterInstance(it)
                         Logger.info("Instance was unregistered. Instance count: ${instanceManager.instances.size}")
                     } else {
-                        Logger.warn("Couldn't unregister instance, players: ${it.players.joinToString(separator = ", ") { it.username }}")
+                        //Logger.warn("Couldn't unregister instance, players: ${it.players.joinToString(separator = ", ") { it.username }}")
                     }
                 }
             }
@@ -249,7 +257,7 @@ class ImmortalExtension : Extension() {
         ListCommand.unregister()
         VersionCommand.unregister()
 
-        redisson.shutdown()
+        redisson?.shutdown()
 
         Logger.info("Immortal terminated!")
     }

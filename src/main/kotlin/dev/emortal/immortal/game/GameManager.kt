@@ -82,7 +82,7 @@ object GameManager {
 
     @Synchronized fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
         if (!game.canBeJoined(this)) {
-            Logger.warn("Game count not be joined")
+            Logger.warn("Game could not be joined")
             return CompletableFuture.completedFuture(false)
         }
 
@@ -90,12 +90,12 @@ object GameManager {
         return handleJoin(this, lastGame, game)
     }
 
-    fun Player.joinGameOrNew(
+    @Synchronized fun Player.joinGameOrNew(
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
 
-    fun findOrCreateGame(
+    @Synchronized fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
@@ -108,13 +108,13 @@ object GameManager {
         return game
     }
 
-    fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
+    @Synchronized fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
 
         //options.private = creator?.party?.privateGames ?: false
 
         val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call(options)
             ?: throw IllegalArgumentException("Primary constructor not found.")
-        game.gameCreator = creator
+        //game.gameCreator = creator
 
         gameMap[gameTypeName]?.add(game)
 
@@ -150,8 +150,8 @@ object GameManager {
             options
         )
 
-        redisson.getTopic("registergame")
-            .publishAsync("$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
+        redisson?.getTopic("registergame")
+            ?.publishAsync("$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
         gameMap[name] = ConcurrentHashMap.newKeySet()
 

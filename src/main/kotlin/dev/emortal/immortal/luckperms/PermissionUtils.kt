@@ -6,6 +6,7 @@ import net.minestom.server.command.CommandSender
 import net.minestom.server.command.ConsoleSender
 import net.minestom.server.entity.Player
 import world.cepi.kstom.adventure.asMini
+import java.util.OptionalInt
 
 object PermissionUtils {
     val userToPlayerMap = mutableMapOf<User, Player>()
@@ -19,6 +20,7 @@ object PermissionUtils {
 
     val Player.prefix: String? get() = lpUser.cachedData.metaData.prefix
     val Player.suffix: String? get() = lpUser.cachedData.metaData.suffix
+    val Player.rankWeight: OptionalInt? get() = ImmortalExtension.luckperms.groupManager.getGroup(lpUser.primaryGroup)?.weight
 
     fun CommandSender.hasLuckPermission(permission: String): Boolean {
         if (this is ConsoleSender) return true

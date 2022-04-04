@@ -9,7 +9,6 @@ import world.cepi.kstom.Manager
 import world.cepi.kstom.command.arguments.literal
 import world.cepi.kstom.command.kommand.Kommand
 
-
 object ListCommand : Kommand({
 
     val instances by literal
