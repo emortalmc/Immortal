@@ -78,7 +78,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         if (a is PlayerEvent) {
             return@type spectators.contains(a.player)
         } else {
-            return@type b.getTag(gameIdTag) == id
+            return@type b.uniqueId == instance.uniqueId
         }
     }
 

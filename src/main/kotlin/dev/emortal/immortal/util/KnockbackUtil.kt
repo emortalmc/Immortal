@@ -24,10 +24,9 @@ fun Entity.takeKnockback(attacker: Entity) {
     velocity = newVelocity
 }
 
-fun Entity.takeKnockback(attacker: Player) {
+fun Entity.takeKnockback(attacker: Player, knockbackLevel: Short = attacker.itemInMainHand.meta.enchantmentMap[Enchantment.KNOCKBACK] ?: 0) {
     val horizontalKnockback = 0.4 * 20
     val verticalKnockback = 0.4 * 20
-    val vertialKnockbackLimit = 0.4 * 20
     val extraHorizontalKnockback = 0.5 * 20
     val extraVerticalKnockback = 0.1 * 20
     val limitVerticalKnockback = 0.4 * 20
@@ -41,7 +40,6 @@ fun Entity.takeKnockback(attacker: Player) {
 
     val magnitude = sqrt(d0 * d0 + d1 * d1)
 
-    val knockbackLevel = attacker.itemInMainHand.meta.enchantmentMap[Enchantment.KNOCKBACK] ?: 0
     var i = knockbackLevel.toDouble()
 
     if (attacker.isSprinting) i += 1.0
