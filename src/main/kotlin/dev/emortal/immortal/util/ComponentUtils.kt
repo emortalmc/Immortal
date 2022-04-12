@@ -12,3 +12,11 @@ fun ComponentLike.armify(length: Int = 65): Component {
         .append(Component.text("\n" + " ".repeat(length), NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
         .build()
 }
+
+private const val CENTER_PX = 154
+fun centerText(message: String): String {
+    val halvedMessageSize = message.sumOf { DefaultFontInfo.getLength(it) + 1 } / 2
+    val toCompensate = CENTER_PX - halvedMessageSize
+    val spaceLength = DefaultFontInfo.SPACE.length + 1
+    return "${" ".repeat(toCompensate / spaceLength)}${message}"
+}

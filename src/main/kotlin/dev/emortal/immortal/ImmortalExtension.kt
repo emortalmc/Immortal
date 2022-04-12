@@ -14,13 +14,11 @@ import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
+import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.RedisStorage.redisson
 import dev.emortal.immortal.util.SuperflatGenerator
 import dev.emortal.immortal.util.resetTeam
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.MinecraftServer

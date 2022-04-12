@@ -153,7 +153,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         players.add(player)
         //spectatorGUI.refresh(players)
 
-        if (gameOptions.minPlayers > players.size) {
+        if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
             scoreboard?.updateLineContent(
                 "infoLine",
                 Component.text(
@@ -220,7 +220,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
-        if (gameOptions.minPlayers > players.size) {
+        if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
             scoreboard?.updateLineContent(
                 "infoLine",
                 Component.text(
@@ -434,7 +434,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
     }
 
-    open fun canBeJoined(player: Player): Boolean {
+    @Synchronized open fun canBeJoined(player: Player): Boolean {
         if (players.contains(player)) return false
         if (players.size >= gameOptions.maxPlayers) {
             return false
@@ -456,23 +456,9 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     fun victory(team: Team) {
-//        sendMessage(
-//            Component.text()
-//                .append(Component.text("${" ".repeat(25)} VICTORY", NamedTextColor.GOLD, TextDecoration.BOLD))
-//                .append(Component.text("\n${team.teamName} won the game!\n", NamedTextColor.GRAY))
-//                .armify()
-//        )
-
         victory(team.players)
     }
     fun victory(player: Player) {
-//        sendMessage(
-//            Component.text()
-//                .append(Component.text("${" ".repeat(25)} VICTORY", NamedTextColor.GOLD, TextDecoration.BOLD))
-//                .append(Component.text("\n${player.username} won the game!\n", NamedTextColor.GRAY))
-//                .armify()
-//        )
-
         victory(listOf(player))
     }
 
