@@ -266,7 +266,6 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
         if (players.size == 0) {
             destroy()
-            //return
         }
 
         playerLeave(player)
@@ -346,7 +345,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
                         Title.title(
                             Component.text(gameOptions.countdownSeconds - currentIter, NamedTextColor.GREEN, TextDecoration.BOLD),
                             Component.empty(),
-                            Title.Times.of(
+                            Title.Times.times(
                                 Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
                             )
                         )
@@ -369,7 +368,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             Title.title(
                 Component.empty(),
                 Component.text("Start cancelled!", NamedTextColor.RED, TextDecoration.BOLD),
-                Title.Times.of(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))
+                Title.Times.times(Duration.ZERO, Duration.ofSeconds(2), Duration.ofSeconds(1))
             )
         )
         playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
@@ -468,12 +467,12 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         val victoryTitle = Title.title(
             Component.text("VICTORY!", NamedTextColor.GOLD, TextDecoration.BOLD),
             Component.text(EndGameQuotes.victory.random(), NamedTextColor.GRAY),
-            Title.Times.of(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
+            Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
         )
         val defeatTitle = Title.title(
             Component.text("DEFEAT!", NamedTextColor.RED, TextDecoration.BOLD),
             Component.text(EndGameQuotes.defeat.random(), NamedTextColor.GRAY),
-            Title.Times.of(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
+            Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
         )
 
         val victorySound = Sound.sound(SoundEvent.ENTITY_VILLAGER_CELEBRATE, Sound.Source.MASTER, 1f, 1f)
