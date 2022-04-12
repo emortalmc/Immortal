@@ -24,16 +24,16 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:5469fef417")
+    compileOnly("com.github.Minestom:Minestom:86526ab219")
     compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
     api("com.github.emortaldev:Kstom:08da0d2c49")
     api("com.github.emortaldev:Particable:fadfbe0213")
 
     api("com.github.EmortalMC:Rayfast:ad94541f92")
 
-    compileOnly("org.tinylog:tinylog-api-kotlin:2.4.1")
+    api("org.tinylog:tinylog-api-kotlin:2.4.1")
     compileOnly("org.redisson:redisson:3.17.0")
-    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 }
 
@@ -49,6 +49,7 @@ tasks {
         mergeServiceFiles()
         //minimize()
         dependencies {
+            exclude(dependency("com.tinylog:tinylog-api-kotlin"))
             //exclude(dependency("com.github.emortaldev:Particable"))
             //exclude(dependency("com.github.emortaldev:Kstom"))
         }
