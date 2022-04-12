@@ -14,15 +14,16 @@ import world.cepi.kstom.adventure.asMini
 fun Player.reset() {
     inventory.clear()
     isAutoViewable = true
+    entityMeta.setNotifyAboutChanges(false)
     isInvisible = false
     isGlowing = false
-    gameMode = GameMode.ADVENTURE
-    isAllowFlying = false
-    isFlying = false
-    food = 20
-    level = 0
     additionalHearts = 0f
-    isEnableRespawnScreen = false
+    if (gameMode != GameMode.ADVENTURE) gameMode = GameMode.ADVENTURE
+    if (isAllowFlying) isAllowFlying = false
+    if (isFlying) isFlying = false
+    if (food < 20) food = 20
+    if (level > 0) level = 0
+    if (isEnableRespawnScreen) isEnableRespawnScreen = false
     vehicle?.removePassenger(this)
     getAttribute(Attribute.MOVEMENT_SPEED).baseValue = 0.1f
     setCanPickupItem(true)
@@ -36,6 +37,8 @@ fun Player.reset() {
     askSynchronization()
     updateViewableRule()
     updateViewerRule()
+
+    entityMeta.setNotifyAboutChanges(true)
 }
 
 fun Player.resetTeam() {

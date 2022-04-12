@@ -59,10 +59,6 @@ class ImmortalExtension : Extension() {
 
             val instanceManager = Manager.instance
 
-            val waitingInstance = instanceManager.createInstanceContainer()
-            waitingInstance.chunkGenerator = SuperflatGenerator
-            waitingInstance.setTag(GameManager.doNotUnregisterTag, 1)
-
             // Create proxyhello listener
             redisson?.getTopic("proxyhello")?.addListenerAsync(String::class.java) { ch, msg ->
                 val registerTopic = redisson.getTopic("registergame")

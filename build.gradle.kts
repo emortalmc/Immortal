@@ -26,7 +26,7 @@ dependencies {
 
     compileOnly("com.github.Minestom:Minestom:86526ab219")
     compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
-    api("com.github.emortaldev:Kstom:08da0d2c49")
+    api("com.github.emortaldev:KStom:b9ef22e0e5")
     api("com.github.emortaldev:Particable:fadfbe0213")
 
     api("com.github.EmortalMC:Rayfast:ad94541f92")
