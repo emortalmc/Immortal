@@ -5,7 +5,7 @@ import net.kyori.adventure.text.ComponentLike
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 
-fun ComponentLike.armify(length: Int = 65): Component {
+fun ComponentLike.armify(length: Int = 79): Component {
     return Component.text()
         .append(Component.text(" ".repeat(length) + "\n", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
         .append(this)
@@ -19,4 +19,10 @@ fun centerText(message: String, bold: Boolean = false): String {
     val toCompensate = CENTER_PX - halvedMessageSize
     val spaceLength = DefaultFontInfo.SPACE.length + if (bold) 2 else 1
     return "${" ".repeat(toCompensate / spaceLength)}${message}"
+}
+fun centerSpaces(message: String, bold: Boolean = false): String {
+    val halvedMessageSize = message.sumOf { DefaultFontInfo.getLength(it) + if (bold) 2 else 1 } / 2
+    val toCompensate = CENTER_PX - halvedMessageSize
+    val spaceLength = DefaultFontInfo.SPACE.length + if (bold) 2 else 1
+    return " ".repeat(toCompensate / spaceLength)
 }
