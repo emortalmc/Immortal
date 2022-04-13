@@ -19,6 +19,8 @@ import dev.emortal.immortal.util.RedisStorage.redisson
 import dev.emortal.immortal.util.SuperflatGenerator
 import dev.emortal.immortal.util.resetTeam
 import kotlinx.coroutines.*
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.MinecraftServer
@@ -28,7 +30,10 @@ import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
+import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.extensions.Extension
+import net.minestom.server.instance.SharedInstance
+import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
@@ -39,6 +44,8 @@ import world.cepi.kstom.util.register
 import java.nio.file.Path
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.floor
 
 class ImmortalExtension : Extension() {
 
@@ -110,12 +117,8 @@ class ImmortalExtension : Extension() {
                 }
 
                 val newGame = GameManager.findOrCreateGame(player, subgame)
-                player.respawnPoint = newGame.spawnPosition
                 setSpawningInstance(newGame.instance)
-
-                player.scheduleNextTick {
-                    player.joinGame(newGame)
-                }
+                player.joinGame(newGame)
             }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {
@@ -219,6 +222,51 @@ class ImmortalExtension : Extension() {
                     isCancelled = true
                 }
             }
+
+            if (debugMode) {
+                val LAST_TICK = AtomicReference<TickMonitor>()
+
+                eventNode.listenOnly<ServerTickMonitorEvent> {
+                    LAST_TICK.set(tickMonitor)
+                }
+
+                object : MinestomRunnable(coroutineScope = GlobalScope, repeat = Duration.ofSeconds(1)) {
+                    override suspend fun run() {
+                        Manager.connection.onlinePlayers.forEach {
+                            val ramUsage = Manager.benchmark.usedMemory / 1024 / 1024
+                            val monitor = LAST_TICK.get()
+                            val tickMs = Math.floor(monitor.tickTime * 100) / 100
+
+                            val onlinePlayers = Manager.connection.onlinePlayers.size
+                            val instances = Manager.instance.instances
+                            val entities = instances.sumOf { it.entities.size } - onlinePlayers
+                            val chunks = instances.sumOf { it.chunks.size }
+
+                            it.sendPlayerListFooter(
+                                Component.text()
+                                    .append(Component.text(ramUsage, NamedTextColor.GOLD))
+                                    .append(Component.text("MB", NamedTextColor.GOLD))
+                                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                                    .append(Component.text(tickMs, NamedTextColor.GOLD))
+                                    .append(Component.text("mspt", NamedTextColor.GOLD))
+                                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                                    .append(Component.text(onlinePlayers, NamedTextColor.GOLD))
+                                    .append(Component.text(" players", NamedTextColor.GOLD))
+                                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                                    .append(Component.text(entities, NamedTextColor.GOLD))
+                                    .append(Component.text(" entities", NamedTextColor.GOLD))
+                                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                                    .append(Component.text(instances.size, NamedTextColor.GOLD))
+                                    .append(Component.text(" instances", NamedTextColor.GOLD))
+                                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                                    .append(Component.text(chunks, NamedTextColor.GOLD))
+                                    .append(Component.text(" chunks", NamedTextColor.GOLD))
+                            )
+                        }
+                    }
+                }
+            }
+
 
             val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
                 .ambientLight(2f)

@@ -8,7 +8,16 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 
 fun Player.safeSetInstance(instance: Instance, pos: Pos? = null): CompletableFuture<Void> {
-    if (instance == this.instance) {
+    if (!isActive) {
+        val future = CompletableFuture<Void>()
+
+        scheduleNextTick {
+            future.complete(null)
+        }
+
+        return future
+    }
+    if (instance == this) {
         if (pos == null) return CompletableFuture.completedFuture(null)
         return this.teleport(pos)
     }

@@ -14,9 +14,9 @@ fun ComponentLike.armify(length: Int = 65): Component {
 }
 
 private const val CENTER_PX = 154
-fun centerText(message: String): String {
-    val halvedMessageSize = message.sumOf { DefaultFontInfo.getLength(it) + 1 } / 2
+fun centerText(message: String, bold: Boolean = false): String {
+    val halvedMessageSize = message.sumOf { DefaultFontInfo.getLength(it) + if (bold) 2 else 1 } / 2
     val toCompensate = CENTER_PX - halvedMessageSize
-    val spaceLength = DefaultFontInfo.SPACE.length + 1
+    val spaceLength = DefaultFontInfo.SPACE.length + if (bold) 2 else 1
     return "${" ".repeat(toCompensate / spaceLength)}${message}"
 }

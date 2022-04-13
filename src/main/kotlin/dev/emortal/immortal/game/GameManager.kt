@@ -19,11 +19,11 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 
 object GameManager {
-    val doNotUnregisterTag = Tag.Byte("doNotUnregister")
+    val doNotUnregisterTag = Tag.Boolean("doNotUnregister")
 
     val gameNameTag = Tag.String("gameName")
     val gameIdTag = Tag.Integer("gameId")
-    val joiningGameTag = Tag.Byte("joiningGame")
+    val joiningGameTag = Tag.Boolean("joiningGame")
 
     val playerGameMap = ConcurrentHashMap<Player, Game>()
     val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
@@ -32,37 +32,41 @@ object GameManager {
 
     val Player.game get() = playerGameMap[this]
 
+    val canBeJoinedLock = Object()
+
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
-    @Synchronized private fun handleJoin(player: Player, lastGame: Game?, newGame: Game): CompletableFuture<Boolean> {
-        if (player.hasTag(joiningGameTag)) {
-            return CompletableFuture.completedFuture(false)
-        }
-        player.setTag(joiningGameTag, 1)
-
-        Logger.info("Attempting to join ${newGame.gameName}")
-
-        lastGame?.removePlayer(player)
-        lastGame?.removeSpectator(player)
-        playerGameMap.remove(player)
-
-        val future = newGame.addPlayer(player)
-        future.thenAcceptAsync { successful ->
-            if (successful) {
-                playerGameMap[player] = newGame
-
-                Manager.scheduler.buildTask {
-                    player.removeTag(joiningGameTag)
-                }.delay(Duration.ofSeconds(1)).schedule()
-            } else {
-                player.sendMessage(Component.text("Something went wrong while joining ${newGame.gameTypeInfo.name}", NamedTextColor.RED))
-                player.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-
-                player.removeTag(joiningGameTag)
+    private fun handleJoin(player: Player, lastGame: Game?, newGame: Game): CompletableFuture<Boolean> {
+        synchronized(newGame) {
+            if (player.hasTag(joiningGameTag)) {
+                return CompletableFuture.completedFuture(false)
             }
-        }
+            player.setTag(joiningGameTag, true)
 
-        return future
+            Logger.info("Attempting to join ${newGame.gameName}")
+
+            lastGame?.removePlayer(player)
+            lastGame?.removeSpectator(player)
+            playerGameMap.remove(player)
+
+            val future = newGame.addPlayer(player)
+            future.thenAcceptAsync { successful ->
+                if (successful) {
+                    playerGameMap[player] = newGame
+
+                    Manager.scheduler.buildTask {
+                        player.removeTag(joiningGameTag)
+                    }.delay(Duration.ofSeconds(1)).schedule()
+                } else {
+                    player.sendMessage(Component.text("Something went wrong while joining ${newGame.gameTypeInfo.name}", NamedTextColor.RED))
+                    player.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
+                    player.removeTag(joiningGameTag)
+                }
+            }
+
+            return future
+        }
     }
 
 //    @Synchronized fun Player.spectateGame(game: Game): CompletableFuture<Boolean> {
@@ -80,35 +84,39 @@ object GameManager {
 //        return future
 //    }
 
-    @Synchronized fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
-        if (!game.canBeJoined(this)) {
-            Logger.warn("Game could not be joined")
-            return CompletableFuture.completedFuture(false)
-        }
+    fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
+        synchronized(canBeJoinedLock) {
+            if (!game.canBeJoined(this)) {
+                Logger.warn("Game could not be joined")
+                return CompletableFuture.completedFuture(false)
+            }
 
-        val lastGame = this.game
-        return handleJoin(this, lastGame, game)
+            val lastGame = this.game
+            return handleJoin(this, lastGame, game)
+        }
     }
 
-    @Synchronized fun Player.joinGameOrNew(
+    fun Player.joinGameOrNew(
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
 
-    @Synchronized fun findOrCreateGame(
+    fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ): Game {
-        val game = gameMap[gameTypeName]?.firstOrNull {
-            it.canBeJoined(player) && it.gameOptions == options
-        }
-            ?: createGame(gameTypeName, options, player)
+        synchronized(canBeJoinedLock) {
+            val game = gameMap[gameTypeName]?.firstOrNull {
+                it.canBeJoined(player) && it.gameOptions == options
+            }
+                ?: createGame(gameTypeName, options, player)
 
-        return game
+            return game
+        }
     }
 
-    @Synchronized fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
+    fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
 
         //options.private = creator?.party?.privateGames ?: false
 
