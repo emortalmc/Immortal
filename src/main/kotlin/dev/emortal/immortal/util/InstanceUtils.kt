@@ -8,6 +8,8 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 
 fun Player.safeSetInstance(instance: Instance, pos: Pos? = null): CompletableFuture<Void> {
+    if (!instance.isRegistered) return CompletableFuture.completedFuture(null)
+
     if (!isActive) {
         val future = CompletableFuture<Void>()
 

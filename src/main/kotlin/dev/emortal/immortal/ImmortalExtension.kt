@@ -14,6 +14,7 @@ import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
+import dev.emortal.immortal.util.DefaultFontInfo
 import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.RedisStorage.redisson
 import dev.emortal.immortal.util.SuperflatGenerator
@@ -103,15 +104,19 @@ class ImmortalExtension : Extension() {
             eventNode.listenOnly<PlayerLoginEvent> {
                 this.player.gameMode = GameMode.ADVENTURE
 
-                // Read then delete value
-                var subgame = redisson?.getBucket<String>("${player.uuid}-subgame")?.andDelete
 
-                if (System.getProperty("debug") == "true") {
-                   subgame = System.getProperty("debuggame")
+
+                val subgame = if (GameManager.registeredGameMap.size == 1) {
+                    GameManager.registeredGameMap.entries.first().key
+                } else if (System.getProperty("debug") == "true") {
+                    System.getProperty("debuggame")
+                } else {
+                    // Read then delete value
+                    redisson?.getBucket<String>("${player.uuid}-subgame")?.andDelete
                 }
 
                 if (subgame == null) {
-                    this.player.kick("Error while joining")
+                    this.player.playerConnection.disconnect()
                     Logger.info("Player ${player.username} unable to connect because subgame was null")
                     return@listenOnly
                 }

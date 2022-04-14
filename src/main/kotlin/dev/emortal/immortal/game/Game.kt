@@ -168,6 +168,14 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
 
             player.respawnPoint = spawnPosition
 
+            if (!instance.isRegistered) {
+                players.forEach {
+                    it.kick("Game failed to start")
+                }
+                destroy()
+                return CompletableFuture.completedFuture(false)
+            }
+
             val future = CompletableFuture<Boolean>()
             player.safeSetInstance(instance, spawnPosition).thenRun {
                 player.reset()
