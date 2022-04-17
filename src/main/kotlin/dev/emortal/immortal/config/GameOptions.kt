@@ -8,5 +8,6 @@ class GameOptions(
     val canJoinDuringGame: Boolean = false,
     val showScoreboard: Boolean = true,
     val showsJoinLeaveMessages: Boolean = true,
+    val allowsSpectators: Boolean = true,
     //var private: Boolean = false
 )

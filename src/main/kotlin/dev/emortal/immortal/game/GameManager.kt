@@ -36,7 +36,7 @@ object GameManager {
 
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
-    private fun handleJoin(player: Player, lastGame: Game?, newGame: Game): CompletableFuture<Boolean> {
+    private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false): CompletableFuture<Boolean> {
         synchronized(newGame) {
             if (player.hasTag(joiningGameTag)) {
                 return CompletableFuture.completedFuture(false)
@@ -49,7 +49,7 @@ object GameManager {
             lastGame?.removeSpectator(player)
             playerGameMap.remove(player)
 
-            val future = newGame.addPlayer(player)
+            val future = if (spectate) newGame.addSpectator(player) else newGame.addPlayer(player)
             future.thenAcceptAsync { successful ->
                 if (successful) {
                     playerGameMap[player] = newGame
@@ -69,22 +69,7 @@ object GameManager {
         }
     }
 
-//    @Synchronized fun Player.spectateGame(game: Game): CompletableFuture<Boolean> {
-//        if (!game.gameTypeInfo.spectatable) return CompletableFuture.completedFuture(false)
-//        if (game.spectators.contains(this) || hasTag(joiningGameTag)) {
-//            sendMessage(Component.text("Already spectating this game", NamedTextColor.RED))
-//            return CompletableFuture.completedFuture(false)
-//        }
-//
-//        val lastGame = this.game
-//
-//        val future = game.addSpectator(this)
-//        handleJoin(this, lastGame, game, future)
-//
-//        return future
-//    }
-
-    fun Player.joinGame(game: Game): CompletableFuture<Boolean> {
+    fun Player.joinGame(game: Game, spectate: Boolean = false): CompletableFuture<Boolean> {
         synchronized(canBeJoinedLock) {
             if (!game.canBeJoined(this)) {
                 Logger.warn("Game could not be joined")
@@ -92,14 +77,15 @@ object GameManager {
             }
 
             val lastGame = this.game
-            return handleJoin(this, lastGame, game)
+            return handleJoin(this, lastGame, game, spectate)
         }
     }
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameTypeName]!!.options
-    ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
+        options: GameOptions = registeredGameMap[gameTypeName]!!.options,
+        spectate: Boolean = false
+    ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options), spectate)
 
     fun findOrCreateGame(
         player: Player,

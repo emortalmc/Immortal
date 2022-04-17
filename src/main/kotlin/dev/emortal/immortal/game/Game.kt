@@ -6,6 +6,7 @@ import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
+import dev.emortal.immortal.inventory.SpectatingGUI
 import dev.emortal.immortal.util.*
 import dev.emortal.immortal.util.RedisStorage.redisson
 import kotlinx.coroutines.CoroutineScope
@@ -24,12 +25,17 @@ import net.minestom.server.entity.Player
 import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
+import net.minestom.server.event.player.PlayerEntityInteractEvent
+import net.minestom.server.event.player.PlayerStartSneakingEvent
+import net.minestom.server.event.player.PlayerUseItemEvent
 import net.minestom.server.event.trait.PlayerEvent
 import net.minestom.server.instance.Instance
+import net.minestom.server.item.Material
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
+import world.cepi.kstom.event.listenOnly
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -71,7 +77,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         }
     }
 
-    /*val spectatorNode = EventNode.type(
+    val spectatorNode = if (gameOptions.allowsSpectators) EventNode.type(
         "${gameTypeInfo.name}-$uuid-spectator",
         EventFilter.INSTANCE
     ) { a, b ->
@@ -80,35 +86,34 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
         } else {
             return@type b.uniqueId == instance.uniqueId
         }
-    }*/
+    } else null
 
     val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
-    //val spectatorGUI = SpectatingGUI()
+    val spectatorGUI = SpectatingGUI()
 
     private var destroyed = false
 
     init {
         Manager.globalEvent.addChild(eventNode)
-        //Manager.globalEvent.addChild(spectatorNode)
+        if (spectatorNode != null) {
+            Manager.globalEvent.addChild(spectatorNode)
+        }
 
-        /*spectatorNode.listenOnly<PlayerUseItemEvent> {
-            if (!spectators.contains(player)) return@listenOnly
-            if (player.itemInMainHand.material != Material.COMPASS) return@listenOnly
+        spectatorNode?.listenOnly<PlayerUseItemEvent> {
+            if (player.itemInMainHand.material() != Material.COMPASS) return@listenOnly
             player.openInventory(spectatorGUI.inventory)
         }
-        spectatorNode.listenOnly<PlayerStartSneakingEvent> {
-            if (!spectators.contains(player)) return@listenOnly
+        spectatorNode?.listenOnly<PlayerStartSneakingEvent> {
             player.stopSpectating()
         }
-        spectatorNode.listenOnly<PlayerEntityInteractEvent> {
-            if (!spectators.contains(player)) return@listenOnly
+        spectatorNode?.listenOnly<PlayerEntityInteractEvent> {
             val playerToSpectate = entity as? Player ?: return@listenOnly
             player.spectate(playerToSpectate)
-        }*/
+        }
 
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 

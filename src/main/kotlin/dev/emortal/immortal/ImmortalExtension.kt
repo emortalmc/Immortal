@@ -89,17 +89,40 @@ class ImmortalExtension : Extension() {
                             Logger.warn("Invalid subgame $subgame")
                             return@addListenerAsync
                         }
+                        val spectate = if (args.size > 3) args[3].toBoolean() else false
 
                         if (player.game?.gameName == subgame) return@addListenerAsync
 
                         CoroutineScope(Dispatchers.IO).launch {
-                            player.joinGameOrNew(subgame)
+                            player.joinGameOrNew(subgame, spectate = spectate)
                         }
                     }
 
                 }
             }
 
+            eventNode.listenOnly<AsyncPlayerPreLoginEvent> {
+                val subgame = if (GameManager.registeredGameMap.size == 1) {
+                    GameManager.registeredGameMap.entries.first().key
+                } else if (System.getProperty("debug") == "true") {
+                    System.getProperty("debuggame")
+                } else {
+                    redisson?.getBucket<String>("${player.uuid}-subgame")?.get()?.trim()
+                }
+
+                if (subgame == null) {
+                    this.player.kick("Failed to join")
+                    Logger.info("Player ${player.username} unable to connect because subgame was null")
+                    return@listenOnly
+                }
+
+                val args = subgame.split(" ")
+                val isSpectating = args.size > 1 && args[1].toBoolean()
+
+                if (isSpectating && GameManager.registeredGameMap[subgame]?.options?.allowsSpectators == false) {
+                    this.player.kick("Game does not allow spectators")
+                }
+            }
 
             eventNode.listenOnly<PlayerLoginEvent> {
                 this.player.gameMode = GameMode.ADVENTURE
@@ -112,18 +135,18 @@ class ImmortalExtension : Extension() {
                     System.getProperty("debuggame")
                 } else {
                     // Read then delete value
-                    redisson?.getBucket<String>("${player.uuid}-subgame")?.andDelete
+                    redisson?.getBucket<String>("${player.uuid}-subgame")?.andDelete?.trim()
                 }
 
-                if (subgame == null) {
-                    this.player.playerConnection.disconnect()
-                    Logger.info("Player ${player.username} unable to connect because subgame was null")
-                    return@listenOnly
-                }
+                if (subgame == null) return@listenOnly
+
+                val args = subgame.split(" ")
+                val isSpectating = args.size > 1 && args[1].toBoolean()
 
                 val newGame = GameManager.findOrCreateGame(player, subgame)
                 setSpawningInstance(newGame.instance)
-                player.joinGame(newGame)
+
+                player.joinGame(newGame, spectate = isSpectating)
             }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {
