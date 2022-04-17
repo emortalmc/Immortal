@@ -110,7 +110,7 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
             player.spectate(playerToSpectate)
         }*/
 
-        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) lazy { registerEvents() }
+        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
         if (gameOptions.showScoreboard) {
             scoreboard = Sidebar(gameTypeInfo.title)
