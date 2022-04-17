@@ -1,6 +1,6 @@
 package dev.emortal.immortal.util
 
-enum class DefaultFontInfo(val character: Char, val length: Int) {
+internal enum class DefaultFontInfo(val character: Char, val length: Int) {
     A('A', 5),
     a('a', 5),
     B('B', 5),
