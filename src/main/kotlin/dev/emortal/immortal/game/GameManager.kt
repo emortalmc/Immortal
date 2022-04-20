@@ -24,6 +24,7 @@ object GameManager {
     val gameNameTag = Tag.String("gameName")
     val gameIdTag = Tag.Integer("gameId")
     val joiningGameTag = Tag.Boolean("joiningGame")
+    val doNotTeleportTag = Tag.Boolean("doNotTeleport")
 
     val playerGameMap = ConcurrentHashMap<Player, Game>()
     val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
