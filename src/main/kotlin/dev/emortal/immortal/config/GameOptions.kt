@@ -1,7 +1,7 @@
 package dev.emortal.immortal.config
 
 @kotlinx.serialization.Serializable
-class GameOptions(
+data class GameOptions(
     val maxPlayers: Int = 10,
     val minPlayers: Int = 2,
     val countdownSeconds: Int = 15,

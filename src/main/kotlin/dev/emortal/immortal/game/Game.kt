@@ -41,7 +41,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 
-abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
+abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     private val playerCountTopic = redisson?.getTopic("playercount")
 
@@ -526,5 +526,10 @@ abstract class Game(val gameOptions: GameOptions) : PacketGroupingAudience {
     abstract fun instanceCreate(): Instance
 
     override fun getPlayers(): MutableCollection<Player> = (players + spectators).toMutableSet()
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is Game) return false
+        return other.uuid == this.uuid
+    }
 
 }

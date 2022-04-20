@@ -23,11 +23,12 @@ object EndGameQuotes {
         "no",
         "L",
         "Better luck next time!",
+        "Worse luck next time!",
         "Should have used a Minestom client",
         "Teamwork... towards defeat",
         "No one matches your skill... at losing",
         "Victory... but not for you",
-        "You tried, and that's all that matters!",
+        "You tried and that's what matters!",
         "Zzzzzz",
         "Did your cat step on your keyboard?",
         "PepeHands",
@@ -38,6 +39,17 @@ object EndGameQuotes {
         "You did your best... but it wasn't enough",
         "\"i lagged\" said an Australian",
         "If I had a dollar every time you won a game, I'd be in crippling debt"
+    )
+
+    val draw = setOf(
+        "Well that was worth my time",
+        "Hopefully one of you win next time",
+        "Well... that was unexpected",
+        "You're both too good",
+        "Feeling a bit indecisive?",
+        "It would have been better if someone won",
+        "You're both average",
+        "You both suck!"
     )
 
 }

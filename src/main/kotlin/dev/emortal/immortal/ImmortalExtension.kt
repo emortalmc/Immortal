@@ -89,12 +89,29 @@ class ImmortalExtension : Extension() {
                             Logger.warn("Invalid subgame $subgame")
                             return@addListenerAsync
                         }
-                        val spectate = if (args.size > 3) args[3].toBoolean() else false
 
                         if (player.game?.gameName == subgame) return@addListenerAsync
 
                         CoroutineScope(Dispatchers.IO).launch {
-                            player.joinGameOrNew(subgame, spectate = spectate)
+                            player.joinGameOrNew(subgame)
+                        }
+                    }
+
+                    "spectateplayer" -> {
+                        val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return@addListenerAsync
+                        val playerToSpectate = Manager.connection.getPlayer((UUID.fromString(args[2]))) ?: return@addListenerAsync
+
+                        val game = playerToSpectate.game
+                        if (game != null) {
+                            if (!game.gameOptions.allowsSpectators) {
+                                player.sendMessage(Component.text("That game does not allow spectating", NamedTextColor.RED))
+                                return@addListenerAsync
+                            }
+                            if (game.uuid == player.game?.uuid) {
+                                player.sendMessage(Component.text("That player is not on a game", NamedTextColor.RED))
+                                return@addListenerAsync
+                            }
+                            player.joinGame(game, spectate = true)
                         }
                     }
 
@@ -122,16 +139,23 @@ class ImmortalExtension : Extension() {
                 if (isSpectating && GameManager.registeredGameMap[subgame]?.options?.allowsSpectators == false) {
                     this.player.kick("Game does not allow spectators")
                 }
+                if (isSpectating) {
+                    val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
+                    if (playerToSpectate == null) {
+                        this.player.kick("That player is not online")
+                        return@listenOnly
+                    }
+                    if (playerToSpectate.game == null) {
+                        this.player.kick("That player is not on a game")
+                        return@listenOnly
+                    }
+                }
             }
 
             eventNode.listenOnly<PlayerLoginEvent> {
                 this.player.gameMode = GameMode.ADVENTURE
 
-
-
-                val subgame = if (GameManager.registeredGameMap.size == 1) {
-                    GameManager.registeredGameMap.entries.first().key
-                } else if (System.getProperty("debug") == "true") {
+                val subgame = if (System.getProperty("debug") == "true") {
                     System.getProperty("debuggame")
                 } else {
                     // Read then delete value
@@ -143,10 +167,30 @@ class ImmortalExtension : Extension() {
                 val args = subgame.split(" ")
                 val isSpectating = args.size > 1 && args[1].toBoolean()
 
-                val newGame = GameManager.findOrCreateGame(player, subgame)
-                setSpawningInstance(newGame.instance)
+                Logger.info(subgame)
+                if (isSpectating) {
+                    Logger.info("Spectating!")
 
-                player.joinGame(newGame, spectate = isSpectating)
+                    val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
+                    if (playerToSpectate == null) {
+                        Logger.warn("Player to spectate was null")
+                        this.player.kick("That player is not online")
+                        return@listenOnly
+                    }
+                    val game = playerToSpectate.game
+                    if (game == null) {
+                        Logger.warn("Player's game was null")
+                        this.player.kick("That player is not on a game")
+                        return@listenOnly
+                    }
+                    setSpawningInstance(game.instance)
+                    player.joinGame(game, spectate = true)
+                } else {
+                    val newGame = GameManager.findOrCreateGame(player, args[0])
+                    setSpawningInstance(newGame.instance)
+
+                    player.joinGame(newGame)
+                }
             }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {
@@ -204,6 +248,12 @@ class ImmortalExtension : Extension() {
                     } else {
                         //Logger.warn("Couldn't unregister instance, players: ${it.players.joinToString(separator = ", ") { it.username }}")
                     }
+                }
+            }
+
+            eventNode.listenOnly<PlayerBlockPlaceEvent> {
+                if (!instance.getBlock(this.blockPosition).isAir) {
+                    isCancelled = true
                 }
             }
 
@@ -309,6 +359,7 @@ class ImmortalExtension : Extension() {
             StatsCommand.register()
             ListCommand.register()
             VersionCommand.register()
+            SettingsCommand.register()
 
             Logger.info("Immortal initialized!")
         }
@@ -326,6 +377,7 @@ class ImmortalExtension : Extension() {
         StatsCommand.unregister()
         ListCommand.unregister()
         VersionCommand.unregister()
+        SettingsCommand.unregister()
 
         redisson?.shutdown()
 

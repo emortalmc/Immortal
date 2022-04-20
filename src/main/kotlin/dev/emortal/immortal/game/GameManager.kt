@@ -71,7 +71,7 @@ object GameManager {
 
     fun Player.joinGame(game: Game, spectate: Boolean = false): CompletableFuture<Boolean> {
         synchronized(canBeJoinedLock) {
-            if (!game.canBeJoined(this)) {
+            if (!game.canBeJoined(this) && !spectate) {
                 Logger.warn("Game could not be joined")
                 return CompletableFuture.completedFuture(false)
             }
@@ -83,9 +83,8 @@ object GameManager {
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameTypeName]!!.options,
-        spectate: Boolean = false
-    ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options), spectate)
+        options: GameOptions = registeredGameMap[gameTypeName]!!.options
+    ): CompletableFuture<Boolean> = this.joinGame(findOrCreateGame(this, gameTypeName, options))
 
     fun findOrCreateGame(
         player: Player,
