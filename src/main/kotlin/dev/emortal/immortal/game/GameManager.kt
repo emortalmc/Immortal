@@ -82,6 +82,11 @@ object GameManager {
         }
     }
 
+    fun Player.leaveGame() {
+        playerGameMap.remove(this)
+        game?.removePlayer(this)
+    }
+
     fun Player.joinGameOrNew(
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
