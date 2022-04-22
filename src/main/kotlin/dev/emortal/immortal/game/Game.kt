@@ -93,27 +93,27 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
-    val spectatorGUI = SpectatingGUI()
+    //val spectatorGUI = SpectatingGUI()
 
     private var destroyed = false
 
     init {
         Manager.globalEvent.addChild(eventNode)
         if (spectatorNode != null) {
-            Manager.globalEvent.addChild(spectatorNode)
+            //Manager.globalEvent.addChild(spectatorNode)
         }
 
-        spectatorNode?.listenOnly<PlayerUseItemEvent> {
-            if (player.itemInMainHand.material() != Material.COMPASS) return@listenOnly
-            player.openInventory(spectatorGUI.inventory)
-        }
-        spectatorNode?.listenOnly<PlayerStartSneakingEvent> {
-            player.stopSpectating()
-        }
-        spectatorNode?.listenOnly<PlayerEntityInteractEvent> {
-            val playerToSpectate = entity as? Player ?: return@listenOnly
-            player.spectate(playerToSpectate)
-        }
+        //spectatorNode?.listenOnly<PlayerUseItemEvent> {
+        //    if (player.itemInMainHand.material() != Material.COMPASS) return@listenOnly
+        //    player.openInventory(spectatorGUI.inventory)
+        //}
+        //spectatorNode?.listenOnly<PlayerStartSneakingEvent> {
+        //    player.stopSpectating()
+        //}
+        //spectatorNode?.listenOnly<PlayerEntityInteractEvent> {
+        //    val playerToSpectate = entity as? Player ?: return@listenOnly
+        //    player.spectate(playerToSpectate)
+        //}
 
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
@@ -208,6 +208,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
                 playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
+                player.showTitle(Title.title(Component.text("\uE00A"), Component.empty(), Title.Times.times(Duration.ZERO, Duration.ZERO, Duration.ofMillis(300))))
+
+
                 CoroutineScope(Dispatchers.IO).launch {
                     playerJoin(player)
                 }
@@ -276,6 +279,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
                 val teamsWithPlayers = teams.filter { it.players.isNotEmpty() }
                 if (teamsWithPlayers.size == 1) {
                     victory(teamsWithPlayers.first())
+                    playerLeave(player)
+                    return
                 }
                 if (players.size == 1) {
                     victory(players.first())

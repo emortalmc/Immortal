@@ -26,7 +26,7 @@ class Team(
         .nameTagVisibility(nameTagVisibility)
         .also {
             if (friendlyFire) it.allowFriendlyFire()
-            if (canSeeInvisiblePlayers) it.updateSeeInvisiblePlayers()
+            if (canSeeInvisiblePlayers) it.seeInvisiblePlayers()
         }
         .updateTeamPacket()
         .build()

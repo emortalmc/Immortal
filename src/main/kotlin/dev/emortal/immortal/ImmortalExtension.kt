@@ -38,6 +38,7 @@ import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
+import org.jetbrains.annotations.Debug
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
@@ -360,6 +361,9 @@ class ImmortalExtension : Extension() {
             ListCommand.register()
             VersionCommand.register()
             SettingsCommand.register()
+            if (debugMode) {
+                DebugSpectateCommand.register()
+            }
 
             Logger.info("Immortal initialized!")
         }
@@ -378,6 +382,7 @@ class ImmortalExtension : Extension() {
         ListCommand.unregister()
         VersionCommand.unregister()
         SettingsCommand.unregister()
+        DebugSpectateCommand.unregister()
 
         redisson?.shutdown()
 
