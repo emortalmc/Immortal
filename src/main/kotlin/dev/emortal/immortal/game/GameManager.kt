@@ -83,8 +83,8 @@ object GameManager {
     }
 
     fun Player.leaveGame() {
-        playerGameMap.remove(this)
         game?.removePlayer(this)
+        playerGameMap.remove(this)
     }
 
     fun Player.joinGameOrNew(
