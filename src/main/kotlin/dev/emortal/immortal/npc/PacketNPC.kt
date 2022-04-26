@@ -54,7 +54,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             val playerInfo = PlayerInfoPacket(PlayerInfoPacket.Action.ADD_PLAYER, PlayerInfoPacket.AddPlayer(uuid, gameName, prop, GameMode.CREATIVE, 0, Component.empty()))
             val spawnPlayer = SpawnPlayerPacket(playerId, uuid, position)
             val teamPacket = TeamsPacket("npcTeam", TeamsPacket.AddEntitiesToTeamAction(listOf(gameName)))
-            val metaPacket = EntityMetaDataPacket(playerId, listOf(Metadata.Entry(17, Metadata.Byte(127 /*All layers enabled*/))))
+            val metaPacket = EntityMetaDataPacket(playerId, mapOf(17 to Metadata.Byte(127 /*All layers enabled*/)))
             val removeFromList = PlayerInfoPacket(PlayerInfoPacket.Action.REMOVE_PLAYER, PlayerInfoPacket.RemovePlayer(uuid))
 
 

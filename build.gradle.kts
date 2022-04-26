@@ -24,7 +24,7 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:c7bb9e14e5")
+    compileOnly("com.github.Minestom:Minestom:c8ae194f7d")
     compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
     api("com.github.emortaldev:KStom:05a0d60e8a")
     api("com.github.emortaldev:Particable:fadfbe0213")
