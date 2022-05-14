@@ -52,4 +52,4 @@ object VersionCommand : Kommand({
         sender.sendMessage(message.armify())
     }
 
-}, "version", "about", "ext", "extensions")
+}, "version", "icanhasminestom", "extensions")

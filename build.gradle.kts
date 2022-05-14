@@ -3,8 +3,8 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.6.10"
-    kotlin("plugin.serialization") version "1.6.10"
+    id("org.jetbrains.kotlin.jvm") version "1.6.20"
+    kotlin("plugin.serialization") version "1.6.20"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 
     `maven-publish`
@@ -14,8 +14,7 @@ plugins {
 repositories {
     mavenCentral()
 
-    maven(url = "https://jitpack.io")
-    maven(url = "https://repo.spongepowered.org/maven")
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -24,9 +23,9 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:c8ae194f7d")
+    compileOnly("com.github.Minestom:Minestom:64de8f87c0")
     compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
-    api("com.github.emortaldev:KStom:05a0d60e8a")
+    api("com.github.emortaldev:KStom:a680a2b096")
     api("com.github.emortaldev:Particable:fadfbe0213")
 
     api("com.github.EmortalMC:Rayfast:ad94541f92")

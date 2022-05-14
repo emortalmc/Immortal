@@ -14,7 +14,7 @@ import world.cepi.kstom.adventure.asMini
 fun Player.reset() {
     inventory.clear()
     isAutoViewable = true
-    //entityMeta.setNotifyAboutChanges(false)
+    entityMeta.setNotifyAboutChanges(false)
     isInvisible = false
     isGlowing = false
     additionalHearts = 0f
@@ -38,7 +38,7 @@ fun Player.reset() {
     updateViewableRule()
     updateViewerRule()
 
-    //entityMeta.setNotifyAboutChanges(true)
+    entityMeta.setNotifyAboutChanges(true)
 }
 
 fun Player.resetTeam() {

@@ -17,16 +17,19 @@ object SettingsCommand : Kommand({
 
     val value = ArgumentType.Integer("value")
 
+    condition {
+        sender.hasLuckPermission("immortal.settings")
+    }
+
+    playerCallbackFailMessage = {
+        it.sendMessage(Component.text("No permission", NamedTextColor.RED))
+    }
+
     default {
 
     }
 
     syntax(maxplayers, value) {
-        if (!player.hasLuckPermission("immortal.settings")) {
-            player.sendMessage(Component.text("No permission", NamedTextColor.RED))
-            return@syntax
-        }
-
         val game = player.game
 
         if (game == null) {
@@ -39,11 +42,6 @@ object SettingsCommand : Kommand({
     }
 
     syntax(minplayers, value) {
-        if (!player.hasLuckPermission("immortal.settings")) {
-            player.sendMessage(Component.text("No permission", NamedTextColor.RED))
-            return@syntax
-        }
-
         val game = player.game
 
         if (game == null) {

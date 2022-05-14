@@ -3,6 +3,7 @@ package dev.emortal.immortal.commands
 import net.kyori.adventure.sound.Sound
 import net.minestom.server.command.builder.arguments.ArgumentWord
 import net.minestom.server.command.builder.arguments.number.ArgumentFloat
+import net.minestom.server.entity.Player
 import net.minestom.server.sound.SoundEvent
 import world.cepi.kstom.command.arguments.suggest
 import world.cepi.kstom.command.kommand.Kommand

@@ -34,6 +34,7 @@ import net.minestom.server.event.player.*
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.extensions.Extension
 import net.minestom.server.instance.SharedInstance
+import net.minestom.server.item.Material
 import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.utils.NamespaceID
@@ -259,6 +260,8 @@ class ImmortalExtension : Extension() {
             }
 
             eventNode.listenOnly<PlayerDisconnectEvent> {
+                this.player.kick("")
+
                 player.game?.removePlayer(player)
                 player.game?.removeSpectator(player)
                 GameManager.playerGameMap.remove(player)
