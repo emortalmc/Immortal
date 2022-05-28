@@ -14,14 +14,13 @@ import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.DefaultFontInfo
 import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.RedisStorage.redisson
-import dev.emortal.immortal.util.SuperflatGenerator
 import dev.emortal.immortal.util.resetTeam
 import kotlinx.coroutines.*
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.MinecraftServer
@@ -33,22 +32,19 @@ import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.extensions.Extension
-import net.minestom.server.instance.SharedInstance
-import net.minestom.server.item.Material
 import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
-import org.jetbrains.annotations.Debug
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
+import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
 import java.nio.file.Path
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.math.floor
 
 class ImmortalExtension : Extension() {
 
@@ -223,6 +219,42 @@ class ImmortalExtension : Extension() {
                 if (aboveMax) isCancelled = true
             }
 
+
+//            fun isRoughlyEqual(d1: Double, d2: Double) = abs(d1 - d2) < 0.001
+//            val airTicksMap = ConcurrentHashMap<UUID, Int>()
+//            val lastDistMap = ConcurrentHashMap<UUID, Double>()
+//            val lastPosMap = ConcurrentHashMap<UUID, Pos>()
+
+
+
+//            globalEvent.listenOnly<PlayerMoveEvent> {
+//                val distY = newPosition.y - player.position.y
+//                val lastDist = lastDistMap[player.uuid] ?: 0.0
+//                val airTicks = airTicksMap[player.uuid] ?: 0
+//                val predictedDistY = (lastDist - 0.08) * 0.98
+//
+//                if (!isOnGround && airTicks > 4 && abs(predictedDistY) >= 0.006
+//                    && !player.isFlying
+//                ) {
+//
+//                    if (!isRoughlyEqual(distY, predictedDistY)) {
+//                        //player.teleport(lastPos)
+//                        Logger.info("${player.username} triggered fly check")
+//                        lastDistMap[player.uuid] = 0.0
+//                        airTicksMap[player.uuid] = 0
+//                    }
+//                }
+//
+//                lastDistMap[player.uuid] = distY
+//                if (isOnGround) {
+//                    airTicksMap[player.uuid] = 0
+//                } else {
+//                    airTicksMap[player.uuid] = airTicks + 1
+//                }
+//
+//                lastPosMap[player.uuid] = player.position
+//            }
+
 //            val cooldown = Duration.ofMinutes(60)
 //            Manager.scheduler.buildTask {
 //
@@ -349,6 +381,17 @@ class ImmortalExtension : Extension() {
                 }
             }
 
+            Manager.scheduler.buildShutdownTask {
+                val kickMessage = Component.text()
+                    .append("<gradient:gold:light_purple><bold>EmortalMC".asMini())
+                    .append(Component.text("\n\nServer shutting down", NamedTextColor.RED))
+                    .append(Component.text("\n\n(prob won't be for long - minestom ftw)", NamedTextColor.DARK_GRAY, TextDecoration.ITALIC))
+                    .build()
+
+                Manager.connection.onlinePlayers.forEach {
+                    it.kick(kickMessage)
+                }
+            }
 
             val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
                 .ambientLight(2f)

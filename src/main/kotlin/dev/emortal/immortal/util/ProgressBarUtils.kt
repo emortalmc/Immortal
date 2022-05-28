@@ -1,15 +1,11 @@
 package dev.emortal.immortal.util
 
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.Style
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.util.RGBLike
-import java.time.format.TextStyle
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.roundToInt
 
 fun progressBar(percentage: Float, characterCount: Int = 10, character: String = " ", completeColor: RGBLike, incompleteColor: RGBLike, decoration: TextDecoration? = null): Component {
     val percentage = percentage.coerceIn(0f, 1f)

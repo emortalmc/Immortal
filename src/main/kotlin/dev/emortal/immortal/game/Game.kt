@@ -6,7 +6,6 @@ import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
-import dev.emortal.immortal.inventory.SpectatingGUI
 import dev.emortal.immortal.util.*
 import dev.emortal.immortal.util.RedisStorage.redisson
 import kotlinx.coroutines.CoroutineScope
@@ -25,17 +24,12 @@ import net.minestom.server.entity.Player
 import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
-import net.minestom.server.event.player.PlayerEntityInteractEvent
-import net.minestom.server.event.player.PlayerStartSneakingEvent
-import net.minestom.server.event.player.PlayerUseItemEvent
 import net.minestom.server.event.trait.PlayerEvent
 import net.minestom.server.instance.Instance
-import net.minestom.server.item.Material
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
-import world.cepi.kstom.event.listenOnly
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -207,9 +201,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
                 EventDispatcher.call(joinEvent)
 
                 playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
-
-                player.showTitle(Title.title(Component.text("\uE00A"), Component.empty(), Title.Times.times(Duration.ZERO, Duration.ZERO, Duration.ofMillis(300))))
-
 
                 CoroutineScope(Dispatchers.IO).launch {
                     playerJoin(player)

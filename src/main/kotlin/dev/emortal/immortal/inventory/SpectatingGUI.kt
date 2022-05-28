@@ -1,6 +1,5 @@
 package dev.emortal.immortal.inventory
 
-import dev.emortal.immortal.util.DefaultFontInfo
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
@@ -11,7 +10,6 @@ import net.minestom.server.item.ItemStack
 import net.minestom.server.item.Material
 import net.minestom.server.item.metadata.PlayerHeadMeta
 import net.minestom.server.tag.Tag
-import world.cepi.kstom.item.item
 import world.cepi.kstom.util.asPlayer
 import world.cepi.kstom.util.getSlotNumber
 import java.util.*
