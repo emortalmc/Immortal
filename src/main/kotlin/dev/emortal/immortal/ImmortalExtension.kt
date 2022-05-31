@@ -217,7 +217,12 @@ class ImmortalExtension : Extension() {
                 }
 
                 if (aboveMax) isCancelled = true
+                if (player.position.y < -64) {
+                    // anti void death lul
+                    player.teleport(player.respawnPoint)
+                }
             }
+
 
 
 //            fun isRoughlyEqual(d1: Double, d2: Double) = abs(d1 - d2) < 0.001
@@ -292,8 +297,6 @@ class ImmortalExtension : Extension() {
             }
 
             eventNode.listenOnly<PlayerDisconnectEvent> {
-                this.player.kick("")
-
                 player.game?.removePlayer(player)
                 player.game?.removeSpectator(player)
                 GameManager.playerGameMap.remove(player)

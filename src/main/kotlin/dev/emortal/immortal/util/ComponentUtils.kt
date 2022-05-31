@@ -18,11 +18,21 @@ fun centerText(message: String, bold: Boolean = false): String {
     val halvedMessageSize = message.sumOf { DefaultFontInfo.getLength(it) + if (bold) 2 else 1 } / 2
     val toCompensate = CENTER_PX - halvedMessageSize
     val spaceLength = DefaultFontInfo.SPACE.length + if (bold) 2 else 1
-    return "${" ".repeat(toCompensate / spaceLength)}${message}"
+
+    val spaceCount = toCompensate / spaceLength
+    // Couldn't be centered - too long
+    if (1 > spaceCount) return message
+
+    return "${" ".repeat(spaceCount)}${message}"
 }
 fun centerSpaces(message: String, bold: Boolean = false): String {
     val halvedMessageSize = message.sumOf { DefaultFontInfo.getLength(it) + if (bold) 2 else 1 } / 2
     val toCompensate = CENTER_PX - halvedMessageSize
     val spaceLength = DefaultFontInfo.SPACE.length + if (bold) 2 else 1
+
+    val spaceCount = toCompensate / spaceLength
+    // Couldn't be centered - too long
+    if (1 > spaceCount) return message
+
     return " ".repeat(toCompensate / spaceLength)
 }

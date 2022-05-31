@@ -6,8 +6,11 @@ import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.gameNameTag
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
-import dev.emortal.immortal.util.*
+import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.RedisStorage.redisson
+import dev.emortal.immortal.util.reset
+import dev.emortal.immortal.util.resetTeam
+import dev.emortal.immortal.util.safeSetInstance
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -54,10 +57,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
-    val instance by lazy {
-        instanceCreate().also {
-            it.setTag(gameNameTag, gameTypeInfo.name)
-        }
+    val instance = instanceCreate().also {
+        it.setTag(gameNameTag, gameTypeInfo.name)
     }
 
     val eventNode = EventNode.type(
@@ -153,8 +154,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             players.add(player)
             //spectatorGUI.refresh(players)
 
-            player.isActive
-
             if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
                 scoreboard?.updateLineContent(
                     "infoLine",
@@ -202,7 +201,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
                 playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
-                CoroutineScope(Dispatchers.IO).launch {
+                coroutineScope.launch {
                     playerJoin(player)
                 }
 
@@ -443,7 +442,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             if (debugMode) {
                 it.joinGameOrNew(debugGame)
             } else {
-                it.sendServer("lobby")
+                it.joinGameOrNew(gameName)
             }
         }
         players.clear()
