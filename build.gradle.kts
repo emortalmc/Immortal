@@ -28,7 +28,7 @@ dependencies {
     api("com.github.emortaldev:KStom:a680a2b096")
     api("com.github.emortaldev:Particable:fadfbe0213")
 
-    api("com.github.EmortalMC:Rayfast:ad94541f92")
+    api("com.github.EmortalMC:Rayfast:684e854a48")
 
     api("org.tinylog:tinylog-api-kotlin:2.4.1")
     compileOnly("org.redisson:redisson:3.17.3")
