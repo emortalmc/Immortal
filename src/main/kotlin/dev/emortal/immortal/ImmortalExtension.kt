@@ -192,6 +192,7 @@ class ImmortalExtension : Extension() {
             }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {
+                if (instance.hasTag(GameManager.doNotAutoUnloadChunkTag)) return@listenOnly
                 val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
 
                 if (chunk.viewers.isEmpty()) {

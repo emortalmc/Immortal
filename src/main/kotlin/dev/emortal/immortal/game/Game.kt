@@ -37,6 +37,8 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
@@ -57,6 +59,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
+    val instanceLatch = CountDownLatch(1)
     val instance = instanceCreate().also {
         it.setTag(gameNameTag, gameTypeInfo.name)
     }
@@ -150,6 +153,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
 
             Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
+
+            val latchResult = instanceLatch.await(10, TimeUnit.SECONDS)
+            if (!latchResult) Logger.warn("Latch result is false!")
 
             players.add(player)
             //spectatorGUI.refresh(players)
@@ -291,6 +297,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             if (players.contains(player)) return CompletableFuture.completedFuture(false)
 
             Logger.info("${player.username} started spectating game '${gameTypeInfo.name}'")
+
+            val latchResult = instanceLatch.await(10, TimeUnit.SECONDS)
+            if (!latchResult) Logger.warn("Latch result is false!")
 
             player.respawnPoint = spawnPosition
 

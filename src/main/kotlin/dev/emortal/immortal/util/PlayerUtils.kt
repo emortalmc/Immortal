@@ -34,11 +34,10 @@ fun Player.reset() {
     heal()
     clearEffects()
     stopSpectating()
+    entityMeta.setNotifyAboutChanges(true)
     askSynchronization()
     updateViewableRule()
     updateViewerRule()
-
-    entityMeta.setNotifyAboutChanges(true)
 }
 
 fun Player.resetTeam() {
