@@ -65,6 +65,16 @@ class ImmortalExtension : Extension() {
 
             val instanceManager = Manager.instance
 
+            val waitingInstance = instanceManager.createInstanceContainer()
+            waitingInstance.timeUpdate = null
+            waitingInstance.enableAutoChunkLoad(false)
+            waitingInstance.setTag(GameManager.doNotAutoUnloadChunkTag, true)
+            waitingInstance.setTag(GameManager.doNotUnregisterTag, true)
+            waitingInstance.loadChunk(0, 0)
+            waitingInstance.loadChunk(0, 1)
+            waitingInstance.loadChunk(1, 0)
+            waitingInstance.loadChunk(1, 1)
+
             // Create proxyhello listener
             redisson?.getTopic("proxyhello")?.addListenerAsync(String::class.java) { ch, msg ->
                 val registerTopic = redisson.getTopic("registergame")
@@ -109,13 +119,16 @@ class ImmortalExtension : Extension() {
                                 player.sendMessage(Component.text("That player is not on a game", NamedTextColor.RED))
                                 return@addListenerAsync
                             }
-                            game.coroutineScope.launch {
-                                player.joinGame(game, spectate = true)
+
+                            player.scheduleNextTick {
+                                game.coroutineScope.launch {
+                                    player.joinGame(game, spectate = true)
+                                }
                             }
                         }
                     }
-
                 }
+
             }
 
             eventNode.listenOnly<AsyncPlayerPreLoginEvent> {
@@ -152,7 +165,7 @@ class ImmortalExtension : Extension() {
                 }
             }
 
-            val joinsScope = CoroutineScope(Dispatchers.Default)
+            val joinsScope = CoroutineScope(Dispatchers.IO)
 
             eventNode.listenOnly<PlayerLoginEvent> {
                 this.player.gameMode = GameMode.ADVENTURE
@@ -186,33 +199,42 @@ class ImmortalExtension : Extension() {
                         return@listenOnly
                     }
                     setSpawningInstance(game.instance)
-                    joinsScope.launch {
-                        player.joinGame(game, spectate = true)
+                    player.scheduleNextTick {
+                        joinsScope.launch {
+                            player.joinGame(game, spectate = true)
+                        }
                     }
                 } else {
                     Logger.info("Finding game!")
-                    joinsScope.launch {
-                        val newGame = GameManager.findOrCreateGame(player, args[0])
-                        setSpawningInstance(newGame.instance)
+                    setSpawningInstance(waitingInstance)
 
-                        Logger.info("Found game and set instance!")
+                    player.scheduleNextTick {
+                        player.scheduleNextTick {
+                            joinsScope.launch {
+                                val newGame = GameManager.findOrCreateGame(player, args[0])
 
-                        player.joinGame(newGame)
+                                Logger.info("Found game")
+
+                                player.joinGame(newGame)
+                            }
+                        }
+
                     }
 
+
                 }
             }
 
-            eventNode.listenOnly<PlayerChunkUnloadEvent> {
-                if (instance.hasTag(GameManager.doNotAutoUnloadChunkTag)) return@listenOnly
-                val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
-
-                if (chunk.viewers.isEmpty()) {
-                    try {
-                        instance.unloadChunk(chunkX, chunkZ)
-                    } catch (_: NullPointerException) {}
-                }
-            }
+//            eventNode.listenOnly<PlayerChunkUnloadEvent> {
+//                if (instance.hasTag(GameManager.doNotAutoUnloadChunkTag)) return@listenOnly
+//                val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
+//
+//                if (chunk.viewers.isEmpty()) {
+//                    try {
+//                        instance.unloadChunk(chunkX, chunkZ)
+//                    } catch (_: NullPointerException) {}
+//                }
+//            }
 
             val globalEvent = Manager.globalEvent
 

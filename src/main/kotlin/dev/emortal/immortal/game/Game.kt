@@ -36,7 +36,9 @@ import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Schedulable {
 
@@ -67,24 +69,40 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
     //    players.contains(plr.uuid)
     //}
 
-    val coroutineScope = CoroutineScope(Dispatchers.Default)
+    val coroutineScope = CoroutineScope(Dispatchers.IO)
     val scheduler = Scheduler.newScheduler()
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
     private var destroyed = false
-    private var created = false
+    private var created = AtomicBoolean(false)
+    private var creating = AtomicBoolean(false)
+    private val createLatch = CountDownLatch(1)
 
     suspend fun create(): Game {
-        if (created) return this
+        Logger.info("Creating game $gameName")
+        if (created.get()) return this
+        if (creating.get()) {
+            Logger.warn("Create called while creating")
+            createLatch.await(10, TimeUnit.SECONDS)
+            return this
+        }
+
+        Logger.info("Creating game $gameName 23")
+
+        creating.set(true)
 
         this.instance = instanceCreate()
 
         Manager.globalEvent.addChild(eventNode)
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
-        created = true
+        createLatch.countDown()
+        created.set(true)
+
+        Logger.info("Created!! game $gameName")
+
         return this
     }
 
@@ -96,13 +114,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
         players.add(player)
         refreshPlayerCount()
 
+
         player.respawnPoint = spawnPosition
-
-        player.safeSetInstance(instance, spawnPosition).get(20, TimeUnit.SECONDS)
-        player.reset()
-        player.resetTeam()
-
-        scoreboard?.addViewer(player)
 
         if (joinMessage) sendMessage(
             Component.text()
@@ -111,17 +124,25 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
                 .append(Component.text(player.username, NamedTextColor.GREEN))
                 .append(Component.text(" joined the game ", NamedTextColor.GRAY))
                 .also {
-                    if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+                    /*if (gameState == GameState.WAITING_FOR_PLAYERS)*/ it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
                 }
         )
+
+        player.safeSetInstance(instance, spawnPosition).get(10, TimeUnit.SECONDS)
+        player.reset()
+        player.resetTeam()
+
+        scoreboard?.addViewer(player)
+
+
         playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
         player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
         player.clearTitle()
         player.sendActionBar(Component.empty())
 
-        coroutineScope.launch {
+        //coroutineScope.launch {
             playerJoin(player)
-        }
+        //}
 
         EventDispatcher.call(PlayerJoinGameEvent(this, player))
 
