@@ -33,12 +33,12 @@ class Team(
 
     fun add(player: Player) {
         player.team = scoreboardTeam
-        players += player
+        players.add(player)
     }
 
     fun remove(player: Player) {
         player.team = null
-        players -= player
+        players.remove(player)
     }
 
     fun destroy() {

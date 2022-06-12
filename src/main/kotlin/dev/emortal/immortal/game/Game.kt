@@ -4,7 +4,7 @@ import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.event.GameDestroyEvent
 import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
-import dev.emortal.immortal.game.GameManager.gameNameTag
+import dev.emortal.immortal.game.GameManager.getNextGameId
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.RedisStorage.redisson
@@ -27,20 +27,18 @@ import net.minestom.server.entity.Player
 import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
-import net.minestom.server.event.trait.PlayerEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
+import net.minestom.server.timer.Schedulable
+import net.minestom.server.timer.Scheduler
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import java.time.Duration
-import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
+abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Schedulable {
 
     private val playerCountTopic = redisson?.getTopic("playercount")
 
@@ -50,7 +48,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     val playerLock = Object()
 
-    val uuid = UUID.randomUUID()
+    val id = getNextGameId()
 
     var gameState = GameState.WAITING_FOR_PLAYERS
 
@@ -59,285 +57,183 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
-    val instanceLatch = CountDownLatch(1)
-    val instance = instanceCreate().also {
-        it.setTag(gameNameTag, gameTypeInfo.name)
+    lateinit var instance: Instance
+
+    val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.INSTANCE) { event, inst ->
+        inst.uniqueId == instance.uniqueId
     }
 
-    val eventNode = EventNode.type(
-        "${gameTypeInfo.name}-$uuid",
-        EventFilter.INSTANCE
-    ) { a, b ->
-        if (a is PlayerEvent) {
-            return@type players.contains(a.player)
-        } else {
-            return@type b.uniqueId == instance.uniqueId
-        }
-    }
+    //val spectatorNode = EventNode.type("${gameTypeInfo.name}-$id-spectator", EventFilter.PLAYER) { event, plr ->
+    //    players.contains(plr.uuid)
+    //}
 
-    val spectatorNode = if (gameOptions.allowsSpectators) EventNode.type(
-        "${gameTypeInfo.name}-$uuid-spectator",
-        EventFilter.INSTANCE
-    ) { a, b ->
-        if (a is PlayerEvent) {
-            return@type spectators.contains(a.player)
-        } else {
-            return@type b.uniqueId == instance.uniqueId
-        }
-    } else null
-
-    val coroutineScope = CoroutineScope(Dispatchers.IO)
+    val coroutineScope = CoroutineScope(Dispatchers.Default)
+    val scheduler = Scheduler.newScheduler()
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
-    //val spectatorGUI = SpectatingGUI()
-
     private var destroyed = false
+    private var created = false
 
-    init {
+    suspend fun create(): Game {
+        if (created) return this
+
+        this.instance = instanceCreate()
+
         Manager.globalEvent.addChild(eventNode)
-        if (spectatorNode != null) {
-            //Manager.globalEvent.addChild(spectatorNode)
-        }
-
-        //spectatorNode?.listenOnly<PlayerUseItemEvent> {
-        //    if (player.itemInMainHand.material() != Material.COMPASS) return@listenOnly
-        //    player.openInventory(spectatorGUI.inventory)
-        //}
-        //spectatorNode?.listenOnly<PlayerStartSneakingEvent> {
-        //    player.stopSpectating()
-        //}
-        //spectatorNode?.listenOnly<PlayerEntityInteractEvent> {
-        //    val playerToSpectate = entity as? Player ?: return@listenOnly
-        //    player.spectate(playerToSpectate)
-        //}
-
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
 
-        if (gameOptions.showScoreboard) {
-            scoreboard = Sidebar(gameTypeInfo.title)
-
-            scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
-
-            scoreboard?.createLine(
-                Sidebar.ScoreboardLine(
-                    "infoLine",
-                    Component.text()
-                        .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
-                        .build(),
-                    0
-                )
-            )
-            scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -8))
-            scoreboard?.createLine(
-                Sidebar.ScoreboardLine(
-                    "ipLine",
-                    Component.text()
-                        .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
-                        .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
-                        .build(),
-                    -9
-                )
-            )
-        }
-
-        Logger.info("A game of '${gameTypeInfo.name}' was created")
+        created = true
+        return this
     }
 
-    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages): CompletableFuture<Boolean> {
-        synchronized(playerLock) {
-            if (players.contains(player)) {
-                Logger.warn("Game already contains player")
-                return CompletableFuture.completedFuture(false)
-            }
+    internal suspend fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+        if (players.contains(player)) return
 
-            Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 
-            val latchResult = instanceLatch.await(10, TimeUnit.SECONDS)
-            if (!latchResult) Logger.warn("Latch result is false!")
+        players.add(player)
+        refreshPlayerCount()
 
-            players.add(player)
-            //spectatorGUI.refresh(players)
+        player.respawnPoint = spawnPosition
 
-            if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
-                scoreboard?.updateLineContent(
-                    "infoLine",
-                    Component.text(
-                        "Waiting for players... (${gameOptions.minPlayers - players.size} more)",
-                        NamedTextColor.GRAY
-                    )
-                )
-            }
+        player.safeSetInstance(instance, spawnPosition).get(20, TimeUnit.SECONDS)
+        player.reset()
+        player.resetTeam()
 
-            player.respawnPoint = spawnPosition
+        scoreboard?.addViewer(player)
 
-            if (!instance.isRegistered) {
-                players.forEach {
-                    it.kick("Game failed to start")
+        if (joinMessage) sendMessage(
+            Component.text()
+                .append(Component.text("JOIN", NamedTextColor.GREEN, TextDecoration.BOLD))
+                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(player.username, NamedTextColor.GREEN))
+                .append(Component.text(" joined the game ", NamedTextColor.GRAY))
+                .also {
+                    if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
                 }
-                destroy()
-                return CompletableFuture.completedFuture(false)
+        )
+        playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
+        player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
+        player.clearTitle()
+        player.sendActionBar(Component.empty())
+
+        coroutineScope.launch {
+            playerJoin(player)
+        }
+
+        EventDispatcher.call(PlayerJoinGameEvent(this, player))
+
+        if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
+            if (startingTask == null) {
+                startCountdown()
             }
-
-            val future = CompletableFuture<Boolean>()
-            player.safeSetInstance(instance, spawnPosition).thenRun {
-                player.reset()
-                player.resetTeam()
-
-                scoreboard?.addViewer(player)
-
-                if (joinMessage) sendMessage(
-                    Component.text()
-                        .append(Component.text("JOIN", NamedTextColor.GREEN, TextDecoration.BOLD))
-                        .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-                        .append(Component.text(player.username, NamedTextColor.GREEN))
-                        .append(Component.text(" joined the game ", NamedTextColor.GRAY))
-                        .also {
-                            if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
-                        }
-                )
-                playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
-                player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
-                player.clearTitle()
-                player.sendActionBar(Component.empty())
-
-                val joinEvent = PlayerJoinGameEvent(this, player)
-                EventDispatcher.call(joinEvent)
-
-                playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
-
-                coroutineScope.launch {
-                    playerJoin(player)
-                }
-
-                if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
-                    if (startingTask == null) {
-                        startCountdown()
-                    }
-                }
-
-                future.complete(true)
-            }
-
-            return future
         }
     }
 
     internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
-        synchronized(playerLock) {
-            if (!players.contains(player)) return
+        if (!players.contains(player)) return
 
-            Logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
 
-            teams.forEach {
-                it.remove(player)
+        teams.forEach { it.remove(player) }
+        players.remove(player)
+        scoreboard?.removeViewer(player)
+
+        refreshPlayerCount()
+
+        val leaveEvent = PlayerLeaveGameEvent(this, player)
+        EventDispatcher.call(leaveEvent)
+
+        if (leaveMessage) sendMessage(
+            Component.text()
+                .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
+                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(player.username, NamedTextColor.RED))
+                .append(Component.text(" left the game ", NamedTextColor.GRAY))
+                .also {
+                    if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+                }
+        )
+        playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 0.5f))
+
+        if (players.size < gameOptions.minPlayers) {
+            if (startingTask != null) {
+                cancelCountdown()
             }
-            players.remove(player)
+        }
 
-            playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+        if (gameState == GameState.PLAYING) {
+            val teamsWithPlayers = teams.filter { it.players.isNotEmpty() }
+            if (teamsWithPlayers.size == 1) {
+                victory(teamsWithPlayers.first())
+                playerLeave(player)
+                return
+            }
+            if (players.size == 1) {
+                victory(players.first())
+            }
+        }
 
-            if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
-                scoreboard?.updateLineContent(
-                    "infoLine",
-                    Component.text(
-                        "Waiting for players... (${gameOptions.minPlayers - players.size} more)",
-                        NamedTextColor.GRAY
-                    )
+        if (players.size == 0) {
+            destroy()
+        }
+
+        playerLeave(player)
+    }
+
+    private fun refreshPlayerCount() {
+        playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+
+        if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
+            scoreboard?.updateLineContent(
+                "infoLine",
+                Component.text(
+                    "Waiting for players... (${gameOptions.minPlayers - players.size} more)",
+                    NamedTextColor.GRAY
                 )
-            }
-
-            //spectatorGUI.refresh(players)
-            scoreboard?.removeViewer(player)
-
-            val leaveEvent = PlayerLeaveGameEvent(this, player)
-            EventDispatcher.call(leaveEvent)
-
-            if (leaveMessage) sendMessage(
-                Component.text()
-                    .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
-                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-                    .append(Component.text(player.username, NamedTextColor.RED))
-                    .append(Component.text(" left the game ", NamedTextColor.GRAY))
-                    .also {
-                        if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
-                    }
             )
-            playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 0.5f))
-
-            if (players.size < gameOptions.minPlayers) {
-                if (startingTask != null) {
-                    cancelCountdown()
-                }
-            }
-
-            if (gameState == GameState.PLAYING) {
-                val teamsWithPlayers = teams.filter { it.players.isNotEmpty() }
-                if (teamsWithPlayers.size == 1) {
-                    victory(teamsWithPlayers.first())
-                    playerLeave(player)
-                    return
-                }
-                if (players.size == 1) {
-                    victory(players.first())
-                }
-            }
-
-            if (players.size == 0) {
-                destroy()
-            }
-
-            playerLeave(player)
         }
     }
 
-    internal fun addSpectator(player: Player): CompletableFuture<Boolean> {
-        synchronized(playerLock) {
-            if (spectators.contains(player)) return CompletableFuture.completedFuture(false)
-            if (players.contains(player)) return CompletableFuture.completedFuture(false)
+    internal suspend fun addSpectator(player: Player) {
+        if (spectators.contains(player)) return
+        if (players.contains(player)) return
 
-            Logger.info("${player.username} started spectating game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} started spectating game '${gameTypeInfo.name}'")
 
-            val latchResult = instanceLatch.await(10, TimeUnit.SECONDS)
-            if (!latchResult) Logger.warn("Latch result is false!")
+        spectators.add(player)
 
-            player.respawnPoint = spawnPosition
+        player.respawnPoint = spawnPosition
 
-            val future = CompletableFuture<Boolean>()
-            player.safeSetInstance(instance).thenRun {
-                player.reset()
+        player.safeSetInstance(instance).get(20, TimeUnit.SECONDS)
+        player.reset()
 
-                scoreboard?.addViewer(player)
+        scoreboard?.addViewer(player)
 
-                player.isInvisible = true
-                player.gameMode = GameMode.SPECTATOR
-                player.isAllowFlying = true
-                player.isFlying = true
-                //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
-                player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        player.isAutoViewable = false
+        player.isInvisible = true
+        player.gameMode = GameMode.SPECTATOR
+        player.isAllowFlying = true
+        player.isFlying = true
+        //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+        player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
-                spectatorJoin(player)
-
-                future.complete(true)
-            }
-
-            spectators.add(player)
-
-            return future
+        coroutineScope.launch {
+            spectatorJoin(player)
         }
     }
 
     internal fun removeSpectator(player: Player) {
-        synchronized(playerLock) {
-            if (!spectators.contains(player)) return
+        if (!spectators.contains(player)) return
 
-            Logger.info("${player.username} stopped spectating game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} stopped spectating game '${gameTypeInfo.name}'")
 
-            spectators.remove(player)
-            scoreboard?.removeViewer(player)
+        spectators.remove(player)
+        scoreboard?.removeViewer(player)
 
-            spectatorLeave(player)
-        }
+        spectatorLeave(player)
     }
 
     open fun spectatorJoin(player: Player) {}
@@ -381,7 +277,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
 
             override fun cancelled() {
-                start()
+                scheduler.scheduleNextTick {
+                    start()
+                }
             }
 
         }
@@ -448,11 +346,14 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         getPlayers().forEach {
             scoreboard?.removeViewer(it)
 
-            if (debugMode) {
-                it.joinGameOrNew(debugGame)
-            } else {
-                it.joinGameOrNew(gameName)
+            coroutineScope.launch {
+                if (debugMode) {
+                    it.joinGameOrNew(debugGame)
+                } else {
+                    it.joinGameOrNew(gameName)
+                }
             }
+
         }
         players.clear()
         spectators.clear()
@@ -461,21 +362,19 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     open fun canBeJoined(player: Player): Boolean {
-        synchronized(players) {
-            if (players.contains(player)) return false
-            if (players.size >= gameOptions.maxPlayers) {
-                return false
-            }
-            if (gameState == GameState.PLAYING) {
-                return gameOptions.canJoinDuringGame
-            }
-            //if (gameOptions.private) {
-            //    val party = gameCreator?.party ?: return false
-            //
-            //    return party.players.contains(player)
-            //}
-            return gameState.joinable
+        if (players.contains(player)) return false
+        if (players.size >= gameOptions.maxPlayers) {
+            return false
         }
+        if (gameState == GameState.PLAYING) {
+            return gameOptions.canJoinDuringGame
+        }
+        //if (gameOptions.private) {
+        //    val party = gameCreator?.party ?: return false
+        //
+        //    return party.players.contains(player)
+        //}
+        return gameState.joinable
     }
 
     fun registerTeam(team: Team): Team {
@@ -527,13 +426,15 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open fun gameWon(winningPlayers: Collection<Player>) {}
 
-    abstract fun instanceCreate(): Instance
+    abstract suspend fun instanceCreate(): Instance
 
     override fun getPlayers(): MutableCollection<Player> = (players + spectators).toMutableSet()
 
+    override fun scheduler(): Scheduler = scheduler
+
     override fun equals(other: Any?): Boolean {
         if (other !is Game) return false
-        return other.uuid == this.uuid
+        return other.id == this.id
     }
 
 }

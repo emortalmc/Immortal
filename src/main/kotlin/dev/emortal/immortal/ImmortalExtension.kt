@@ -105,11 +105,13 @@ class ImmortalExtension : Extension() {
                                 player.sendMessage(Component.text("That game does not allow spectating", NamedTextColor.RED))
                                 return@addListenerAsync
                             }
-                            if (game.uuid == player.game?.uuid) {
+                            if (game.id == player.game?.id) {
                                 player.sendMessage(Component.text("That player is not on a game", NamedTextColor.RED))
                                 return@addListenerAsync
                             }
-                            player.joinGame(game, spectate = true)
+                            game.coroutineScope.launch {
+                                player.joinGame(game, spectate = true)
+                            }
                         }
                     }
 
@@ -150,6 +152,8 @@ class ImmortalExtension : Extension() {
                 }
             }
 
+            val joinsScope = CoroutineScope(Dispatchers.Default)
+
             eventNode.listenOnly<PlayerLoginEvent> {
                 this.player.gameMode = GameMode.ADVENTURE
 
@@ -182,12 +186,20 @@ class ImmortalExtension : Extension() {
                         return@listenOnly
                     }
                     setSpawningInstance(game.instance)
-                    player.joinGame(game, spectate = true)
+                    joinsScope.launch {
+                        player.joinGame(game, spectate = true)
+                    }
                 } else {
-                    val newGame = GameManager.findOrCreateGame(player, args[0])
-                    setSpawningInstance(newGame.instance)
+                    Logger.info("Finding game!")
+                    joinsScope.launch {
+                        val newGame = GameManager.findOrCreateGame(player, args[0])
+                        setSpawningInstance(newGame.instance)
 
-                    player.joinGame(newGame)
+                        Logger.info("Found game and set instance!")
+
+                        player.joinGame(newGame)
+                    }
+
                 }
             }
 
