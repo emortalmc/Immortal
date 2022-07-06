@@ -8,7 +8,6 @@ import net.kyori.adventure.text.Component
 import net.minestom.server.entity.Player
 import net.minestom.server.tag.Tag
 import org.tinylog.kotlin.Logger
-import world.cepi.kstom.Manager
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -38,11 +37,8 @@ object GameManager {
 
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
-    private suspend fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false) {
-        if (player.hasTag(joiningGameTag)) {
-            return
-        }
-
+    private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false) {
+        if (!ignoreCooldown && player.hasTag(joiningGameTag)) return
 
         Logger.info("Attempting to join ${newGame.gameName}")
 
@@ -51,30 +47,23 @@ object GameManager {
         playerGameMap.remove(player)
 
         if (spectate) newGame.addSpectator(player) else newGame.addPlayer(player)
-//                if (successful) {
+
         playerGameMap[player] = newGame
 
-        Manager.scheduler.buildTask {
+        player.scheduler().buildTask {
             player.removeTag(joiningGameTag)
         }.delay(Duration.ofSeconds(1)).schedule()
-//                } else {
-//                    player.sendMessage(Component.text("Something went wrong while joining ${newGame.gameTypeInfo.name}", NamedTextColor.RED))
-//                    player.playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-//
-//                    player.removeTag(joiningGameTag)
-//                }
-
-        //return future
     }
 
-    suspend fun Player.joinGame(game: Game, spectate: Boolean = false) {
+    fun Player.joinGame(game: Game, spectate: Boolean = false): Boolean {
         if (!game.canBeJoined(this) && !spectate) {
             Logger.warn("Game could not be joined")
-            return
+            return false
         }
 
         val lastGame = this.game
         handleJoin(this, lastGame, game, spectate)
+        return true
     }
 
     fun Player.leaveGame() {
@@ -83,28 +72,27 @@ object GameManager {
         removeTag(joiningGameTag)
     }
 
-    suspend fun Player.joinGameOrNew(
+    fun Player.joinGameOrNew(
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ) {
-        setTag(joiningGameTag, true)
         joinGame(findOrCreateGame(this, gameTypeName, options))
+        setTag(joiningGameTag, true)
     }
 
-    suspend fun findOrCreateGame(
+    fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ): Game {
-        val game = gameMap[gameTypeName]?.firstOrNull {
+        return gameMap[gameTypeName]?.firstOrNull {
             it.canBeJoined(player) && it.gameOptions == options
-        }?.create()
+        }
             ?: createGame(gameTypeName, options, player)
 
-        return game
     }
 
-    suspend fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
+    fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
 
         //options.private = creator?.party?.privateGames ?: false
 
@@ -114,7 +102,7 @@ object GameManager {
 
         gameMap[gameTypeName]?.add(game)
 
-        return game.create()
+        return game
     }
 
     inline fun <reified T : Game> registerGame(

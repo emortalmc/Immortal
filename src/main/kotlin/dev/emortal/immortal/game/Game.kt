@@ -30,25 +30,18 @@ import net.minestom.server.event.EventNode
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
-import net.minestom.server.timer.Schedulable
-import net.minestom.server.timer.Scheduler
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 
-abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Schedulable {
+abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     private val playerCountTopic = redisson?.getTopic("playercount")
 
     val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val spectators: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val teams: MutableSet<Team> = ConcurrentHashMap.newKeySet()
-
-    val playerLock = Object()
 
     val id = getNextGameId()
 
@@ -59,7 +52,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
-    lateinit var instance: Instance
+    val instance: Instance = instanceCreate()
 
     val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.INSTANCE) { event, inst ->
         inst.uniqueId == instance.uniqueId
@@ -70,52 +63,56 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
     //}
 
     val coroutineScope = CoroutineScope(Dispatchers.IO)
-    val scheduler = Scheduler.newScheduler()
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
     private var destroyed = false
-    private var created = AtomicBoolean(false)
-    private var creating = AtomicBoolean(false)
-    private val createLatch = CountDownLatch(1)
 
-    suspend fun create(): Game {
+    init {
         Logger.info("Creating game $gameName")
-        if (created.get()) return this
-        if (creating.get()) {
-            Logger.warn("Create called while creating")
-            createLatch.await(10, TimeUnit.SECONDS)
-            return this
+
+        if (gameOptions.showScoreboard) {
+            scoreboard = Sidebar(gameTypeInfo.title)
+
+            scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
+
+            scoreboard?.createLine(
+                Sidebar.ScoreboardLine(
+                    "infoLine",
+                    Component.text()
+                        .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
+                        .build(),
+                    0
+                )
+            )
+            scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -8))
+            scoreboard?.createLine(
+                Sidebar.ScoreboardLine(
+                    "ipLine",
+                    Component.text()
+                        .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
+                        .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
+                        .build(),
+                    -9
+                )
+            )
         }
-
-        Logger.info("Creating game $gameName 23")
-
-        creating.set(true)
-
-        this.instance = instanceCreate()
 
         Manager.globalEvent.addChild(eventNode)
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
-
-        createLatch.countDown()
-        created.set(true)
-
-        Logger.info("Created!! game $gameName")
-
-        return this
     }
 
-    internal suspend fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
-        if (players.contains(player)) return
+    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+        if (players.contains(player)) {
+            Logger.warn("Contains player")
+            return
+        }
 
         Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 
         players.add(player)
         refreshPlayerCount()
-
-
-        player.respawnPoint = spawnPosition
 
         if (joinMessage) sendMessage(
             Component.text()
@@ -124,33 +121,38 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
                 .append(Component.text(player.username, NamedTextColor.GREEN))
                 .append(Component.text(" joined the game ", NamedTextColor.GRAY))
                 .also {
-                    /*if (gameState == GameState.WAITING_FOR_PLAYERS)*/ it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+                    if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
                 }
         )
 
-        player.safeSetInstance(instance, spawnPosition).get(10, TimeUnit.SECONDS)
-        player.reset()
-        player.resetTeam()
+        player.respawnPoint = spawnPosition
 
-        scoreboard?.addViewer(player)
+        player.safeSetInstance(instance, spawnPosition).thenRun {
 
 
-        playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
-        player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
-        player.clearTitle()
-        player.sendActionBar(Component.empty())
+            player.reset()
+            player.resetTeam()
+            scoreboard?.addViewer(player)
 
-        //coroutineScope.launch {
+            playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
+            //player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
+            player.clearTitle()
+            player.sendActionBar(Component.empty())
+
+            //coroutineScope.launch {
             playerJoin(player)
-        //}
+            //}
 
-        EventDispatcher.call(PlayerJoinGameEvent(this, player))
+            EventDispatcher.call(PlayerJoinGameEvent(this, player))
 
-        if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
-            if (startingTask == null) {
-                startCountdown()
+            if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
+                if (startingTask == null) {
+                    startCountdown()
+                }
             }
         }
+
+
     }
 
     internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
@@ -218,7 +220,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
         }
     }
 
-    internal suspend fun addSpectator(player: Player) {
+    internal fun addSpectator(player: Player) {
         if (spectators.contains(player)) return
         if (players.contains(player)) return
 
@@ -228,21 +230,22 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
 
         player.respawnPoint = spawnPosition
 
-        player.safeSetInstance(instance).get(20, TimeUnit.SECONDS)
-        player.reset()
+        player.safeSetInstance(instance).thenRun {
+            player.reset()
 
-        scoreboard?.addViewer(player)
+            scoreboard?.addViewer(player)
 
-        player.isAutoViewable = false
-        player.isInvisible = true
-        player.gameMode = GameMode.SPECTATOR
-        player.isAllowFlying = true
-        player.isFlying = true
-        //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
-        player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+            player.isAutoViewable = false
+            player.isInvisible = true
+            player.gameMode = GameMode.SPECTATOR
+            player.isAllowFlying = true
+            player.isFlying = true
+            //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+            player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
-        coroutineScope.launch {
-            spectatorJoin(player)
+            coroutineScope.launch {
+                spectatorJoin(player)
+            }
         }
     }
 
@@ -298,7 +301,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
             }
 
             override fun cancelled() {
-                scheduler.scheduleNextTick {
+                instance.scheduleNextTick {
                     start()
                 }
             }
@@ -367,19 +370,17 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
         getPlayers().forEach {
             scoreboard?.removeViewer(it)
 
-            coroutineScope.launch {
-                if (debugMode) {
-                    it.joinGameOrNew(debugGame)
-                } else {
-                    it.joinGameOrNew(gameName)
-                }
+            if (debugMode) {
+                it.joinGameOrNew(debugGame)
+            } else {
+                it.joinGameOrNew(gameName)
             }
 
         }
         players.clear()
         spectators.clear()
 
-        playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+        refreshPlayerCount()
     }
 
     open fun canBeJoined(player: Player): Boolean {
@@ -447,11 +448,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience, Sche
 
     open fun gameWon(winningPlayers: Collection<Player>) {}
 
-    abstract suspend fun instanceCreate(): Instance
+    abstract fun instanceCreate(): Instance
 
     override fun getPlayers(): MutableCollection<Player> = (players + spectators).toMutableSet()
-
-    override fun scheduler(): Scheduler = scheduler
 
     override fun equals(other: Any?): Boolean {
         if (other !is Game) return false

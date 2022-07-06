@@ -20,7 +20,6 @@ import dev.emortal.immortal.util.resetTeam
 import kotlinx.coroutines.*
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.MinecraftServer
@@ -34,11 +33,12 @@ import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.extensions.Extension
 import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
+import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
+import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
-import world.cepi.kstom.adventure.asMini
 import world.cepi.kstom.event.listenOnly
 import world.cepi.kstom.util.register
 import java.nio.file.Path
@@ -59,21 +59,14 @@ class ImmortalExtension : Extension() {
 
             MinecraftServer.setBrandName("Minestom ${MinecraftServer.VERSION_NAME}")
 
+            // Ignore warning when player opens recipe book
+            Manager.packetListener.setListener(ClientSetRecipeBookStatePacket::class.java) { _: ClientSetRecipeBookStatePacket, _: Player -> }
+
             val debugMode = System.getProperty("debug").toBoolean()
             val debugGame = System.getProperty("debuggame")
             if (debugMode) Logger.warn("Running in debug mode, debug game: ${debugGame}")
 
             val instanceManager = Manager.instance
-
-            val waitingInstance = instanceManager.createInstanceContainer()
-            waitingInstance.timeUpdate = null
-            waitingInstance.enableAutoChunkLoad(false)
-            waitingInstance.setTag(GameManager.doNotAutoUnloadChunkTag, true)
-            waitingInstance.setTag(GameManager.doNotUnregisterTag, true)
-            waitingInstance.loadChunk(0, 0)
-            waitingInstance.loadChunk(0, 1)
-            waitingInstance.loadChunk(1, 0)
-            waitingInstance.loadChunk(1, 1)
 
             // Create proxyhello listener
             redisson?.getTopic("proxyhello")?.addListenerAsync(String::class.java) { ch, msg ->
@@ -205,124 +198,70 @@ class ImmortalExtension : Extension() {
                         }
                     }
                 } else {
-                    Logger.info("Finding game!")
-                    setSpawningInstance(waitingInstance)
+                    val newGame = GameManager.findOrCreateGame(player, args[0])
 
+                    if (!newGame.instance.isRegistered) Manager.instance.registerInstance(newGame.instance)
+
+                    setSpawningInstance(newGame.instance)
+
+                    player.respawnPoint = newGame.spawnPosition
                     player.scheduleNextTick {
-                        player.scheduleNextTick {
-                            joinsScope.launch {
-                                val newGame = GameManager.findOrCreateGame(player, args[0])
-
-                                Logger.info("Found game")
-
-                                player.joinGame(newGame)
-                            }
-                        }
-
+                        player.joinGame(newGame)
                     }
-
 
                 }
             }
 
-//            eventNode.listenOnly<PlayerChunkUnloadEvent> {
-//                if (instance.hasTag(GameManager.doNotAutoUnloadChunkTag)) return@listenOnly
-//                val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
-//
-//                if (chunk.viewers.isEmpty()) {
-//                    try {
-//                        instance.unloadChunk(chunkX, chunkZ)
-//                    } catch (_: NullPointerException) {}
-//                }
-//            }
+            eventNode.listenOnly<PlayerChunkUnloadEvent> {
+                if (instance.hasTag(GameManager.doNotAutoUnloadChunkTag)) return@listenOnly
+                val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
+
+                if (chunk.viewers.isEmpty()) {
+                    try {
+                        instance.unloadChunk(chunkX, chunkZ)
+                    } catch (_: NullPointerException) {}
+                }
+            }
 
             val globalEvent = Manager.globalEvent
 
-            val maxDistanceSurvival = 10*10
-            val maxDistanceCreative = 50*50
-            val maxDistanceSpectator = 100*100
             globalEvent.listenOnly<PlayerMoveEvent> {
-                val distanceSquared = player.position.distanceSquared(newPosition)
-
-                val aboveMax = when (player.gameMode) {
-                    GameMode.SURVIVAL, GameMode.ADVENTURE -> distanceSquared > maxDistanceSurvival
-                    GameMode.SPECTATOR -> distanceSquared > maxDistanceSpectator
-                    GameMode.CREATIVE -> distanceSquared > maxDistanceCreative
-                    else -> false
-                }
-
-                if (aboveMax) isCancelled = true
                 if (player.position.y < -64) {
                     // anti void death lul
                     player.teleport(player.respawnPoint)
                 }
             }
 
-
-
-//            fun isRoughlyEqual(d1: Double, d2: Double) = abs(d1 - d2) < 0.001
-//            val airTicksMap = ConcurrentHashMap<UUID, Int>()
-//            val lastDistMap = ConcurrentHashMap<UUID, Double>()
-//            val lastPosMap = ConcurrentHashMap<UUID, Pos>()
-
-
-
-//            globalEvent.listenOnly<PlayerMoveEvent> {
-//                val distY = newPosition.y - player.position.y
-//                val lastDist = lastDistMap[player.uuid] ?: 0.0
-//                val airTicks = airTicksMap[player.uuid] ?: 0
-//                val predictedDistY = (lastDist - 0.08) * 0.98
+//            val technoSkin = PlayerSkin("ewogICJ0aW1lc3RhbXAiIDogMTYxODQxMTkwNzYwMiwKICAicHJvZmlsZUlkIiA6ICJiODc2ZWMzMmUzOTY0NzZiYTExNTg0MzhkODNjNjdkNCIsCiAgInByb2ZpbGVOYW1lIiA6ICJUZWNobm9ibGFkZSIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS83ODZjMDM5ZDk2OWQxODM5MTU1MjU1ZTM4ZTdiMDZhNjI2ZWE5ZjhiYWY5Y2I1NWUwYTc3MzExZWZlMThhM2UiCiAgICB9CiAgfQp9", "MYwB5ulhwIk1otEtouH6m2gG5rfJOIuOnJbhGZ4O+btvDvIDBwBbP1KQ5W3XWn6IMZTBfZE7SSgfTlX0o93diYc/fDwk1x/geyI8bnjRt78YRptxlwncHq6jKSMBSXX4JhkMyrZTtdw8C39ojYjty9O9Ly7kJU0fogKV1pi4hLz8E5tPdQz3/vAXlpTzhAVOsQ9Za6qEykLQRXtgQoS2+/7n4fQWldymhGSlxF+dFCbE2K19einXvP783bUoAsu6AOQxLewO92xICbjRdPvM09c/4LqxsvLebqtYIoPEIuAtOn20doWBL71fLfld8TPEUdoo2V8IAooHWXvIgmw1pTjCw63oPixB/Uaq4SuUnCq6/dopGiMDThXJO+ALK12IouJ/CrgzwgJc4VEXPx8IRoDW07yqoPYfiQ/XyjKsO1K+LQC4uai764jEXtiZ9W3sX/Nj0ENO2O+BfM1AsrxZj7SLEWj4uV57g2LyYrs27fctMpncU0QIpz4WL0NPTKh5nor+9Z6ilKHmxoxaXg8A1V5JcNpoe0q+yQNmEKK4HCFYTZZnoMYWv+SQsanhqH3Z6Y/MLZm0eYeZt+FOb6oqou+2JSVdtQZmS6wg8ec6YcCNOG0EoqxS57cHjFaj/Lcw8ZH37jB7Q87GR1mAGmptJtuukCFMp3uTvp4I2O6Nxaw=")
 //
-//                if (!isOnGround && airTicks > 4 && abs(predictedDistY) >= 0.006
-//                    && !player.isFlying
-//                ) {
-//
-//                    if (!isRoughlyEqual(distY, predictedDistY)) {
-//                        //player.teleport(lastPos)
-//                        Logger.info("${player.username} triggered fly check")
-//                        lastDistMap[player.uuid] = 0.0
-//                        airTicksMap[player.uuid] = 0
+//            object : MinestomRunnable(coroutineScope = GlobalScope, repeat = Duration.ofSeconds(2)) {
+//                override suspend fun run() {
+//                    val rand = ThreadLocalRandom.current()
+//                    Manager.connection.onlinePlayers.forEach {
+//                        if (rand.nextDouble() < 0.5) {
+//                            it.instance!!.playSound(Sound.sound(SoundEvent.ENTITY_PIG_AMBIENT, Sound.Source.MASTER, 1f, rand.nextFloat(0.85f, 1.15f)), it.position)
+//                        }
 //                    }
 //                }
-//
-//                lastDistMap[player.uuid] = distY
-//                if (isOnGround) {
-//                    airTicksMap[player.uuid] = 0
-//                } else {
-//                    airTicksMap[player.uuid] = airTicks + 1
-//                }
-//
-//                lastPosMap[player.uuid] = player.position
 //            }
 
-//            val cooldown = Duration.ofMinutes(60)
-//            Manager.scheduler.buildTask {
-//
-//                var leftoverInstances = 0
-//                instanceManager.instances.forEach {
-//                    if (it.players.isEmpty()) {
-//                        if (it.hasTag(GameManager.doNotUnregisterTag)) return@forEach
-//
-//                        instanceManager.unregisterInstance(it)
-//                        leftoverInstances++
-//                    }
-//                }
-//                if (leftoverInstances != 0) Logger.warn("$leftoverInstances empty instances were found and unregistered.")
-//            }.delay(cooldown).repeat(cooldown).schedule()
+//            eventNode.listenOnly<PlayerSkinInitEvent> {
+//                this.skin = technoSkin
+//            }
 
             eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
                 if (this.entity !is Player) return@listenOnly
 
-                this.instance.scheduleNextTick {
-                    if (it.players.isEmpty()) {
-                        if (it.hasTag(GameManager.doNotUnregisterTag)) return@scheduleNextTick
-                        if (!it.isRegistered) return@scheduleNextTick
-                        instanceManager.unregisterInstance(it)
+                this.instance.scheduler().buildTask {
+                    if (instance.players.isEmpty()) {
+                        if (instance.hasTag(GameManager.doNotUnregisterTag)) return@buildTask
+                        //if (!instance.isRegistered) return@buildTask
+                        instanceManager.unregisterInstance(instance)
                         Logger.info("Instance was unregistered. Instance count: ${instanceManager.instances.size}")
                     } else {
                         //Logger.warn("Couldn't unregister instance, players: ${it.players.joinToString(separator = ", ") { it.username }}")
                     }
-                }
+                }.delay(TaskSchedule.nextTick()).schedule()
             }
 
             eventNode.listenOnly<PlayerBlockPlaceEvent> {
@@ -365,12 +304,16 @@ class ImmortalExtension : Extension() {
             }
 
             eventNode.listenOnly<PlayerBlockPlaceEvent> {
-                if (player.gameMode == GameMode.ADVENTURE || player.gameMode == GameMode.SPECTATOR) {
+                val dir = blockFace.toDirection()
+                val placedOnPos = blockPosition.sub(dir.normalX().toDouble(), dir.normalY().toDouble(), dir.normalZ().toDouble())
+                val blockPlacedOn = instance.getBlock(placedOnPos)
+
+                if ((player.gameMode == GameMode.ADVENTURE && !player.getItemInHand(hand).meta().canPlaceOn.contains(blockPlacedOn)) || player.gameMode == GameMode.SPECTATOR) {
                     isCancelled = true
                 }
             }
             eventNode.listenOnly<PlayerBlockBreakEvent> {
-                if (player.gameMode == GameMode.ADVENTURE || player.gameMode == GameMode.SPECTATOR) {
+                if ((player.gameMode == GameMode.ADVENTURE && !player.itemInMainHand.meta().canDestroy.contains(block)) || player.gameMode == GameMode.SPECTATOR) {
                     isCancelled = true
                 }
             }
@@ -382,7 +325,7 @@ class ImmortalExtension : Extension() {
                     LAST_TICK.set(tickMonitor)
                 }
 
-                object : MinestomRunnable(coroutineScope = GlobalScope, repeat = Duration.ofSeconds(1)) {
+                object : MinestomRunnable(coroutineScope = GlobalScope, repeat = Duration.ofMillis(500)) {
                     override suspend fun run() {
                         Manager.connection.onlinePlayers.forEach {
                             val ramUsage = Manager.benchmark.usedMemory / 1024 / 1024
@@ -416,18 +359,6 @@ class ImmortalExtension : Extension() {
                             )
                         }
                     }
-                }
-            }
-
-            Manager.scheduler.buildShutdownTask {
-                val kickMessage = Component.text()
-                    .append("<gradient:gold:light_purple><bold>EmortalMC".asMini())
-                    .append(Component.text("\n\nServer shutting down", NamedTextColor.RED))
-                    .append(Component.text("\n\n(prob won't be for long - minestom ftw)", NamedTextColor.DARK_GRAY, TextDecoration.ITALIC))
-                    .build()
-
-                Manager.connection.onlinePlayers.forEach {
-                    it.kick(kickMessage)
                 }
             }
 
