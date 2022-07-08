@@ -52,7 +52,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
-    val instance: Instance = instanceCreate()
+    val instance: Instance = instanceCreate().also {
+        it.setTag(GameManager.gameNameTag, gameName)
+    }
 
     val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.INSTANCE) { event, inst ->
         inst.uniqueId == instance.uniqueId
