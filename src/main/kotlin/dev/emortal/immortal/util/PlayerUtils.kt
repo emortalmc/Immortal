@@ -28,7 +28,7 @@ fun Player.reset() {
     getAttribute(Attribute.MOVEMENT_SPEED).baseValue = 0.1f
     setCanPickupItem(true)
     setBoundingBox(0.6, 1.8, 0.6)
-    closeInventory()
+    if (openInventory != null) closeInventory()
     setNoGravity(false)
     refreshCommands()
     heal()
