@@ -1,6 +1,6 @@
 package dev.emortal.immortal.npc
 
-import dev.emortal.immortal.util.MinestomRunnable
+import dev.emortal.immortal.util.CoroutineRunnable
 import dev.emortal.immortal.util.sendServer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -79,7 +79,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             viewer.sendPacket(entitySpawn)
         }
 
-        object : MinestomRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
+        object : CoroutineRunnable(coroutineScope = coroutineScope, delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
             override suspend fun run() {
                 val lookFromPos = position.add(0.0, entityType.height(), 0.0)
                 val lookToPos = viewer.position.add(0.0, if (viewer.isSneaking) 1.5 else 1.8, 0.0)

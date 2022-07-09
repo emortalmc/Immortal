@@ -1,76 +1,80 @@
 package dev.emortal.immortal.util
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.tinylog.kotlin.Logger
+import net.minestom.server.timer.ExecutionType
+import net.minestom.server.timer.Task
+import net.minestom.server.timer.TaskSchedule
+import world.cepi.kstom.Manager
 import java.time.Duration
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Creates a task using Java's scheduler instead of Minestom's
- * Allows for more accuracy, and appears to run faster
+ * A utility to make it easier to build tasks
  *
- * @param delay How long to delay the task from running
- * @param repeat How long between intervals of running
- * @param iterations How many times to iterate, -1 being infinite (also default)
- * @param coroutineScope The coroutine scope to use, should be set to the game's scope if created inside a game as the tasks will be automatically cancelled on end, use GlobalScope otherwise
+ * @author emortal
+ * @author DasLixou
  */
-abstract class MinestomRunnable(
-    var delay: Duration = Duration.ZERO,
-    var repeat: Duration = Duration.ZERO,
-    var iterations: Int = -1,
-    val coroutineScope: CoroutineScope
-) {
+abstract class MinestomRunnable : Runnable {
 
-    abstract suspend fun run()
+    var currentIteration: Long = 0L
+    val iterations: Long
 
-    private val keepRunning = AtomicBoolean(true)
-    private var job: Job? = null
-    private val tryRun = suspend {
-        try {
-            run()
-        } catch (e: Throwable) {
-            Logger.warn("Timer action failed:")
-            e.printStackTrace()
-        }
+    private var task: Task? = null
+    private var delaySchedule: TaskSchedule = TaskSchedule.immediate()
+    private var repeatSchedule: TaskSchedule = TaskSchedule.stop()
+    private var executionType: ExecutionType = ExecutionType.SYNC
+    private var taskGroup: TaskGroup? = null
+
+    constructor(delay: Duration = Duration.ZERO, repeat: Duration = Duration.ZERO, executionType: ExecutionType = ExecutionType.SYNC, iterations: Long = -1L, taskGroup: TaskGroup? = null) {
+        this.iterations = iterations
+        this.taskGroup = taskGroup
+
+        delay(delay)
+        repeat(repeat)
+        executionType(executionType)
     }
 
-    var currentIteration = AtomicInteger(0)
+    constructor(delay: TaskSchedule = TaskSchedule.immediate(), repeat: TaskSchedule = TaskSchedule.stop(), executionType: ExecutionType = ExecutionType.SYNC, iterations: Long, taskGroup: TaskGroup? = null) {
+        this.iterations = iterations
+        this.taskGroup = taskGroup
 
-    init {
+        delay(delay)
+        repeat(repeat)
+        executionType(executionType)
+    }
 
-        job = coroutineScope.launch {
-            delay(delay.toMillis())
-            if (repeat.toMillis() != 0L) {
-                while (keepRunning.get()) {
-                    tryRun()
-                    delay(repeat.toMillis())
-                    val currentIter = currentIteration.incrementAndGet()
-                    if (iterations != -1 && currentIter >= iterations) {
-                        cancel()
-                        cancelled()
-                        return@launch
-                    }
-                }
-            } else {
-                if (keepRunning.get()) {
-                    tryRun()
-                }
+    fun delay(duration: Duration) = this.also { delaySchedule = if (duration != Duration.ZERO) TaskSchedule.duration(duration) else TaskSchedule.immediate() }
+    fun delay(schedule: TaskSchedule) = this.also { delaySchedule = schedule }
+
+    fun repeat(duration: Duration) = this.also { repeatSchedule = if (duration != Duration.ZERO) TaskSchedule.duration(duration) else TaskSchedule.stop() }
+    fun repeat(schedule: TaskSchedule) = this.also { repeatSchedule = schedule }
+
+    fun executionType(type: ExecutionType) = this.also { executionType = type }
+
+    fun schedule(): Task {
+        val t = Manager.scheduler.buildTask {
+            this.run()
+
+            currentIteration++
+            if (iterations != -1L && currentIteration >= iterations) {
+                cancel()
+                cancelled()
+                return@buildTask
             }
         }
+            .delay(delaySchedule)
+            .repeat(repeatSchedule)
+            .executionType(executionType)
+            .schedule()
+
+        taskGroup?.tasks?.add(t)
+
+        this.task = t
+        return t
     }
 
+    fun cancel() = task?.cancel()
+
+    /**
+        Called when iterations run out
+     */
     open fun cancelled() {}
-
-    fun cancel() {
-        keepRunning.set(false)
-    }
-
-    fun cancelImmediate() {
-        cancel()
-        job?.cancel()
-    }
 }

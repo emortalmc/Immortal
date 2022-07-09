@@ -6,15 +6,8 @@ import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.getNextGameId
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
-import dev.emortal.immortal.util.MinestomRunnable
+import dev.emortal.immortal.util.*
 import dev.emortal.immortal.util.RedisStorage.redisson
-import dev.emortal.immortal.util.reset
-import dev.emortal.immortal.util.resetTeam
-import dev.emortal.immortal.util.safeSetInstance
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -64,7 +57,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     //    players.contains(plr.uuid)
     //}
 
-    val coroutineScope = CoroutineScope(Dispatchers.IO)
+    //val coroutineScope = CoroutineScope(Dispatchers.IO)
+    val taskGroup = TaskGroup()
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
@@ -245,9 +239,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
             player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
-            coroutineScope.launch {
-                spectatorJoin(player)
-            }
+            spectatorJoin(player)
         }
     }
 
@@ -276,23 +268,21 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             return
         }
 
-        startingTask = object : MinestomRunnable(coroutineScope = coroutineScope, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
+        startingTask = object : MinestomRunnable(taskGroup = taskGroup, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds.toLong()) {
 
-            override suspend fun run() {
-                val currentIter = currentIteration.get()
-
+            override fun run() {
                 scoreboard?.updateLineContent(
                     "infoLine",
                     Component.text()
-                        .append(Component.text("Starting in ${gameOptions.countdownSeconds - currentIter} seconds", NamedTextColor.GREEN))
+                        .append(Component.text("Starting in ${gameOptions.countdownSeconds - currentIteration} seconds", NamedTextColor.GREEN))
                         .build()
                 )
 
-                if ((gameOptions.countdownSeconds - currentIter) < 5 || currentIter % 5 == 0) {
+                if ((gameOptions.countdownSeconds - currentIteration) < 5 || currentIteration % 5L == 0L) {
                     playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.AMBIENT, 1f, 1.2f))
                     showTitle(
                         Title.title(
-                            Component.text(gameOptions.countdownSeconds - currentIter, NamedTextColor.GREEN, TextDecoration.BOLD),
+                            Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
                             Component.empty(),
                             Title.Times.times(
                                 Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
@@ -348,11 +338,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         Manager.globalEvent.removeChild(eventNode)
 
-        try {
-            coroutineScope.cancel()
-        } catch(ignored: Throwable) {
-            Logger.warn("Coroutine scope cancelled without a Job, likely not an issue")
-        }
+        taskGroup.cancel()
 
         gameDestroyed()
 

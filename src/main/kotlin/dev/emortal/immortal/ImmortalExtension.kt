@@ -14,7 +14,7 @@ import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.MinestomRunnable
+import dev.emortal.immortal.util.CoroutineRunnable
 import dev.emortal.immortal.util.RedisStorage.redisson
 import dev.emortal.immortal.util.resetTeam
 import kotlinx.coroutines.*
@@ -93,7 +93,7 @@ class ImmortalExtension : Extension() {
 
                         if (player.game?.gameName == subgame) return@addListenerAsync
 
-                        CoroutineScope(Dispatchers.IO).launch {
+                        player.scheduleNextTick {
                             player.joinGameOrNew(subgame)
                         }
                     }
@@ -114,9 +114,7 @@ class ImmortalExtension : Extension() {
                             }
 
                             player.scheduleNextTick {
-                                game.coroutineScope.launch {
-                                    player.joinGame(game, spectate = true)
-                                }
+                                player.joinGame(game, spectate = true)
                             }
                         }
                     }
@@ -325,7 +323,7 @@ class ImmortalExtension : Extension() {
                     LAST_TICK.set(tickMonitor)
                 }
 
-                object : MinestomRunnable(coroutineScope = GlobalScope, repeat = Duration.ofMillis(500)) {
+                object : CoroutineRunnable(coroutineScope = GlobalScope, repeat = Duration.ofMillis(500)) {
                     override suspend fun run() {
                         Manager.connection.onlinePlayers.forEach {
                             val ramUsage = Manager.benchmark.usedMemory / 1024 / 1024
