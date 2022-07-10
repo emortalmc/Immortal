@@ -41,7 +41,7 @@ abstract class MinestomRunnable : Runnable {
         schedule()
     }
 
-    constructor(delay: TaskSchedule = TaskSchedule.immediate(), repeat: TaskSchedule = TaskSchedule.stop(), executionType: ExecutionType = ExecutionType.SYNC, iterations: Long, taskGroup: TaskGroup? = null) {
+    constructor(delay: TaskSchedule = TaskSchedule.immediate(), repeat: TaskSchedule = TaskSchedule.stop(), executionType: ExecutionType = ExecutionType.SYNC, iterations: Long = -1L, taskGroup: TaskGroup? = null) {
         this.iterations = iterations
         this.taskGroup = taskGroup
         this.delaySchedule = delay
@@ -53,14 +53,15 @@ abstract class MinestomRunnable : Runnable {
 
     private fun schedule(): Task {
         val t = Manager.scheduler.buildTask {
-            this.run()
-
-            currentIteration++
             if (iterations != -1L && currentIteration >= iterations) {
                 cancel()
                 cancelled()
                 return@buildTask
             }
+
+            this.run()
+
+            currentIteration++
         }
             .delay(delaySchedule)
             .repeat(repeatSchedule)
