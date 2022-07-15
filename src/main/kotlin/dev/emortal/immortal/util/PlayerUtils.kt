@@ -12,9 +12,10 @@ import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.asMini
 
 fun Player.reset() {
+    entityMeta.setNotifyAboutChanges(false)
+
     inventory.clear()
     isAutoViewable = true
-    //entityMeta.setNotifyAboutChanges(false)
     isInvisible = false
     isGlowing = false
     additionalHearts = 0f
@@ -25,6 +26,9 @@ fun Player.reset() {
     level = 0
     isEnableRespawnScreen = false
     vehicle?.removePassenger(this)
+    arrowCount = 0
+    isOnFire = false
+    setFireForDuration(0)
     getAttribute(Attribute.MOVEMENT_SPEED).baseValue = 0.1f
     setCanPickupItem(true)
     setBoundingBox(0.6, 1.8, 0.6)
@@ -34,7 +38,9 @@ fun Player.reset() {
     heal()
     clearEffects()
     stopSpectating()
-    //entityMeta.setNotifyAboutChanges(true)
+
+    entityMeta.setNotifyAboutChanges(true)
+
     askSynchronization()
     updateViewableRule()
     updateViewerRule()

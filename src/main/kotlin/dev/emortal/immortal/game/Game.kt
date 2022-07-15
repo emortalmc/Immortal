@@ -108,7 +108,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 
         players.add(player)
-        refreshPlayerCount()
 
         if (joinMessage) sendMessage(
             Component.text()
@@ -124,8 +123,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         player.respawnPoint = spawnPosition
 
         player.safeSetInstance(instance, spawnPosition).thenRun {
-
-
             player.reset()
             player.resetTeam()
             scoreboard?.addViewer(player)
@@ -138,6 +135,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             //coroutineScope.launch {
             playerJoin(player)
             //}
+            refreshPlayerCount()
 
             EventDispatcher.call(PlayerJoinGameEvent(this, player))
 
@@ -154,50 +152,53 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (!players.contains(player)) return
 
-        Logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
-
         teams.forEach { it.remove(player) }
         players.remove(player)
         scoreboard?.removeViewer(player)
 
-        refreshPlayerCount()
-
         val leaveEvent = PlayerLeaveGameEvent(this, player)
         EventDispatcher.call(leaveEvent)
 
-        if (leaveMessage) sendMessage(
-            Component.text()
-                .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
-                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(player.username, NamedTextColor.RED))
-                .append(Component.text(" left the game ", NamedTextColor.GRAY))
-                .also {
-                    if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+        if (!destroyed) {
+            Logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
+
+            refreshPlayerCount()
+
+            if (leaveMessage) sendMessage(
+                Component.text()
+                    .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
+                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                    .append(Component.text(player.username, NamedTextColor.RED))
+                    .append(Component.text(" left the game ", NamedTextColor.GRAY))
+                    .also {
+                        if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
+                    }
+            )
+            playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 0.5f))
+
+            if (players.size < gameOptions.minPlayers) {
+                if (startingTask != null) {
+                    cancelCountdown()
                 }
-        )
-        playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 0.5f))
+            }
 
-        if (players.size < gameOptions.minPlayers) {
-            if (startingTask != null) {
-                cancelCountdown()
+            if (gameState == GameState.PLAYING) {
+                val teamsWithPlayers = teams.filter { it.players.isNotEmpty() }
+                if (teamsWithPlayers.size == 1) {
+                    victory(teamsWithPlayers.first())
+                    playerLeave(player)
+                    return
+                }
+                if (players.size == 1) {
+                    victory(players.first())
+                }
+            }
+
+            if (players.size == 0) {
+                destroy()
             }
         }
 
-        if (gameState == GameState.PLAYING) {
-            val teamsWithPlayers = teams.filter { it.players.isNotEmpty() }
-            if (teamsWithPlayers.size == 1) {
-                victory(teamsWithPlayers.first())
-                playerLeave(player)
-                return
-            }
-            if (players.size == 1) {
-                victory(players.first())
-            }
-        }
-
-        if (players.size == 0) {
-            destroy()
-        }
 
         playerLeave(player)
     }
@@ -226,7 +227,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = spawnPosition
 
-        player.safeSetInstance(instance).thenRun {
+        player.safeSetInstance(instance, spawnPosition).thenRun {
             player.reset()
 
             scoreboard?.addViewer(player)
