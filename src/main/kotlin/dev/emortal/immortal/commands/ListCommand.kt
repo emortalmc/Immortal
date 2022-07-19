@@ -15,7 +15,7 @@ object ListCommand : Kommand({
     val players by literal
 
     default {
-        player.chat("/list players")
+        Manager.command.execute(sender, "list players")
     }
 
     syntax(instances) {

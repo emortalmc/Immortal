@@ -197,7 +197,7 @@ class ImmortalExtension : Extension() {
                     }
                 } else {
                     val newGame = GameManager.findOrCreateGame(player, args[0])
-
+                    newGame.queuedPlayers.add(player)
                     if (!newGame.instance.isRegistered) Manager.instance.registerInstance(newGame.instance)
 
                     setSpawningInstance(newGame.instance)
@@ -280,6 +280,12 @@ class ImmortalExtension : Extension() {
                     val packet = packet as ClientInteractEntityPacket
                     if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN) && packet.type != ClientInteractEntityPacket.Attack()) return@listenOnly
                     PacketNPC.npcIdMap[packet.targetId]?.onClick(player)
+                }
+            }
+
+            eventNode.listenOnly<PlayerStartSneakingEvent> {
+                if (player.gameMode == GameMode.SPECTATOR) {
+                    this.player.stopSpectating()
                 }
             }
 

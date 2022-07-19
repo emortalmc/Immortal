@@ -80,6 +80,7 @@ object GameManager {
         setTag(joiningGameTag, true)
     }
 
+    @Synchronized
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String,

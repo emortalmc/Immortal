@@ -11,6 +11,7 @@ import dev.emortal.immortal.util.RedisStorage.redisson
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.minestom.server.adventure.audience.PacketGroupingAudience
@@ -33,6 +34,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     private val playerCountTopic = redisson?.getTopic("playercount")
 
     val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
+    val queuedPlayers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val spectators: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val teams: MutableSet<Team> = ConcurrentHashMap.newKeySet()
 
@@ -104,6 +106,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             Logger.warn("Contains player")
             return
         }
+        queuedPlayers.remove(player)
 
         Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 
@@ -229,6 +232,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.safeSetInstance(instance, spawnPosition).thenRun {
             player.reset()
+            player.resetTeam()
 
             scoreboard?.addViewer(player)
 
@@ -275,7 +279,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
                 scoreboard?.updateLineContent(
                     "infoLine",
                     Component.text()
-                        .append(Component.text("Starting in ${gameOptions.countdownSeconds - currentIteration} seconds", NamedTextColor.GREEN))
+                        .append(Component.text("Starting in ", TextColor.color(59, 128, 59)))
+                        .append(Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN))
+                        .append(Component.text(" seconds", TextColor.color(59, 128, 59)))
                         .build()
                 )
 
@@ -356,7 +362,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         val debugGame = System.getProperty("debuggame")
 
         // Both spectators and players
-        getPlayers().forEach {
+        getPlayers().shuffled().forEach {
             scoreboard?.removeViewer(it)
 
             if (debugMode) {
@@ -374,7 +380,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open fun canBeJoined(player: Player): Boolean {
         if (players.contains(player)) return false
-        if (players.size >= gameOptions.maxPlayers) {
+        if (!queuedPlayers.contains(player) && players.size + queuedPlayers.size >= gameOptions.maxPlayers) {
             return false
         }
         if (gameState == GameState.PLAYING) {
@@ -419,7 +425,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         val defeatSound = Sound.sound(SoundEvent.ENTITY_VILLAGER_DEATH, Sound.Source.MASTER, 1f, 0.8f)
 
-        players.forEach {
+        getPlayers().forEach {
             if (winningPlayers.contains(it)) {
                 it.showTitle(victoryTitle)
                 it.playSound(victorySound)

@@ -12,7 +12,7 @@ import world.cepi.kstom.Manager
 import world.cepi.kstom.adventure.asMini
 
 fun Player.reset() {
-    entityMeta.setNotifyAboutChanges(false)
+    //entityMeta.setNotifyAboutChanges(false)
 
     inventory.clear()
     isAutoViewable = true
@@ -39,7 +39,7 @@ fun Player.reset() {
     clearEffects()
     stopSpectating()
 
-    entityMeta.setNotifyAboutChanges(true)
+    //entityMeta.setNotifyAboutChanges(true)
 
     askSynchronization()
     updateViewableRule()
