@@ -407,6 +407,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     open fun victory(winningPlayers: Collection<Player>) {
+        if (gameState == GameState.ENDING) return
         gameState = GameState.ENDING
 
         val victoryTitle = Title.title(
