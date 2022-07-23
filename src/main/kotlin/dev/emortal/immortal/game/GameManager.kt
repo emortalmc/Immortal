@@ -17,6 +17,8 @@ import kotlin.reflect.full.primaryConstructor
 object GameManager {
     val doNotUnregisterTag = Tag.Boolean("doNotUnregister")
     val doNotAutoUnloadChunkTag = Tag.Boolean("doNotAutoUnloadChunk")
+    val doNotUnloadChunksIndex = Tag.Long("doNotUnloadChunksIndex")
+    val doNotUnloadChunksRadius = Tag.Integer("doNotUnloadChunksRadius")
 
     val gameNameTag = Tag.String("gameName")
     val gameIdTag = Tag.Integer("gameId")

@@ -31,11 +31,13 @@ import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.extensions.Extension
+import net.minestom.server.instance.block.Block
 import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.NamespaceID
+import net.minestom.server.utils.chunk.ChunkUtils
 import net.minestom.server.world.DimensionType
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
@@ -212,6 +214,23 @@ class ImmortalExtension : Extension() {
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {
                 if (instance.hasTag(GameManager.doNotAutoUnloadChunkTag)) return@listenOnly
+
+                val index = instance.getTag(GameManager.doNotUnloadChunksIndex)
+                if (index != null) {
+                    val spawnX = ChunkUtils.getChunkCoordX(index)
+                    val spawnZ = ChunkUtils.getChunkCoordZ(index)
+                    val radius = instance.getTag(GameManager.doNotUnloadChunksRadius) ?: 2
+                    if ( // If chunk is in radius...
+                        !(chunkX > spawnX + radius
+                        && chunkX < spawnX - radius
+                        && chunkZ > spawnZ + radius
+                        && chunkZ < spawnZ - radius)
+                    ) {
+                        // ...do not unload it
+                        return@listenOnly
+                    }
+                }
+
                 val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
 
                 if (chunk.viewers.isEmpty()) {
@@ -371,7 +390,14 @@ class ImmortalExtension : Extension() {
                 .build()
             Manager.dimensionType.addDimension(dimensionType)
 
+            // For some reason minecraft:oak_wall_sign exists so yay
+            Block.values().forEach {
+                if (it.name().endsWith("sign")) {
+                    SignHandler.register(it.name())
+                }
+            }
             SignHandler.register("minecraft:sign")
+
             SkullHandler.register("minecraft:skull")
 
             ForceStartCommand.register()
