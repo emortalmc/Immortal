@@ -35,6 +35,7 @@ import net.minestom.server.instance.block.Block
 import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
+import net.minestom.server.timer.Task
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.utils.chunk.ChunkUtils
@@ -46,6 +47,7 @@ import world.cepi.kstom.util.register
 import java.nio.file.Path
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
 class ImmortalExtension : Extension() {
@@ -191,6 +193,7 @@ class ImmortalExtension : Extension() {
                         this.player.kick("That player is not on a game")
                         return@listenOnly
                     }
+                    player.respawnPoint = game.spawnPosition
                     setSpawningInstance(game.instance)
                     player.scheduleNextTick {
                         joinsScope.launch {
@@ -210,6 +213,15 @@ class ImmortalExtension : Extension() {
                     }
 
                 }
+            }
+
+            val unloadingSoon = ConcurrentHashMap<Long, Task>()
+
+            eventNode.listenOnly<PlayerChunkLoadEvent> {
+                val index = ChunkUtils.getChunkIndex(chunkX, chunkZ)
+
+                unloadingSoon[index]?.cancel()
+                unloadingSoon.remove(index)
             }
 
             eventNode.listenOnly<PlayerChunkUnloadEvent> {
@@ -233,11 +245,14 @@ class ImmortalExtension : Extension() {
 
                 val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
 
-                if (chunk.viewers.isEmpty()) {
-                    try {
-                        instance.unloadChunk(chunkX, chunkZ)
-                    } catch (_: NullPointerException) {}
-                }
+                unloadingSoon[ChunkUtils.getChunkIndex(chunkX, chunkZ)] = instance.scheduler().buildTask {
+                    if (chunk.viewers.isEmpty()) {
+                        try {
+                            instance.unloadChunk(chunkX, chunkZ)
+                        } catch (_: NullPointerException) {}
+                    }
+                }.delay(TaskSchedule.tick(5)).schedule()
+
             }
 
             val globalEvent = Manager.globalEvent
