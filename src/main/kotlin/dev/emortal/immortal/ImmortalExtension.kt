@@ -31,6 +31,7 @@ import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.extensions.Extension
+import net.minestom.server.instance.InstanceContainer
 import net.minestom.server.instance.block.Block
 import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
@@ -285,10 +286,11 @@ class ImmortalExtension : Extension() {
                 if (this.entity !is Player) return@listenOnly
 
                 this.instance.scheduler().buildTask {
-                    if (instance.players.isEmpty()) {
+                    if (instance.players.isEmpty() && instance.isRegistered) {
                         if (instance.hasTag(GameManager.doNotUnregisterTag)) return@buildTask
                         //if (!instance.isRegistered) return@buildTask
                         instanceManager.unregisterInstance(instance)
+                        if (instance is InstanceContainer) (instance as InstanceContainer).chunkLoader = null
                         Logger.info("Instance was unregistered. Instance count: ${instanceManager.instances.size}")
                     } else {
                         //Logger.warn("Couldn't unregister instance, players: ${it.players.joinToString(separator = ", ") { it.username }}")
