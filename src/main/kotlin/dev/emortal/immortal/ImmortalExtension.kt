@@ -348,13 +348,14 @@ class ImmortalExtension : Extension() {
                 val placedOnPos = blockPosition.sub(dir.normalX().toDouble(), dir.normalY().toDouble(), dir.normalZ().toDouble())
                 val blockPlacedOn = instance.getBlock(placedOnPos)
 
-                if (player.gameMode == GameMode.ADVENTURE && player.getItemInHand(hand).meta().canPlaceOn.none { it.compare(blockPlacedOn) } || player.gameMode == GameMode.SPECTATOR) {
+
+                if (player.gameMode == GameMode.ADVENTURE && player.getItemInHand(hand).meta().canPlaceOn.none { Block.fromNamespaceId(it)!!.compare(block) } || player.gameMode == GameMode.SPECTATOR) {
                     isCancelled = true
                 }
             }
             eventNode.listenOnly<PlayerBlockBreakEvent> {
 
-                if (player.gameMode == GameMode.ADVENTURE && player.itemInMainHand.meta().canDestroy.none { it.compare(block) } || player.gameMode == GameMode.SPECTATOR) {
+                if (player.gameMode == GameMode.ADVENTURE && player.itemInMainHand.meta().canDestroy.none { Block.fromNamespaceId(it)!!.compare(block) } || player.gameMode == GameMode.SPECTATOR) {
                     isCancelled = true
                 }
             }
