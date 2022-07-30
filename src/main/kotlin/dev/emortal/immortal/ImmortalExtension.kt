@@ -8,6 +8,7 @@ import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.debug.DebugSpectateCommand
 import dev.emortal.immortal.debug.ImmortalDebug
 import dev.emortal.immortal.luckperms.LuckpermsListener
+import dev.emortal.immortal.util.RedisStorage
 import dev.emortal.immortal.util.RedisStorage.redisson
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
@@ -45,6 +46,7 @@ class ImmortalExtension : Extension() {
             }
 
             ImmortalEvents.register(eventNode)
+            RedisStorage.init()
 
             val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
                 .ambientLight(2f)
