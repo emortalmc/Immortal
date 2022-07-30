@@ -1,4 +1,3 @@
-
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -23,15 +22,15 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:a04012d9bf")
+    compileOnly("com.github.Minestom:Minestom:08f37400b0")
     compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
-    api("com.github.emortaldev:KStom:a680a2b096")
-    api("com.github.emortaldev:Particable:fadfbe0213")
+    api("com.github.EmortalMC:KStom:50b2b882fa")
+    api("com.github.emortaldev:Particable:f7212f39fb")
 
     api("com.github.EmortalMC:Rayfast:684e854a48")
 
     api("org.tinylog:tinylog-api-kotlin:2.4.1")
-    compileOnly("org.redisson:redisson:3.17.3")
+    compileOnly("org.redisson:redisson:3.17.5")
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
 }

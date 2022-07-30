@@ -42,7 +42,7 @@ object EndGameQuotes {
     )
 
     val draw = setOf(
-        "Well that was worth my time",
+        "Well that wasn't worth my time",
         "Hopefully one of you win next time",
         "Well... that was unexpected",
         "You're both too good",

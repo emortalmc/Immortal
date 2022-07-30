@@ -5,7 +5,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 class TaskGroup {
 
-    val tasks: MutableSet<Task> = ConcurrentHashMap.newKeySet()
+    private val tasks: MutableSet<Task> = ConcurrentHashMap.newKeySet()
+
+    fun addTask(task: Task) = tasks.add(task)
+    fun removeTask(task: Task?) = tasks.remove(task)
 
     fun cancel() {
         tasks.forEach {

@@ -2,7 +2,8 @@ package dev.emortal.immortal.game
 
 /**
  * Allows configuration of when events start being listened to
- * (Defaults to GAME_START)
+ *
+ * Defaults to [GAME_START]
  */
 enum class WhenToRegisterEvents {
     /**

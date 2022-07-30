@@ -32,7 +32,7 @@ fun centerSpaces(message: String, bold: Boolean = false): String {
 
     val spaceCount = toCompensate / spaceLength
     // Couldn't be centered - too long
-    if (1 > spaceCount) return message
+    if (1 > spaceCount) return ""
 
     return " ".repeat(toCompensate / spaceLength)
 }

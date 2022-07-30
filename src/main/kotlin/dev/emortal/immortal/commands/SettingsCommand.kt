@@ -10,7 +10,7 @@ import world.cepi.kstom.command.kommand.Kommand
 
 object SettingsCommand : Kommand({
 
-    onlyPlayers
+    onlyPlayers()
 
     val maxplayers by literal
     val minplayers by literal

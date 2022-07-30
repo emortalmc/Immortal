@@ -17,7 +17,7 @@ object ForceStartCommand : Kommand({
         it.sendMessage(Component.text("No permission", NamedTextColor.RED))
     }
 
-    onlyPlayers
+    onlyPlayers()
 
     default {
 

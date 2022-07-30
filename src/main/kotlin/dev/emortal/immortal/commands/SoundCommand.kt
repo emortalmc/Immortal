@@ -8,7 +8,7 @@ import world.cepi.kstom.command.kommand.Kommand
 
 object SoundCommand : Kommand({
 
-    onlyPlayers
+    onlyPlayers()
 
     val soundArgument = ArgumentSound("sound")
     val volumeArgument = ArgumentFloat("volume").defaultValue(1f)

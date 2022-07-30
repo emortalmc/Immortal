@@ -81,7 +81,7 @@ object StatsCommand : Kommand({
         )
     }
 
-}, "perf", "performance", "tps") {
+}, "tps") {
 
     private val LAST_TICK = AtomicReference<TickMonitor>()
 

@@ -1,4 +1,4 @@
-package dev.emortal.immortal.commands
+package dev.emortal.immortal.debug
 
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.game.GameManager.joinGame

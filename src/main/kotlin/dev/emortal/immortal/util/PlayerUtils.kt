@@ -18,10 +18,11 @@ fun Player.reset() {
     isAutoViewable = true
     isInvisible = false
     isGlowing = false
-    additionalHearts = 0f
-    gameMode = GameMode.ADVENTURE
+    isSneaking = false
     isAllowFlying = false
     isFlying = false
+    additionalHearts = 0f
+    gameMode = GameMode.ADVENTURE
     food = 20
     level = 0
     isEnableRespawnScreen = false
@@ -31,7 +32,6 @@ fun Player.reset() {
     setFireForDuration(0)
     getAttribute(Attribute.MOVEMENT_SPEED).baseValue = 0.1f
     setCanPickupItem(true)
-    setBoundingBox(0.6, 1.8, 0.6)
     if (openInventory != null) closeInventory()
     setNoGravity(false)
     refreshCommands()

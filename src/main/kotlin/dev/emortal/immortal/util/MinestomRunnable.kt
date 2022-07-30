@@ -59,7 +59,11 @@ abstract class MinestomRunnable : Runnable {
                 return@buildTask
             }
 
-            this.run()
+            try {
+                this.run()
+            } catch (e: Throwable) {
+                Manager.exception.handleException(e)
+            }
 
             currentIteration++
         }
@@ -70,10 +74,10 @@ abstract class MinestomRunnable : Runnable {
 
         if (this.task != null) {
             this.task?.cancel()
-            taskGroup?.tasks?.remove(this.task)
+            taskGroup?.removeTask(this.task)
         }
 
-        taskGroup?.tasks?.add(t)
+        taskGroup?.addTask(t)
 
         this.task = t
         return t

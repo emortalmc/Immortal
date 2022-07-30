@@ -7,7 +7,7 @@ import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.getNextGameId
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.*
-import dev.emortal.immortal.util.RedisStorage.redisson
+import dev.emortal.immortal.util.RedisStorage.playerCountTopic
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -30,8 +30,6 @@ import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
-
-    private val playerCountTopic = redisson?.getTopic("playercount")
 
     val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     val queuedPlayers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
@@ -399,12 +397,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         return team
     }
 
-    fun victory(team: Team) {
-        victory(team.players)
-    }
-    fun victory(player: Player) {
-        victory(listOf(player))
-    }
+    fun victory(team: Team) = victory(team.players)
+    fun victory(player: Player) = victory(listOf(player))
 
     open fun victory(winningPlayers: Collection<Player>) {
         if (gameState == GameState.ENDING) return

@@ -25,18 +25,17 @@ object VersionCommand : Kommand({
             .append(Component.text("\n\n  → ${extensions.size} extensions:\n", NamedTextColor.LIGHT_PURPLE))
 
         extensions.forEachIndexed { i,it ->
+            if (i != 0) message.append(Component.text(", ", NamedTextColor.DARK_GRAY))
+
             message.append(
                 Component.text(it.origin.name, NamedTextColor.GREEN)
                     .hoverEvent(HoverEvent.showText(
                         Component.text()
                             .append(Component.text("Name: ", NamedTextColor.GRAY))
                             .append(Component.text(it.origin.name, NamedTextColor.GREEN))
-
+                            .append(Component.text("\nVersion: ", NamedTextColor.GRAY))
+                            .append(Component.text(it.origin.version, NamedTextColor.GREEN))
                             .also { msg ->
-                                if (it.origin.version != "1.0.0") {
-                                    msg.append(Component.text("\nVersion: ", NamedTextColor.GRAY))
-                                    msg.append(Component.text(it.origin.version, NamedTextColor.GREEN))
-                                }
                                 if (it.origin.authors.isNotEmpty()) {
                                     msg.append(Component.text("\nAuthors", NamedTextColor.GRAY))
                                     msg.append(Component.text(it.origin.authors.joinToString(), NamedTextColor.GRAY))
@@ -46,10 +45,9 @@ object VersionCommand : Kommand({
 
                     ))
             )
-            if (i != extensions.size - 1) message.append(Component.text(", ", NamedTextColor.DARK_GRAY))
         }
 
         sender.sendMessage(message.armify())
     }
 
-}, "version", "icanhasminestom", "extensions")
+}, "version", "icanhasminestom", "extensions", "pl", "plugins")

@@ -15,11 +15,13 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 
 object GameManager {
+    // Instance Tags
     val doNotUnregisterTag = Tag.Boolean("doNotUnregister")
     val doNotAutoUnloadChunkTag = Tag.Boolean("doNotAutoUnloadChunk")
     val doNotUnloadChunksIndex = Tag.Long("doNotUnloadChunksIndex")
     val doNotUnloadChunksRadius = Tag.Integer("doNotUnloadChunksRadius")
 
+    // Game Tags
     val gameNameTag = Tag.String("gameName")
     val gameIdTag = Tag.Integer("gameId")
     val joiningGameTag = Tag.Boolean("joiningGame")
