@@ -16,6 +16,7 @@ import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.extensions.Extension
+import net.minestom.server.instance.block.Block
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
@@ -53,6 +54,12 @@ class ImmortalExtension : Extension() {
                 .build()
             Manager.dimensionType.addDimension(dimensionType)
 
+            // For some reason minecraft:oak_wall_sign exists so yay
+            Block.values().forEach {
+                if (it.name().endsWith("sign")) {
+                    SignHandler.register(it.name())
+                }
+            }
             SignHandler.register("minecraft:sign")
             SkullHandler.register("minecraft:skull")
 
