@@ -35,6 +35,7 @@ class ImmortalExtension : Extension() {
 
         fun init(eventNode: EventNode<Event> = Manager.globalEvent) {
             gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("replaceme", 42069))
+            luckperms = LuckPermsProvider.get()
 
             // Ignore warning when player opens recipe book
             Manager.packetListener.setListener(ClientSetRecipeBookStatePacket::class.java) { _: ClientSetRecipeBookStatePacket, _: Player -> }
@@ -75,10 +76,9 @@ class ImmortalExtension : Extension() {
     }
 
     override fun initialize() {
-        luckperms = LuckPermsProvider.get()
-        LuckpermsListener(this@ImmortalExtension, luckperms)
-
         init(eventNode)
+
+        LuckpermsListener(this@ImmortalExtension, luckperms)
     }
 
     override fun terminate() {
