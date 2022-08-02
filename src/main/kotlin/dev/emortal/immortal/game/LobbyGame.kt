@@ -22,7 +22,7 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     var allowBlockModification = false
 
    init {
-       start()
+       gameState = GameState.PLAYING
 
        eventNode.listenOnly<PlayerBlockPlaceEvent> {
            isCancelled = !allowBlockModification
@@ -31,6 +31,16 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
            isCancelled = !allowBlockModification
        }
    }
+
+    override fun start() {
+        playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
+        startingTask = null
+        scoreboard?.updateLineContent("infoLine", Component.empty())
+
+        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents()
+        gameStarted()
+    }
 
     // Spectating is not supported for lobby games.
     override fun addSpectator(player: Player) {}
@@ -86,7 +96,7 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
         if (!queuedPlayers.contains(player) && players.size + queuedPlayers.size >= gameOptions.maxPlayers) {
             return false
         }
-        return gameState.joinable
+        return true
     }
 
 }

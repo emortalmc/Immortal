@@ -60,8 +60,12 @@ object GameManager {
     }
 
     fun Player.joinGame(game: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false): Boolean {
-        if ((!game.canBeJoined(this) && !spectate) || (spectate && !game.gameTypeInfo.spectatable)) {
+        if (!game.canBeJoined(this) && !spectate) {
             Logger.warn("Game could not be joined")
+            return false
+        }
+        if (spectate && !game.gameTypeInfo.spectatable) {
+            Logger.warn("Attempted spectate but game is not spectatable")
             return false
         }
 

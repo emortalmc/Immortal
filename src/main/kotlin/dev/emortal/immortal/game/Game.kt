@@ -322,7 +322,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     abstract fun registerEvents()
 
-    fun start() {
+    open fun start() {
         if (gameState == GameState.PLAYING) return
 
         playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
