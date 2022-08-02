@@ -26,6 +26,7 @@ import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
+import java.lang.ref.WeakReference
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
@@ -45,12 +46,12 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
-    val instance: Instance = instanceCreate().also {
+    val instance: WeakReference<Instance> = WeakReference(instanceCreate().also {
         it.setTag(GameManager.gameNameTag, gameName)
-    }
+    })
 
     val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.INSTANCE) { event, inst ->
-        inst.uniqueId == instance.uniqueId
+        inst.uniqueId == instance.get()?.uniqueId
     }
 
     //val spectatorNode = EventNode.type("${gameTypeInfo.name}-$id-spectator", EventFilter.PLAYER) { event, plr ->
@@ -99,7 +100,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
     }
 
-    internal fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+    internal open fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (players.contains(player)) {
             Logger.warn("Contains player")
             return
@@ -123,7 +124,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = spawnPosition
 
-        player.safeSetInstance(instance, spawnPosition).thenRun {
+        player.safeSetInstance(instance, spawnPosition)?.thenRun {
             player.reset()
             player.resetTeam()
             scoreboard?.addViewer(player)
@@ -133,9 +134,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             player.clearTitle()
             player.sendActionBar(Component.empty())
 
-            //coroutineScope.launch {
             playerJoin(player)
-            //}
+
             refreshPlayerCount()
 
             EventDispatcher.call(PlayerJoinGameEvent(this, player))
@@ -150,7 +150,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     }
 
-    internal fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+    internal open fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (!players.contains(player)) return
 
         teams.forEach { it.remove(player) }
@@ -204,7 +204,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         playerLeave(player)
     }
 
-    private fun refreshPlayerCount() {
+    internal open fun refreshPlayerCount() {
         playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
@@ -218,7 +218,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         }
     }
 
-    internal fun addSpectator(player: Player) {
+    internal open fun addSpectator(player: Player) {
         if (spectators.contains(player)) return
         if (players.contains(player)) return
 
@@ -228,7 +228,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = spawnPosition
 
-        player.safeSetInstance(instance, spawnPosition).thenRun {
+        player.safeSetInstance(instance, spawnPosition)?.thenRun {
             player.reset()
             player.resetTeam()
 
@@ -246,7 +246,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         }
     }
 
-    internal fun removeSpectator(player: Player) {
+    internal open fun removeSpectator(player: Player) {
         if (!spectators.contains(player)) return
 
         Logger.info("${player.username} stopped spectating game '${gameTypeInfo.name}'")
@@ -265,7 +265,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     abstract fun gameStarted()
     abstract fun gameDestroyed()
 
-    private fun startCountdown() {
+    internal open fun startCountdown() {
         if (gameOptions.countdownSeconds == 0) {
             start()
             return
@@ -298,7 +298,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
 
             override fun cancelled() {
-                instance.scheduleNextTick {
+                instance.get()?.scheduleNextTick {
                     start()
                 }
             }
@@ -306,7 +306,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         }
     }
 
-    fun cancelCountdown() {
+    internal open fun cancelCountdown() {
         startingTask?.cancel()
         startingTask = null
 
@@ -364,9 +364,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             scoreboard?.removeViewer(it)
 
             if (debugMode) {
-                it.joinGameOrNew(debugGame)
+                it.joinGameOrNew(debugGame, ignoreCooldown = true)
             } else {
-                it.joinGameOrNew(gameName)
+                it.joinGameOrNew(gameName, ignoreCooldown = true)
             }
 
         }

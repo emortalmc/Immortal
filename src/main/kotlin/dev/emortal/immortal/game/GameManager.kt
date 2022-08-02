@@ -59,14 +59,14 @@ object GameManager {
         }.delay(Duration.ofSeconds(1)).schedule()
     }
 
-    fun Player.joinGame(game: Game, spectate: Boolean = false): Boolean {
-        if (!game.canBeJoined(this) && !spectate) {
+    fun Player.joinGame(game: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false): Boolean {
+        if ((!game.canBeJoined(this) && !spectate) || (spectate && !game.gameTypeInfo.spectatable)) {
             Logger.warn("Game could not be joined")
             return false
         }
 
         val lastGame = this.game
-        handleJoin(this, lastGame, game, spectate)
+        handleJoin(this, lastGame, game, spectate, ignoreCooldown)
         return true
     }
 
@@ -78,13 +78,15 @@ object GameManager {
 
     fun Player.joinGameOrNew(
         gameTypeName: String,
-        options: GameOptions = registeredGameMap[gameTypeName]!!.options
+        options: GameOptions = registeredGameMap[gameTypeName]!!.options,
+        ignoreCooldown: Boolean = false
     ) {
-        joinGame(findOrCreateGame(this, gameTypeName, options))
+        if (!ignoreCooldown && hasTag(joiningGameTag)) return
+
+        joinGame(findOrCreateGame(this, gameTypeName, options), ignoreCooldown)
         setTag(joiningGameTag, true)
     }
 
-    @Synchronized
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String,

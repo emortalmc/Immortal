@@ -65,6 +65,7 @@ class ImmortalExtension : Extension() {
             SkullHandler.register("minecraft:skull")
 
             ForceStartCommand.register()
+            ForceGCCommand.register()
             SoundCommand.register()
             StatsCommand.register()
             ListCommand.register()
@@ -83,6 +84,7 @@ class ImmortalExtension : Extension() {
 
     override fun terminate() {
         ForceStartCommand.unregister()
+        ForceGCCommand.unregister()
         SoundCommand.unregister()
         StatsCommand.unregister()
         ListCommand.unregister()

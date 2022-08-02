@@ -5,7 +5,7 @@ import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.Player
 import net.minestom.server.instance.Instance
 import world.cepi.kstom.Manager
-import java.util.*
+import java.lang.ref.WeakReference
 import java.util.concurrent.CompletableFuture
 
 fun Player.safeSetInstance(instance: Instance, pos: Pos? = null): CompletableFuture<Void> {
@@ -36,13 +36,5 @@ fun Player.safeSetInstance(instance: Instance, pos: Pos? = null): CompletableFut
     return if (position == null) setInstance(instance) else setInstance(instance, position)
 }
 
-fun Player.safeSetInstance(instance: UUID, pos: Pos? = null): CompletableFuture<Void> {
-    val newInstance = Manager.instance.getInstance(instance)
-
-    if (instance == this.instance?.uniqueId || newInstance == null) {
-        if (pos == null) return CompletableFuture.completedFuture(null)
-        return this.teleport(pos)
-    }
-
-    return if (pos == null) setInstance(newInstance) else setInstance(newInstance, pos)
-}
+fun Player.safeSetInstance(instance: WeakReference<Instance>, pos: Pos? = null)
+    = instance.get()?.let { safeSetInstance(it, pos) }
