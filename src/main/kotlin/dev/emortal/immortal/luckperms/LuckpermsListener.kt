@@ -2,6 +2,7 @@ package dev.emortal.immortal.luckperms
 
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.event.user.UserDataRecalculateEvent
+import world.cepi.kstom.Manager
 
 class LuckpermsListener(extension: Any, luckperms: LuckPerms) {
 
@@ -10,7 +11,7 @@ class LuckpermsListener(extension: Any, luckperms: LuckPerms) {
         val eventBus = luckperms.eventBus
 
         eventBus.subscribe(extension, UserDataRecalculateEvent::class.java) {
-            val player = PermissionUtils.userToPlayerMap[it.user] ?: return@subscribe
+            val player = Manager.connection.getPlayer(it.user.uniqueId) ?: return@subscribe
             PermissionUtils.refreshPrefix(player)
         }
 
