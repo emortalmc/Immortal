@@ -7,7 +7,7 @@ import dev.emortal.immortal.game.GameManager.leaveGame
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.LettuceStorage
+import dev.emortal.immortal.util.RedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
@@ -38,10 +38,13 @@ object ImmortalEvents {
                 System.getProperty("debuggame")
             } else {
                 // Read then delete value
-                LettuceStorage.connection?.getdel("${player.uuid}-subgame")?.get()?.trim()
+                RedisStorage.redisson?.getBucket<String>("${player.uuid}-subgame")?.andDelete?.trim()
             }
 
-            if (subgame == null) return@listenOnly
+            if (subgame == null) {
+                Logger.error("Subgame is null!")
+                return@listenOnly
+            }
 
             val args = subgame.split(" ")
             val isSpectating = args.size > 1 && args[1].toBoolean()

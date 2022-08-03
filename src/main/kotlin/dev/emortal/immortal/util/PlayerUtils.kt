@@ -59,5 +59,5 @@ fun Player.resetTeam() {
 }
 
 fun Player.sendServer(gameName: String) {
-    LettuceStorage.pubSub?.publish("joingame", "$gameName ${this.uuid}")
+    RedisStorage.joinGameTopic?.publish("$gameName ${this.uuid}")
 }

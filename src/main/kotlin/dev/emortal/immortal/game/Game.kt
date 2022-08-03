@@ -199,7 +199,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     internal open fun refreshPlayerCount() {
-        LettuceStorage.pubSub?.publish("playercount", "$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+        RedisStorage.playerCountTopic?.publish("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
             scoreboard?.updateLineContent(
