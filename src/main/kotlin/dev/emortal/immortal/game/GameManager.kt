@@ -50,7 +50,7 @@ object GameManager {
 
         lastGame?.removePlayer(player)
         lastGame?.removeSpectator(player)
-        playerGameMap.remove(player.uuid)
+        //playerGameMap.remove(player.uuid)
 
         if (spectate) newGame.addSpectator(player) else newGame.addPlayer(player)
 

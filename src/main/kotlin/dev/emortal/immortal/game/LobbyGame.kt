@@ -42,10 +42,6 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
         gameStarted()
     }
 
-    // Spectating is not supported for lobby games.
-    override fun addSpectator(player: Player) {}
-    override fun removeSpectator(player: Player) {}
-
     // Lobby does not have a countdown
     override fun startCountdown() {}
     override fun cancelCountdown() {}
@@ -56,7 +52,7 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     // Lobby cannot be won
     override fun victory(winningPlayers: Collection<Player>) {}
 
-    var firstJoin = true
+    private var firstJoin = true
 
     override fun addPlayer(player: Player, joinMessage: Boolean) {
         if (firstJoin) {

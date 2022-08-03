@@ -61,7 +61,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             viewer.sendPacket(createTeamPacket)
             viewer.sendPacket(teamPacket)
 
-            Manager.scheduler.buildTask {
+            viewer.scheduler().buildTask {
                 viewer.sendPacket(removeFromList)
             }.delay(Duration.ofSeconds(3)).schedule()
         } else {
