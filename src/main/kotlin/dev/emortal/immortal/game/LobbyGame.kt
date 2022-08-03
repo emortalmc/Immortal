@@ -56,7 +56,13 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     // Lobby cannot be won
     override fun victory(winningPlayers: Collection<Player>) {}
 
+    var firstJoin = true
+
     override fun addPlayer(player: Player, joinMessage: Boolean) {
+        if (firstJoin) {
+            start()
+        }
+        firstJoin = false
         if (players.contains(player)) {
             Logger.warn("Contains player")
             return

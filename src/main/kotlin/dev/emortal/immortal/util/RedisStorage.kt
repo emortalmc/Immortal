@@ -24,6 +24,7 @@ object RedisStorage {
                         .setAddress(ImmortalExtension.gameConfig.address)
                         .setClientName(ImmortalExtension.gameConfig.serverName)
                         .setConnectionPoolSize(5)
+                        .setConnectionMinimumIdleSize(2)
                 }
             )
         } else null

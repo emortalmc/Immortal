@@ -7,7 +7,7 @@ import net.minestom.server.adventure.audience.PacketGroupingAudience
 import net.minestom.server.entity.Player
 import net.minestom.server.network.packet.server.play.TeamsPacket
 import world.cepi.kstom.Manager
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArraySet
 
 class Team(
     val teamName: String,
@@ -18,7 +18,7 @@ class Team(
     var canSeeInvisiblePlayers: Boolean = false
 ) : PacketGroupingAudience {
 
-    private val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
+    private val players = CopyOnWriteArraySet<Player>()
 
     val scoreboardTeam = Manager.team.createBuilder(teamName)
         .teamColor(NamedTextColor.nearestTo(TextColor.color(colour)))
