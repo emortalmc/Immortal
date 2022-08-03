@@ -9,8 +9,7 @@ import dev.emortal.immortal.debug.DebugSpectateCommand
 import dev.emortal.immortal.debug.ImmortalDebug
 import dev.emortal.immortal.luckperms.LuckpermsListener
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.KredsStorage
-import dev.emortal.immortal.util.KredsStorage.kreds
+import dev.emortal.immortal.util.LettuceStorage
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.entity.Player
@@ -56,7 +55,7 @@ class ImmortalExtension : Extension() {
             }
 
             ImmortalEvents.register(eventNode)
-            KredsStorage.init()
+            LettuceStorage.init()
 
             val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
                 .ambientLight(2f)
@@ -100,7 +99,7 @@ class ImmortalExtension : Extension() {
         SettingsCommand.unregister()
         DebugSpectateCommand.unregister()
 
-        kreds?.close()
+        LettuceStorage.lettuce?.shutdownAsync()
 
         Logger.info("Immortal terminated!")
     }

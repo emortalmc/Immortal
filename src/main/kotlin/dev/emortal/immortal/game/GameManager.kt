@@ -3,7 +3,7 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
-import dev.emortal.immortal.util.KredsStorage.kreds
+import dev.emortal.immortal.util.LettuceStorage
 import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.text.Component
 import net.minestom.server.entity.Player
@@ -149,7 +149,7 @@ object GameManager {
             options
         )
 
-        kreds?.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
+        LettuceStorage.pubSub?.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
         gameMap[name] = ConcurrentHashMap.newKeySet()
 

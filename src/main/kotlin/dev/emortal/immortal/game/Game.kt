@@ -7,9 +7,6 @@ import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.getNextGameId
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.*
-import dev.emortal.immortal.util.KredsStorage.kreds
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -201,10 +198,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         playerLeave(player)
     }
 
-    internal open fun refreshPlayerCount() = runBlocking {
-        launch {
-            kreds?.publish("playercount", "$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
-        }
+    internal open fun refreshPlayerCount() {
+        LettuceStorage.pubSub?.publish("playercount", "$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
             scoreboard?.updateLineContent(

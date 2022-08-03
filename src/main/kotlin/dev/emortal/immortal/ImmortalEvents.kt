@@ -7,9 +7,8 @@ import dev.emortal.immortal.game.GameManager.leaveGame
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.KredsStorage
+import dev.emortal.immortal.util.LettuceStorage
 import dev.emortal.immortal.util.resetTeam
-import kotlinx.coroutines.runBlocking
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
@@ -33,57 +32,54 @@ object ImmortalEvents {
     @Suppress("UnstableApiUsage")
     fun register(eventNode: EventNode<Event>) {
         eventNode.listenOnly<PlayerLoginEvent> {
-            runBlocking {
-                player.gameMode = GameMode.ADVENTURE
+            player.gameMode = GameMode.ADVENTURE
 
-                val subgame = if (System.getProperty("debug") == "true") {
-                    System.getProperty("debuggame")
-                } else {
-                    // Read then delete value
-                    KredsStorage.kreds?.getDel("${player.uuid}-subgame")?.trim()
-                }
-
-                if (subgame == null) return@runBlocking
-
-                val args = subgame.split(" ")
-                val isSpectating = args.size > 1 && args[1].toBoolean()
-
-                Logger.info(subgame)
-                if (isSpectating) {
-                    Logger.info("Spectating!")
-
-                    val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
-                    if (playerToSpectate == null) {
-                        Logger.warn("Player to spectate was null")
-                        player.kick("That player is not online")
-                        return@runBlocking
-                    }
-                    val game = playerToSpectate.game
-                    if (game == null) {
-                        Logger.warn("Player's game was null")
-                        player.kick("That player is not on a game")
-                        return@runBlocking
-                    }
-                    player.respawnPoint = game.spawnPosition
-                    game.instance.get()?.let { setSpawningInstance(it) }
-                    player.scheduleNextTick {
-                        player.joinGame(game, spectate = true, ignoreCooldown = true)
-                    }
-                } else {
-                    val newGame = GameManager.findOrCreateGame(player, args[0])
-                    val instance = newGame.instance.get() ?: return@runBlocking
-                    newGame.queuedPlayers.add(player)
-
-                    setSpawningInstance(instance)
-
-                    player.respawnPoint = newGame.spawnPosition
-                    player.scheduleNextTick {
-                        player.joinGame(newGame, ignoreCooldown = true)
-                    }
-
-                }
+            val subgame = if (System.getProperty("debug") == "true") {
+                System.getProperty("debuggame")
+            } else {
+                // Read then delete value
+                LettuceStorage.connection?.getdel("${player.uuid}-subgame")?.get()?.trim()
             }
 
+            if (subgame == null) return@listenOnly
+
+            val args = subgame.split(" ")
+            val isSpectating = args.size > 1 && args[1].toBoolean()
+
+            Logger.info(subgame)
+            if (isSpectating) {
+                Logger.info("Spectating!")
+
+                val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
+                if (playerToSpectate == null) {
+                    Logger.warn("Player to spectate was null")
+                    player.kick("That player is not online")
+                    return@listenOnly
+                }
+                val game = playerToSpectate.game
+                if (game == null) {
+                    Logger.warn("Player's game was null")
+                    player.kick("That player is not on a game")
+                    return@listenOnly
+                }
+                player.respawnPoint = game.spawnPosition
+                game.instance.get()?.let { setSpawningInstance(it) }
+                player.scheduleNextTick {
+                    player.joinGame(game, spectate = true, ignoreCooldown = true)
+                }
+            } else {
+                val newGame = GameManager.findOrCreateGame(player, args[0])
+                val instance = newGame.instance.get() ?: return@listenOnly
+                newGame.queuedPlayers.add(player)
+
+                setSpawningInstance(instance)
+
+                player.respawnPoint = newGame.spawnPosition
+                player.scheduleNextTick {
+                    player.joinGame(newGame, ignoreCooldown = true)
+                }
+
+            }
         }
 
 
