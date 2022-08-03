@@ -3,12 +3,13 @@ package dev.emortal.immortal
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.game.GameManager.joinGame
+import dev.emortal.immortal.game.GameManager.leaveGame
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
-import dev.emortal.immortal.luckperms.PermissionUtils.lpUser
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.RedisStorage
+import dev.emortal.immortal.util.KredsStorage
 import dev.emortal.immortal.util.resetTeam
+import kotlinx.coroutines.runBlocking
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
@@ -17,7 +18,6 @@ import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.instance.InstanceContainer
 import net.minestom.server.instance.block.Block
-import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.timer.Task
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.chunk.ChunkUtils
@@ -33,55 +33,59 @@ object ImmortalEvents {
     @Suppress("UnstableApiUsage")
     fun register(eventNode: EventNode<Event>) {
         eventNode.listenOnly<PlayerLoginEvent> {
-            this.player.gameMode = GameMode.ADVENTURE
+            runBlocking {
+                player.gameMode = GameMode.ADVENTURE
 
-            val subgame = if (System.getProperty("debug") == "true") {
-                System.getProperty("debuggame")
-            } else {
-                // Read then delete value
-                RedisStorage.redisson?.getBucket<String>("${player.uuid}-subgame")?.andDelete?.trim()
+                val subgame = if (System.getProperty("debug") == "true") {
+                    System.getProperty("debuggame")
+                } else {
+                    // Read then delete value
+                    KredsStorage.kreds?.getDel("${player.uuid}-subgame")?.trim()
+                }
+
+                if (subgame == null) return@runBlocking
+
+                val args = subgame.split(" ")
+                val isSpectating = args.size > 1 && args[1].toBoolean()
+
+                Logger.info(subgame)
+                if (isSpectating) {
+                    Logger.info("Spectating!")
+
+                    val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
+                    if (playerToSpectate == null) {
+                        Logger.warn("Player to spectate was null")
+                        player.kick("That player is not online")
+                        return@runBlocking
+                    }
+                    val game = playerToSpectate.game
+                    if (game == null) {
+                        Logger.warn("Player's game was null")
+                        player.kick("That player is not on a game")
+                        return@runBlocking
+                    }
+                    player.respawnPoint = game.spawnPosition
+                    game.instance.get()?.let { setSpawningInstance(it) }
+                    player.scheduleNextTick {
+                        player.joinGame(game, spectate = true, ignoreCooldown = true)
+                    }
+                } else {
+                    val newGame = GameManager.findOrCreateGame(player, args[0])
+                    val instance = newGame.instance.get() ?: return@runBlocking
+                    newGame.queuedPlayers.add(player)
+
+                    setSpawningInstance(instance)
+
+                    player.respawnPoint = newGame.spawnPosition
+                    player.scheduleNextTick {
+                        player.joinGame(newGame, ignoreCooldown = true)
+                    }
+
+                }
             }
 
-            if (subgame == null) return@listenOnly
-
-            val args = subgame.split(" ")
-            val isSpectating = args.size > 1 && args[1].toBoolean()
-
-            Logger.info(subgame)
-            if (isSpectating) {
-                Logger.info("Spectating!")
-
-                val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
-                if (playerToSpectate == null) {
-                    Logger.warn("Player to spectate was null")
-                    this.player.kick("That player is not online")
-                    return@listenOnly
-                }
-                val game = playerToSpectate.game
-                if (game == null) {
-                    Logger.warn("Player's game was null")
-                    this.player.kick("That player is not on a game")
-                    return@listenOnly
-                }
-                player.respawnPoint = game.spawnPosition
-                game.instance.get()?.let { setSpawningInstance(it) }
-                player.scheduleNextTick {
-                    player.joinGame(game, spectate = true, ignoreCooldown = true)
-                }
-            } else {
-                val newGame = GameManager.findOrCreateGame(player, args[0])
-                val instance = newGame.instance.get() ?: return@listenOnly
-                newGame.queuedPlayers.add(player)
-
-                setSpawningInstance(instance)
-
-                player.respawnPoint = newGame.spawnPosition
-                player.scheduleNextTick {
-                    player.joinGame(newGame, ignoreCooldown = true)
-                }
-
-            }
         }
+
 
         val unloadingSoon = ConcurrentHashMap<Long, Task>()
 
@@ -117,6 +121,7 @@ object ImmortalEvents {
                 if (chunk.viewers.isEmpty()) {
                     try {
                         instance.unloadChunk(chunkX, chunkZ)
+                        unloadingSoon.remove(ChunkUtils.getChunkIndex(chunkX, chunkZ))
                     } catch (_: NullPointerException) {}
                 }
             }.delay(TaskSchedule.tick(5)).schedule()
@@ -151,18 +156,7 @@ object ImmortalEvents {
         }
 
         eventNode.listenOnly<PlayerDisconnectEvent> {
-            player.game?.removePlayer(player)
-            player.game?.removeSpectator(player)
-            GameManager.playerGameMap.remove(player)
-            PermissionUtils.userToPlayerMap.remove(player.lpUser)
-        }
-
-        eventNode.listenOnly<PlayerPacketEvent> {
-            if (packet is ClientInteractEntityPacket) {
-                val packet = packet as ClientInteractEntityPacket
-                if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN) && packet.type != ClientInteractEntityPacket.Attack()) return@listenOnly
-                PacketNPC.npcIdMap[packet.targetId]?.onClick(player)
-            }
+            player.leaveGame()
         }
 
         eventNode.listenOnly<PlayerStartSneakingEvent> {
@@ -182,6 +176,7 @@ object ImmortalEvents {
 
                 PermissionUtils.refreshPrefix(player)
             } else {
+                // To mutable list here to copy list in order to avoid concurrent modification and unsupported operation
                 val viewingNpcs = (PacketNPC.viewerMap[player.uuid] ?: return@listenOnly).toMutableList()
                 viewingNpcs.forEach {
                     it.removeViewer(player)

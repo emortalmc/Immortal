@@ -8,8 +8,9 @@ import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.debug.DebugSpectateCommand
 import dev.emortal.immortal.debug.ImmortalDebug
 import dev.emortal.immortal.luckperms.LuckpermsListener
-import dev.emortal.immortal.util.RedisStorage
-import dev.emortal.immortal.util.RedisStorage.redisson
+import dev.emortal.immortal.npc.PacketNPC
+import dev.emortal.immortal.util.KredsStorage
+import dev.emortal.immortal.util.KredsStorage.kreds
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.entity.Player
@@ -17,6 +18,7 @@ import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.extensions.Extension
 import net.minestom.server.instance.block.Block
+import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
@@ -40,6 +42,12 @@ class ImmortalExtension : Extension() {
             // Ignore warning when player opens recipe book
             Manager.packetListener.setListener(ClientSetRecipeBookStatePacket::class.java) { _: ClientSetRecipeBookStatePacket, _: Player -> }
 
+            Manager.packetListener.setListener(ClientInteractEntityPacket::class.java) { packet: ClientInteractEntityPacket, player: Player ->
+                if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN) && packet.type != ClientInteractEntityPacket.Attack()) return@setListener
+
+                PacketNPC.viewerMap[player.uuid]?.firstOrNull { it.playerId == packet.targetId }?.onClick(player)
+            }
+
             val debugMode = System.getProperty("debug").toBoolean()
             val debugGame = System.getProperty("debuggame")
             if (debugMode) {
@@ -48,7 +56,7 @@ class ImmortalExtension : Extension() {
             }
 
             ImmortalEvents.register(eventNode)
-            RedisStorage.init()
+            KredsStorage.init()
 
             val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
                 .ambientLight(2f)
@@ -92,7 +100,7 @@ class ImmortalExtension : Extension() {
         SettingsCommand.unregister()
         DebugSpectateCommand.unregister()
 
-        redisson?.shutdown()
+        kreds?.close()
 
         Logger.info("Immortal terminated!")
     }

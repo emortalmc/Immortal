@@ -7,7 +7,9 @@ import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.getNextGameId
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.*
-import dev.emortal.immortal.util.RedisStorage.playerCountTopic
+import dev.emortal.immortal.util.KredsStorage.kreds
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -28,14 +30,14 @@ import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import java.lang.ref.WeakReference
 import java.time.Duration
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArraySet
 
 abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
-    val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
-    val queuedPlayers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
-    val spectators: MutableSet<Player> = ConcurrentHashMap.newKeySet()
-    val teams: MutableSet<Team> = ConcurrentHashMap.newKeySet()
+    val players = CopyOnWriteArraySet<Player>()
+    val queuedPlayers = CopyOnWriteArraySet<Player>()
+    val spectators = CopyOnWriteArraySet<Player>()
+    val teams = CopyOnWriteArraySet<Team>()
 
     val id = getNextGameId()
 
@@ -54,11 +56,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         inst.uniqueId == instance.get()?.uniqueId
     }
 
-    //val spectatorNode = EventNode.type("${gameTypeInfo.name}-$id-spectator", EventFilter.PLAYER) { event, plr ->
-    //    players.contains(plr.uuid)
-    //}
-
-    //val coroutineScope = CoroutineScope(Dispatchers.IO)
     val taskGroup = TaskGroup()
 
     var startingTask: MinestomRunnable? = null
@@ -204,8 +201,10 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         playerLeave(player)
     }
 
-    internal open fun refreshPlayerCount() {
-        playerCountTopic?.publishAsync("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+    internal open fun refreshPlayerCount() = runBlocking {
+        launch {
+            kreds?.publish("playercount", "$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+        }
 
         if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
             scoreboard?.updateLineContent(
@@ -372,6 +371,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         }
         players.clear()
         spectators.clear()
+        queuedPlayers.clear()
+        teams.clear()
 
         refreshPlayerCount()
     }

@@ -3,12 +3,14 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
-import dev.emortal.immortal.util.RedisStorage.redisson
+import dev.emortal.immortal.util.KredsStorage.kreds
+import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.text.Component
 import net.minestom.server.entity.Player
 import net.minestom.server.tag.Tag
 import org.tinylog.kotlin.Logger
 import java.time.Duration
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
@@ -27,12 +29,12 @@ object GameManager {
     val joiningGameTag = Tag.Boolean("joiningGame")
     val doNotTeleportTag = Tag.Boolean("doNotTeleport")
 
-    val playerGameMap = ConcurrentHashMap<Player, Game>()
+    val playerGameMap = ConcurrentHashMap<UUID, Game>()
     val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
     val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()
     val gameMap = ConcurrentHashMap<String, MutableSet<Game>>()
 
-    val Player.game get() = playerGameMap[this]
+    val Player.game get() = playerGameMap[this.uuid]
 
     //val canBeJoinedLock = Object()
 
@@ -48,11 +50,11 @@ object GameManager {
 
         lastGame?.removePlayer(player)
         lastGame?.removeSpectator(player)
-        playerGameMap.remove(player)
+        playerGameMap.remove(player.uuid)
 
         if (spectate) newGame.addSpectator(player) else newGame.addPlayer(player)
 
-        playerGameMap[player] = newGame
+        playerGameMap[player.uuid] = newGame
 
         player.scheduler().buildTask {
             player.removeTag(joiningGameTag)
@@ -75,8 +77,10 @@ object GameManager {
     }
 
     fun Player.leaveGame() {
+        game?.queuedPlayers?.remove(this)
         game?.removePlayer(this)
-        playerGameMap.remove(this)
+        game?.removeSpectator(this)
+        playerGameMap.remove(this.uuid)
         removeTag(joiningGameTag)
     }
 
@@ -133,7 +137,7 @@ object GameManager {
         canSpectate: Boolean = true,
         whenToRegisterEvents: WhenToRegisterEvents = WhenToRegisterEvents.GAME_START,
         options: GameOptions
-    ) {
+    ) = runBlocking {
         registeredClassMap[clazz] = name
         registeredGameMap[name] = GameTypeInfo(
             clazz,
@@ -145,8 +149,7 @@ object GameManager {
             options
         )
 
-        redisson?.getTopic("registergame")
-            ?.publishAsync("$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
+        kreds?.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
         gameMap[name] = ConcurrentHashMap.newKeySet()
 

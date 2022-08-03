@@ -9,14 +9,9 @@ import world.cepi.kstom.adventure.asMini
 import java.util.*
 
 object PermissionUtils {
-    val userToPlayerMap = mutableMapOf<User, Player>()
     val playerAdapter = ImmortalExtension.luckperms.getPlayerAdapter(Player::class.java)
 
-    val Player.lpUser: User get() {
-        val user = playerAdapter.getUser(this)
-        userToPlayerMap.putIfAbsent(user, this)
-        return user
-    }
+    val Player.lpUser: User get() = playerAdapter.getUser(this)
 
     val Player.prefix: String? get() = lpUser.cachedData.metaData.prefix
     val Player.suffix: String? get() = lpUser.cachedData.metaData.suffix

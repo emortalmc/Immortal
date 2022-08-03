@@ -30,7 +30,7 @@ dependencies {
     api("com.github.EmortalMC:Rayfast:684e854a48")
 
     api("org.tinylog:tinylog-api-kotlin:2.4.1")
-    compileOnly("org.redisson:redisson:3.17.5")
+    compileOnly("io.github.crackthecodeabhi:kreds:0.7.1")
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
 }

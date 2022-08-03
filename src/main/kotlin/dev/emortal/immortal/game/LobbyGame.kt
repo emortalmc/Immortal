@@ -50,6 +50,9 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     override fun startCountdown() {}
     override fun cancelCountdown() {}
 
+    // Player count used for compass and NPCs, Lobby does not appear there
+    override fun refreshPlayerCount() {}
+
     // Lobby cannot be won
     override fun victory(winningPlayers: Collection<Player>) {}
 
