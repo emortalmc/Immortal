@@ -5,10 +5,7 @@ import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.game.GameManager.joinGame
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
-import io.github.crackthecodeabhi.kreds.connection.AbstractKredsSubscriber
-import io.github.crackthecodeabhi.kreds.connection.Endpoint
-import io.github.crackthecodeabhi.kreds.connection.KredsClient
-import io.github.crackthecodeabhi.kreds.connection.newClient
+import io.github.crackthecodeabhi.kreds.connection.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -94,6 +91,8 @@ object KredsStorage {
                 }
 
             }
+
+            newSubscriberClient(Endpoint.from(ImmortalExtension.gameConfig.address), subscriptionHandler)
         }
 
     }
