@@ -21,13 +21,22 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.ThreadLocalRandom
 
 fun Player.showFirework(instance: Instance, position: Pos, effects: MutableList<FireworkEffect>) = listOf(this).showFirework(instance, position, effects)
+fun Player.showFirework(instance: WeakReference<Instance>, position: Pos, effects: MutableList<FireworkEffect>) = listOf(this).showFirework(instance, position, effects)
 fun Player.showFireworkWithDuration(instance: Instance, position: Pos, ticks: Int, effects: MutableList<FireworkEffect>) = listOf(this).showFireworkWithDuration(instance, position, ticks, effects)
+fun Player.showFireworkWithDuration(instance: WeakReference<Instance>, position: Pos, ticks: Int, effects: MutableList<FireworkEffect>) = listOf(this).showFireworkWithDuration(instance, position, ticks, effects)
 
 fun Collection<Player>.showFirework(
     instance: WeakReference<Instance>,
     position: Pos,
     effects: MutableList<FireworkEffect>
-) = instance.get()?.let { showFirework(it, position, effects) }
+) = instance.ifPresent { showFirework(it, position, effects) }
+
+fun Collection<Player>.showFireworkWithDuration(
+    instance: WeakReference<Instance>,
+    position: Pos,
+    ticks: Int,
+    effects: MutableList<FireworkEffect>
+) = instance.ifPresent { showFireworkWithDuration(it, position, ticks, effects) }
 
 fun Collection<Player>.showFirework(
     instance: Instance,

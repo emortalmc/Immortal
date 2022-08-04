@@ -292,9 +292,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
 
             override fun cancelled() {
-                instance.get()?.scheduleNextTick {
-                    start()
-                }
+                start()
             }
 
         }

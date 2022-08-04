@@ -8,6 +8,7 @@ import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.RedisStorage
+import dev.emortal.immortal.util.ifPresent
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
@@ -66,7 +67,7 @@ object ImmortalEvents {
                     return@listenOnly
                 }
                 player.respawnPoint = game.spawnPosition
-                game.instance.get()?.let { setSpawningInstance(it) }
+                game.instance.ifPresent { setSpawningInstance(it) }
                 player.scheduleNextTick {
                     player.joinGame(game, spectate = true, ignoreCooldown = true)
                 }
