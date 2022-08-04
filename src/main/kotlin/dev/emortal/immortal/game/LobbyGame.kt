@@ -1,6 +1,7 @@
 package dev.emortal.immortal.game
 
 import dev.emortal.immortal.config.GameOptions
+import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.util.reset
 import dev.emortal.immortal.util.resetTeam
 import dev.emortal.immortal.util.safeSetInstance
@@ -9,6 +10,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.minestom.server.entity.Player
+import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.player.PlayerBlockBreakEvent
 import net.minestom.server.event.player.PlayerBlockPlaceEvent
 import net.minestom.server.sound.SoundEvent
@@ -87,6 +89,8 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
             player.sendActionBar(Component.empty())
 
             playerJoin(player)
+
+            EventDispatcher.call(PlayerJoinGameEvent(this, player))
         }
     }
 

@@ -66,13 +66,13 @@ object ImmortalEvents {
                     return@listenOnly
                 }
                 player.respawnPoint = game.spawnPosition
-                setSpawningInstance(game.instance)
+                game.instance.get()?.let { setSpawningInstance(it) }
                 player.scheduleNextTick {
                     player.joinGame(game, spectate = true, ignoreCooldown = true)
                 }
             } else {
                 val newGame = GameManager.findOrCreateGame(player, args[0])
-                val instance = newGame.instance
+                val instance = newGame.instance.get() ?: return@listenOnly
                 newGame.queuedPlayers.add(player)
 
                 setSpawningInstance(instance)

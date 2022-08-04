@@ -1,6 +1,9 @@
 package dev.emortal.immortal.game
 
 import dev.emortal.immortal.config.GameOptions
+import dev.emortal.immortal.event.GameDestroyEvent
+import dev.emortal.immortal.event.PlayerJoinGameEvent
+import dev.emortal.immortal.event.PlayerLeaveGameEvent
 import dev.emortal.immortal.game.GameManager.getNextGameId
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.*
@@ -14,6 +17,7 @@ import net.minestom.server.adventure.audience.PacketGroupingAudience
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
 import net.minestom.server.instance.Instance
@@ -21,6 +25,7 @@ import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
+import java.lang.ref.WeakReference
 import java.time.Duration
 import java.util.concurrent.CopyOnWriteArraySet
 
@@ -40,13 +45,12 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
-    val instance: Instance = instanceCreate().also {
+    val instance: WeakReference<Instance> = WeakReference(instanceCreate().also {
         it.setTag(GameManager.gameNameTag, gameName)
-    }
+    })
 
     val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.INSTANCE) { event, inst ->
-        if (this.destroyed) false
-        else inst.uniqueId == instance.uniqueId
+        inst.uniqueId == instance.get()?.uniqueId
     }
 
     val taskGroup = TaskGroup()
@@ -114,7 +118,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = spawnPosition
 
-        player.safeSetInstance(instance, spawnPosition).thenRun {
+        player.safeSetInstance(instance, spawnPosition)?.thenRun {
             player.reset()
             player.resetTeam()
             scoreboard?.addViewer(player)
@@ -127,6 +131,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             playerJoin(player)
 
             refreshPlayerCount()
+
+            EventDispatcher.call(PlayerJoinGameEvent(this, player))
 
             if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
                 if (startingTask == null) {
@@ -144,6 +150,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         teams.forEach { it.remove(player) }
         players.remove(player)
         scoreboard?.removeViewer(player)
+
+        val leaveEvent = PlayerLeaveGameEvent(this, player)
+        EventDispatcher.call(leaveEvent)
 
         if (!destroyed) {
             Logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
@@ -283,7 +292,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
 
             override fun cancelled() {
-                start()
+                instance.get()?.scheduleNextTick {
+                    start()
+                }
             }
 
         }
@@ -329,6 +340,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         taskGroup.cancel()
 
         gameDestroyed()
+
+        val destroyEvent = GameDestroyEvent(this)
+        EventDispatcher.call(destroyEvent)
 
         GameManager.gameMap[gameName]?.remove(this)
 
