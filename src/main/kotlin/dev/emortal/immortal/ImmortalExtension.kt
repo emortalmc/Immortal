@@ -17,6 +17,7 @@ import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.extensions.Extension
 import net.minestom.server.instance.block.Block
+import net.minestom.server.listener.UseEntityListener
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
 import net.minestom.server.utils.NamespaceID
@@ -42,6 +43,8 @@ class ImmortalExtension : Extension() {
             Manager.packetListener.setListener(ClientSetRecipeBookStatePacket::class.java) { _: ClientSetRecipeBookStatePacket, _: Player -> }
 
             Manager.packetListener.setListener(ClientInteractEntityPacket::class.java) { packet: ClientInteractEntityPacket, player: Player ->
+                UseEntityListener.useEntityListener(packet, player)
+
                 if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN) && packet.type != ClientInteractEntityPacket.Attack()) return@setListener
 
                 PacketNPC.viewerMap[player.uuid]?.firstOrNull { it.playerId == packet.targetId }?.onClick(player)
