@@ -259,7 +259,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     abstract fun gameStarted()
     abstract fun gameDestroyed()
 
-    internal open fun startCountdown() {
+    open fun startCountdown() {
         if (gameOptions.countdownSeconds == 0) {
             start()
             return
@@ -298,7 +298,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         }
     }
 
-    internal open fun cancelCountdown() {
+    open fun cancelCountdown() {
         startingTask?.cancel()
         startingTask = null
 
