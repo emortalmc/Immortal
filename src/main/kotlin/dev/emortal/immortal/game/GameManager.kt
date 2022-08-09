@@ -91,7 +91,7 @@ object GameManager {
     ) {
         if (!ignoreCooldown && hasTag(joiningGameTag)) return
 
-        joinGame(findOrCreateGame(this, gameTypeName, options), ignoreCooldown)
+        joinGame(findOrCreateGame(this, gameTypeName, options), ignoreCooldown = ignoreCooldown)
         setTag(joiningGameTag, true)
     }
 
