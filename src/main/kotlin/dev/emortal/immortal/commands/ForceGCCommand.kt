@@ -32,4 +32,4 @@ object ForceGCCommand : Kommand({
         sender.sendMessage("Done. ${ramUsage2}mb")
     }
 
-}, "forcegc")
+}, "gc")

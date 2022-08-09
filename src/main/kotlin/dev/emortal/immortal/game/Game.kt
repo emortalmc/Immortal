@@ -4,6 +4,7 @@ import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.event.GameDestroyEvent
 import dev.emortal.immortal.event.PlayerJoinGameEvent
 import dev.emortal.immortal.event.PlayerLeaveGameEvent
+import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.game.GameManager.getNextGameId
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.*
@@ -20,6 +21,9 @@ import net.minestom.server.entity.Player
 import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventFilter
 import net.minestom.server.event.EventNode
+import net.minestom.server.event.trait.EntityEvent
+import net.minestom.server.event.trait.InstanceEvent
+import net.minestom.server.event.trait.PlayerEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
@@ -49,8 +53,19 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         it.setTag(GameManager.gameNameTag, gameName)
     })
 
-    val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.INSTANCE) { event, inst ->
-        inst.uniqueId == instance.get()?.uniqueId
+    val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.ALL) { event, thing ->
+        if (destroyed) return@type false
+        if (event is PlayerEvent) {
+            return@type event.player.game?.id == id
+        }
+        if (event is InstanceEvent) {
+            return@type event.instance.uniqueId == instance.get()?.uniqueId
+        }
+        if (event is EntityEvent) {
+            return@type event.entity.instance?.uniqueId == instance.get()?.uniqueId
+        }
+
+        false
     }
 
     val taskGroup = TaskGroup()
