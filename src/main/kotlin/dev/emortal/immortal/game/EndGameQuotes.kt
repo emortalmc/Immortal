@@ -22,6 +22,7 @@ object EndGameQuotes {
         "I guess you weren't trying",
         "no",
         "L",
+        "uffeyman was here",
         "Better luck next time!",
         "Worse luck next time!",
         "Should have used a Minestom client",
@@ -38,7 +39,8 @@ object EndGameQuotes {
         "I bet you didn't even say good game",
         "You did your best... but it wasn't enough",
         "\"i lagged\" said an Australian",
-        "If I had a dollar every time you won a game, I'd be in crippling debt"
+        "If I had a dollar every time you won a game, I'd be in crippling debt",
+        "widepeepoSad"
     )
 
     val draw = setOf(

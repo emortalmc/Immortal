@@ -160,7 +160,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     internal open fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
-        if (!players.contains(player)) return
+        if (!players.contains(player)) Logger.warn("Player is already not in the game, leaving anyway")
 
         teams.forEach { it.remove(player) }
         players.remove(player)

@@ -32,6 +32,7 @@ object RedisStorage {
     val registerTopic = redisson?.getTopic("registergame")
     val playerCountTopic = redisson?.getTopic("playercount")
     val joinGameTopic = redisson?.getTopic("joingame")
+    val unregisterTopic = redisson?.getTopic("unregistergame")
 
     fun init() {
         if (redisson == null) return
