@@ -39,9 +39,15 @@ object RedisStorage {
 
         // Create proxyhello listener
         redisson.getTopic("proxyhello")?.addListenerAsync(String::class.java) { _, _ ->
-            GameManager.gameMap.keys.forEach {
+            GameManager.registeredGameMap.keys.forEach {
                 Logger.info("Received proxyhello, re-registering game $it")
                 registerTopic?.publishAsync("$it ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
+            }
+        }
+        redisson.getTopic("lobbyhello")?.addListenerAsync(String::class.java) { _, _ ->
+            GameManager.gameMap.forEach {
+                //Logger.info("Received lobbyhello, sending player count for game $it")
+                playerCountTopic?.publishAsync("${it.key} ${it.value.sumOf { game -> game.players.size }}")
             }
         }
 

@@ -111,7 +111,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     internal open fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
         if (players.contains(player)) {
-            Logger.warn("Contains player")
+            Logger.warn("Already contains player")
             return
         }
         queuedPlayers.remove(player)
@@ -137,13 +137,14 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             player.reset()
             player.resetTeam()
             scoreboard?.addViewer(player)
-
             playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
             //player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
             player.clearTitle()
             player.sendActionBar(Component.empty())
 
-            playerJoin(player)
+            player.scheduler().buildTask {
+                playerJoin(player)
+            }.schedule()
 
             refreshPlayerCount()
 
@@ -342,7 +343,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         gameStarted()
     }
 
-    fun destroy() {
+    open fun destroy() {
         if (destroyed) return
         destroyed = true
 

@@ -38,6 +38,8 @@ fun Player.reset() {
     clearEffects()
     stopSpectating()
 
+    Manager.bossBar.removeAllBossBars(this)
+
     //entityMeta.setNotifyAboutChanges(true)
 
     askSynchronization()
