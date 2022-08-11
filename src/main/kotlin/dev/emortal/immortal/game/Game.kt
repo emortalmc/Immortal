@@ -214,7 +214,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         playerLeave(player)
     }
 
-    internal open fun refreshPlayerCount() {
+    open fun refreshPlayerCount() {
         RedisStorage.playerCountTopic?.publish("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
