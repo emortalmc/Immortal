@@ -38,7 +38,9 @@ fun Player.reset() {
     clearEffects()
     stopSpectating()
 
-    Manager.bossBar.removeAllBossBars(this)
+    Manager.bossBar.getPlayerBossBars(this).forEach {
+        Manager.bossBar.removeBossBar(this, it)
+    }
 
     //entityMeta.setNotifyAboutChanges(true)
 
