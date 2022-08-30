@@ -36,8 +36,6 @@ object GameManager {
 
     val Player.game get() = playerGameMap[this.uuid]
 
-    //val canBeJoinedLock = Object()
-
     private val lastGameId = AtomicInteger(0)
     fun getNextGameId() = lastGameId.getAndIncrement()
 

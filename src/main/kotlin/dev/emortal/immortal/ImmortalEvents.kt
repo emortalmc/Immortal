@@ -17,6 +17,7 @@ import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.instance.InstanceContainer
 import net.minestom.server.instance.block.Block
+import net.minestom.server.permission.Permission
 import net.minestom.server.timer.Task
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.chunk.ChunkUtils
@@ -180,6 +181,7 @@ object ImmortalEvents {
                 }
 
                 PermissionUtils.refreshPrefix(player)
+                player.addPermission(Permission("spark"))
             } else {
                 // To mutable list here to copy list in order to avoid concurrent modification and unsupported operation
                 val viewingNpcs = (PacketNPC.viewerMap[player.uuid] ?: return@listenOnly).toMutableList()

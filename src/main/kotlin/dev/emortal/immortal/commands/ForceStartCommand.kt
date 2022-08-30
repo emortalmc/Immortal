@@ -5,36 +5,38 @@ import dev.emortal.immortal.game.GameState
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import world.cepi.kstom.command.kommand.Kommand
+import net.minestom.server.command.builder.Command
+import net.minestom.server.entity.Player
 
-object ForceStartCommand : Kommand({
+internal object ForceStartCommand : Command("forcestart") {
 
-    condition {
-        sender.hasLuckPermission("immortal.forcestart")
-    }
-
-    playerCallbackFailMessage = {
-        it.sendMessage(Component.text("No permission", NamedTextColor.RED))
-    }
-
-    onlyPlayers()
-
-    default {
-
-        val playerGame = player.game
-
-        if (playerGame == null) {
-            player.sendMessage(Component.text("You are not in a game", NamedTextColor.RED))
-            return@default
-        }
-        if (playerGame.gameState != GameState.WAITING_FOR_PLAYERS) {
-            player.sendMessage(Component.text("The game has already started", NamedTextColor.RED))
-            return@default
+    init {
+        setCondition { sender, _ ->
+            sender.hasLuckPermission("immortal.forcestart")
         }
 
-        playerGame.startingTask?.cancel()
-        playerGame.start()
-        playerGame.sendMessage(Component.text("${player.username} started the game early", NamedTextColor.GOLD))
+        setDefaultExecutor { sender, _ ->
+            if (!sender.hasLuckPermission("immortal.forcestart")) {
+                sender.sendMessage("No permission")
+                return@setDefaultExecutor
+            }
+
+            val player = sender as? Player ?: return@setDefaultExecutor
+            val playerGame = player.game
+
+            if (playerGame == null) {
+                player.sendMessage(Component.text("You are not in a game", NamedTextColor.RED))
+                return@setDefaultExecutor
+            }
+            if (playerGame.gameState != GameState.WAITING_FOR_PLAYERS) {
+                player.sendMessage(Component.text("The game has already started", NamedTextColor.RED))
+                return@setDefaultExecutor
+            }
+
+            playerGame.startingTask?.cancel()
+            playerGame.start()
+            playerGame.sendMessage(Component.text("${player.username} started the game early", NamedTextColor.GOLD))
+        }
     }
 
-}, "forcestart")
+}

@@ -1,6 +1,7 @@
 package dev.emortal.immortal.util
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.Style
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.util.RGBLike
@@ -13,13 +14,9 @@ fun progressBar(percentage: Float, characterCount: Int = 10, character: String =
     val completeCharacters = ceil((percentage * characterCount)).toInt()
     val incompleteCharacters = floor((1 - percentage) * characterCount).toInt()
 
-    return if (decoration == null) {
-        Component.text(character.repeat(completeCharacters), TextColor.color(completeColor))
-            .append(Component.text(character.repeat(incompleteCharacters), TextColor.color(incompleteColor)))
-    } else {
-        Component.text(character.repeat(completeCharacters), TextColor.color(completeColor), decoration)
-            .append(Component.text(character.repeat(incompleteCharacters), TextColor.color(incompleteColor), decoration))
-    }
+    val completeStyle = Style.style(TextColor.color(completeColor), decoration)
+    val incompleteStyle = Style.style(TextColor.color(incompleteColor), decoration)
 
-
+    return Component.text(character.repeat(completeCharacters), completeStyle)
+        .append(Component.text(character.repeat(incompleteCharacters), incompleteStyle))
 }

@@ -49,11 +49,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open var spawnPosition = Pos(0.5, 70.0, 0.5)
 
-    val instance: WeakReference<Instance> = WeakReference(instanceCreate().also {
-        it.setTag(GameManager.gameNameTag, gameName)
-    })
+    lateinit var instance: WeakReference<Instance>
 
-    val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.ALL) { event, thing ->
+    val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.ALL) { event, _ ->
         if (destroyed) return@type false
         if (event is PlayerEvent) {
             return@type event.player.game?.id == id
@@ -104,6 +102,10 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
                 )
             )
         }
+
+        instance = WeakReference(instanceCreate().also {
+            it.setTag(GameManager.gameNameTag, gameName)
+        })
 
         Manager.globalEvent.addChild(eventNode)
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()

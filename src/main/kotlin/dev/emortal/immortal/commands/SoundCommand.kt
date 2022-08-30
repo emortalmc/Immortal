@@ -1,21 +1,21 @@
 package dev.emortal.immortal.commands
 
 import net.kyori.adventure.sound.Sound
+import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.arguments.number.ArgumentFloat
 import world.cepi.kstom.command.arguments.ArgumentSound
 import world.cepi.kstom.command.arguments.defaultValue
-import world.cepi.kstom.command.kommand.Kommand
 
-object SoundCommand : Kommand({
+internal object SoundCommand : Command("sound") {
 
-    onlyPlayers()
+    init {
+        val soundArgument = ArgumentSound("sound")
+        val volumeArgument = ArgumentFloat("volume").defaultValue(1f)
+        val pitchArgument = ArgumentFloat("pitch").defaultValue(1f)
 
-    val soundArgument = ArgumentSound("sound")
-    val volumeArgument = ArgumentFloat("volume").defaultValue(1f)
-    val pitchArgument = ArgumentFloat("pitch").defaultValue(1f)
-
-    syntax(soundArgument, volumeArgument, pitchArgument) {
-        player.playSound(Sound.sound((!soundArgument)!!, Sound.Source.MASTER, !volumeArgument, !pitchArgument))
+        addSyntax({ sender, ctx ->
+            sender.playSound(Sound.sound((ctx.get(soundArgument))!!, Sound.Source.MASTER, ctx.get(volumeArgument), ctx.get(pitchArgument)))
+        }, soundArgument, volumeArgument, pitchArgument)
     }
 
-}, "sound")
+}

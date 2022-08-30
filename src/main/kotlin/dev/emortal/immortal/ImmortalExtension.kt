@@ -5,7 +5,6 @@ import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameConfig
-import dev.emortal.immortal.debug.DebugSpectateCommand
 import dev.emortal.immortal.debug.ImmortalDebug
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.luckperms.LuckpermsListener
@@ -26,6 +25,8 @@ import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
+import world.cepi.kstom.command.register
+import world.cepi.kstom.command.unregister
 import world.cepi.kstom.util.register
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -57,7 +58,6 @@ class ImmortalExtension : Extension() {
             val debugGame = System.getProperty("debuggame")
             if (debugMode) {
                 ImmortalDebug.enable(debugGame)
-                DebugSpectateCommand.register()
             }
 
             ImmortalEvents.register(eventNode)
@@ -83,7 +83,6 @@ class ImmortalExtension : Extension() {
             StatsCommand.register()
             ListCommand.register()
             VersionCommand.register()
-            SettingsCommand.register()
 
             Logger.info("Immortal initialized!")
         }
@@ -102,8 +101,6 @@ class ImmortalExtension : Extension() {
         StatsCommand.unregister()
         ListCommand.unregister()
         VersionCommand.unregister()
-        SettingsCommand.unregister()
-        DebugSpectateCommand.unregister()
 
         GameManager.registeredGameMap.keys().asIterator().forEachRemaining {
             unregisterTopic?.publishAsync(it)
