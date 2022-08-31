@@ -34,14 +34,13 @@ import java.util.concurrent.TimeUnit
 class ImmortalExtension : Extension() {
 
     companion object {
-        lateinit var luckperms: LuckPerms
+        var luckperms: LuckPerms? = null
 
         lateinit var gameConfig: GameConfig
         private val configPath = Path.of("./immortalconfig.json")
 
         fun init(eventNode: EventNode<Event> = Manager.globalEvent) {
             gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig("replaceme", 42069))
-            luckperms = LuckPermsProvider.get()
 
             // Ignore warning when player opens recipe book
             Manager.packetListener.setListener(ClientSetRecipeBookStatePacket::class.java) { _: ClientSetRecipeBookStatePacket, _: Player -> }
@@ -57,11 +56,16 @@ class ImmortalExtension : Extension() {
             val debugMode = System.getProperty("debug").toBoolean()
             val debugGame = System.getProperty("debuggame")
             if (debugMode) {
-                ImmortalDebug.enable(debugGame)
+                if (System.getProperty("debugtablist").toBoolean()) {
+                    ImmortalDebug.enable(debugGame)
+                }
+            } else {
+                RedisStorage.init()
+                luckperms = LuckPermsProvider.get()
             }
 
             ImmortalEvents.register(eventNode)
-            RedisStorage.init()
+
 
             val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
                 .ambientLight(2f)

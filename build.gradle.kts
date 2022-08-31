@@ -2,7 +2,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.7.0"
+    kotlin("jvm") version "1.7.10"
     kotlin("plugin.serialization") version "1.7.0"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 
@@ -29,10 +29,10 @@ dependencies {
 
     api("com.github.EmortalMC:Rayfast:684e854a48")
 
-    api("org.tinylog:tinylog-api-kotlin:2.4.1")
-    compileOnly("org.redisson:redisson:3.17.5")
+    api("org.tinylog:tinylog-api-kotlin:2.5.0")
+    compileOnly("org.redisson:redisson:3.17.6")
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
 }
 
 tasks {
