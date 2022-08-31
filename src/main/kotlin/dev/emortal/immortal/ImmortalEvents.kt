@@ -1,5 +1,6 @@
 package dev.emortal.immortal
 
+import dev.emortal.immortal.game.Game
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.game.GameManager.joinGame
@@ -11,6 +12,7 @@ import dev.emortal.immortal.util.RedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import net.minestom.server.entity.metadata.other.PaintingMeta
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
@@ -32,28 +34,34 @@ object ImmortalEvents {
 
     @Suppress("UnstableApiUsage")
     fun register(eventNode: EventNode<Event>) {
-        eventNode.listenOnly<PlayerLoginEvent> {
-            player.gameMode = GameMode.ADVENTURE
+        val preparedGameMap = ConcurrentHashMap<UUID, Pair<Game, Boolean>>()
 
+        eventNode.listenOnly<AsyncPlayerPreLoginEvent> {
             val subgame = if (System.getProperty("debug") == "true") {
                 System.getProperty("debuggame")
             } else {
                 // Read then delete value
-                RedisStorage.redisson?.getBucket<String>("${player.uuid}-subgame")?.andDelete?.trim()
+                RedisStorage.redisson?.getBucket<String>("${playerUuid}-subgame")?.andDelete?.trim()
             }
 
             if (subgame == null) {
                 Logger.error("Subgame is null!")
+                player.kick("Game was not provided. Try /play")
                 return@listenOnly
             }
+
+            Logger.warn(subgame)
 
             val args = subgame.split(" ")
             val isSpectating = args.size > 1 && args[1].toBoolean()
 
-            Logger.info(subgame)
-            if (isSpectating) {
-                Logger.info("Spectating!")
+            if (!GameManager.registeredGameMap.containsKey(args[0])) {
+                Logger.error("${args[0]} game is not on this server")
+                player.kick("${args[0]} game is not on this server. Try /play")
+                return@listenOnly
+            }
 
+            if (isSpectating) {
                 val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
                 if (playerToSpectate == null) {
                     Logger.warn("Player to spectate was null")
@@ -62,33 +70,42 @@ object ImmortalEvents {
                 }
                 val game = playerToSpectate.game
                 if (game == null) {
-                    Logger.warn("Player's game was null")
-                    player.kick("That player is not on a game")
+                    player.kick("That player is not in a game")
                     return@listenOnly
                 }
                 player.respawnPoint = game.spawnPosition
 
                 val instance = game.instance.get()
                 if (instance == null) {
-                    Logger.error("Instance not present on weak reference.")
+                    player.kick("World has not loaded.")
                     return@listenOnly
                 }
-                setSpawningInstance(instance)
-                player.scheduleNextTick {
-                    player.joinGame(game, spectate = true, ignoreCooldown = true)
-                }
+
+                preparedGameMap[playerUuid] = game to true
             } else {
                 val newGame = GameManager.findOrCreateGame(player, args[0])
                 val instance = newGame.instance.get() ?: return@listenOnly
                 newGame.queuedPlayers.add(player)
 
-                setSpawningInstance(instance)
+                preparedGameMap[playerUuid] = newGame to false
+            }
+        }
+        eventNode.listenOnly<PlayerLoginEvent> {
+            player.gameMode = GameMode.ADVENTURE
 
-                player.respawnPoint = newGame.spawnPosition
-                player.scheduleNextTick {
-                    player.joinGame(newGame, ignoreCooldown = true)
-                }
+            val preparedGame = preparedGameMap[player.uuid]
+            preparedGameMap.remove(player.uuid)
+            if (preparedGame == null) {
+                player.kick("Game was not prepared")
+                Logger.error("Game was not prepared")
+                return@listenOnly
+            }
 
+            setSpawningInstance(preparedGame.first.instance.get()!!)
+
+            player.respawnPoint = preparedGame.first.spawnPosition
+            player.scheduleNextTick {
+                player.joinGame(preparedGame.first, spectate = preparedGame.second, ignoreCooldown = true)
             }
         }
 

@@ -3,6 +3,8 @@ package dev.emortal.immortal.util
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.ComponentLike
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.Style
+import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 
 fun ComponentLike.armify(length: Int = 79): Component {
@@ -11,6 +13,19 @@ fun ComponentLike.armify(length: Int = 79): Component {
         .append(this)
         .append(Component.text("\n" + " ".repeat(length), NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
         .build()
+}
+
+fun safeStyle(color: TextColor?, decoration: TextDecoration? = null): Style {
+    val builder = Style.style()
+    builder.color(color)
+    if (decoration != null) builder.decorate(decoration)
+    return builder.build()
+}
+fun safeStyle(color: TextColor?, vararg decorations: TextDecoration): Style {
+    val builder = Style.style()
+    builder.color(color)
+    if (decorations.isNotEmpty()) builder.decorate(*decorations)
+    return builder.build()
 }
 
 private const val CENTER_PX = 154
