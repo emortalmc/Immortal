@@ -105,6 +105,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         instance = WeakReference(instanceCreate().also {
             it.setTag(GameManager.gameNameTag, gameName)
+            it.setTag(GameManager.gameIdTag, id)
         })
 
         Manager.globalEvent.addChild(eventNode)
@@ -217,7 +218,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     open fun refreshPlayerCount() {
-        RedisStorage.playerCountTopic?.publish("$gameName ${GameManager.gameMap[gameName]?.sumOf { it.players.size } ?: 0}")
+        RedisStorage.playerCountTopic?.publish("$gameName ${GameManager.gameMap[gameName]?.values?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
             scoreboard?.updateLineContent(
@@ -360,7 +361,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         val destroyEvent = GameDestroyEvent(this)
         EventDispatcher.call(destroyEvent)
 
-        GameManager.gameMap[gameName]?.remove(this)
+        GameManager.gameMap[gameName]?.remove(id)
 
         teams.forEach {
             it.destroy()

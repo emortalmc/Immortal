@@ -12,17 +12,16 @@ import dev.emortal.immortal.util.RedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
-import net.minestom.server.entity.metadata.other.PaintingMeta
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
-import net.minestom.server.instance.InstanceContainer
 import net.minestom.server.instance.block.Block
 import net.minestom.server.permission.Permission
 import net.minestom.server.timer.Task
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.chunk.ChunkUtils
+import net.minestom.server.utils.time.TimeUnit
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
@@ -37,11 +36,15 @@ object ImmortalEvents {
         val preparedGameMap = ConcurrentHashMap<UUID, Pair<Game, Boolean>>()
 
         eventNode.listenOnly<AsyncPlayerPreLoginEvent> {
-            val subgame = if (System.getProperty("debug") == "true") {
+            var subgame = if (System.getProperty("debug") == "true") {
                 System.getProperty("debuggame")
             } else {
                 // Read then delete value
                 RedisStorage.redisson?.getBucket<String>("${playerUuid}-subgame")?.andDelete?.trim()
+            }
+
+            if (subgame == null && GameManager.registeredGameMap.keys.size == 1) {
+                subgame = GameManager.registeredGameMap.keys.first()
             }
 
             if (subgame == null) {
@@ -161,15 +164,20 @@ object ImmortalEvents {
         }
 
         eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
-            if (this.entity !is Player) return@listenOnly
+            val player = entity as? Player ?: return@listenOnly
 
             this.instance.scheduler().buildTask {
                 if (instance.players.isNotEmpty() || !instance.isRegistered) return@buildTask
 
                 if (instance.hasTag(GameManager.doNotUnregisterTag)) return@buildTask
+
+                // Destroy the game associated with the instance
+                val gameName = instance.getTag(GameManager.gameNameTag)
+                val gameId = instance.getTag(GameManager.gameIdTag)
+                GameManager.gameMap[gameName]?.get(gameId)?.destroy()
+
                 Manager.instance.unregisterInstance(instance)
-                if (instance is InstanceContainer) (instance as InstanceContainer).chunkLoader = null
-            }.delay(TaskSchedule.nextTick()).schedule()
+            }.delay(1, TimeUnit.SERVER_TICK).schedule()
         }
 
         eventNode.listenOnly<PlayerBlockPlaceEvent> {

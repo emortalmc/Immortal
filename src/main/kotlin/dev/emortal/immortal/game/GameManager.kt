@@ -32,7 +32,7 @@ object GameManager {
     val playerGameMap = ConcurrentHashMap<UUID, Game>()
     val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
     val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()
-    val gameMap = ConcurrentHashMap<String, MutableSet<Game>>()
+    val gameMap = ConcurrentHashMap<String, ConcurrentHashMap<Int, Game>>()
 
     val Player.game get() = playerGameMap[this.uuid]
 
@@ -98,7 +98,7 @@ object GameManager {
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ): Game {
-        return gameMap[gameTypeName]?.firstOrNull {
+        return gameMap[gameTypeName]?.values?.firstOrNull {
             it.canBeJoined(player) && it.gameOptions == options
         }
             ?: createGame(gameTypeName, options, player)
@@ -113,7 +113,7 @@ object GameManager {
             ?: throw IllegalArgumentException("Primary constructor not found.")
         //game.gameCreator = creator
 
-        gameMap[gameTypeName]?.add(game)
+        gameMap[gameTypeName]?.put(game.id, game)
 
         return game
     }
@@ -149,7 +149,7 @@ object GameManager {
 
         RedisStorage.registerTopic?.publish("$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
-        gameMap[name] = ConcurrentHashMap.newKeySet()
+        gameMap[name] = ConcurrentHashMap()
 
         Logger.info("Registered game type '${name}'")
     }

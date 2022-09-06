@@ -47,7 +47,7 @@ object RedisStorage {
         redisson.getTopic("lobbyhello")?.addListenerAsync(String::class.java) { _, _ ->
             GameManager.gameMap.forEach {
                 //Logger.info("Received lobbyhello, sending player count for game $it")
-                playerCountTopic?.publishAsync("${it.key} ${it.value.sumOf { game -> game.players.size }}")
+                playerCountTopic?.publishAsync("${it.key} ${it.value.values.sumOf { game -> game.players.size }}")
             }
         }
 

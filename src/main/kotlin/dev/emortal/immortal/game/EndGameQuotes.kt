@@ -15,7 +15,9 @@ object EndGameQuotes {
         "Teamwork makes the dream work",
         "vic roy",
         "call an ambulance... but not for me",
-        "What chair do you have?"
+        "What chair do you have?",
+        "No GC this time",
+        "Moulberry is proud of you"
     )
 
     val defeat = setOf(
@@ -40,7 +42,9 @@ object EndGameQuotes {
         "You did your best... but it wasn't enough",
         "\"i lagged\" said an Australian",
         "If I had a dollar every time you won a game, I'd be in crippling debt",
-        "widepeepoSad"
+        "widepeepoSad",
+        "You clearly weren't using Graphite",
+        "I saw the GC spike"
     )
 
     val draw = setOf(
