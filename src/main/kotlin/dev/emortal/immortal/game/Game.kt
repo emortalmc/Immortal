@@ -32,6 +32,7 @@ import world.cepi.kstom.Manager
 import java.lang.ref.WeakReference
 import java.time.Duration
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.CountDownLatch
 
 abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
@@ -73,6 +74,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     private var destroyed = false
 
+    private val latch = CountDownLatch(1)
+
     init {
         Logger.info("Creating game $gameName")
 
@@ -107,12 +110,14 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             it.setTag(GameManager.gameNameTag, gameName)
             it.setTag(GameManager.gameIdTag, id)
         })
+        latch.countDown()
 
         Manager.globalEvent.addChild(eventNode)
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
     }
 
     internal open fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
+        latch.await()
         if (players.contains(player)) {
             Logger.warn("Already contains player")
             return
