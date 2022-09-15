@@ -16,16 +16,10 @@ import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
-import net.minestom.server.instance.block.Block
-import net.minestom.server.permission.Permission
-import net.minestom.server.timer.Task
-import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.chunk.ChunkUtils
-import net.minestom.server.utils.time.TimeUnit
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
-import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -53,12 +47,12 @@ object ImmortalEvents {
                 return@listenOnly
             }
 
-            Logger.warn(subgame)
+//            Logger.warn(subgame)
 
             val args = subgame.split(" ")
             val isSpectating = args.size > 1 && args[1].toBoolean()
 
-            if (!GameManager.registeredGameMap.containsKey(args[0])) {
+            if (!isSpectating && !GameManager.registeredGameMap.containsKey(args[0])) {
                 Logger.error("${args[0]} game is not on this server")
                 player.kick("${args[0]} game is not on this server. Try /play")
                 return@listenOnly
@@ -87,7 +81,20 @@ object ImmortalEvents {
                 preparedGameMap[playerUuid] = game to true
             } else {
                 val newGame = GameManager.findOrCreateGame(player, args[0])
-                val instance = newGame.instance.get() ?: return@listenOnly
+                val instance = newGame.instance.get()
+
+                if (instance == null) {
+                    player.kick("Instance is null")
+                    return@listenOnly
+                }
+
+                instance.loadOptionalChunk(newGame.spawnPosition).thenAccept {
+                    if (it == null) {
+                        player.kick("Chunk is null")
+                        return@thenAccept
+                    }
+                }
+
                 newGame.queuedPlayers.add(player)
 
                 preparedGameMap[playerUuid] = newGame to false
@@ -112,16 +119,6 @@ object ImmortalEvents {
             }
         }
 
-
-        val unloadingSoon = ConcurrentHashMap<Long, Task>()
-
-        eventNode.listenOnly<PlayerChunkLoadEvent> {
-            val index = ChunkUtils.getChunkIndex(chunkX, chunkZ)
-
-            unloadingSoon[index]?.cancel()
-            unloadingSoon.remove(index)
-        }
-
         eventNode.listenOnly<PlayerChunkUnloadEvent> {
             if (instance.hasTag(GameManager.doNotAutoUnloadChunkTag)) return@listenOnly
 
@@ -143,15 +140,9 @@ object ImmortalEvents {
 
             val chunk = instance.getChunk(chunkX, chunkZ) ?: return@listenOnly
 
-            unloadingSoon[ChunkUtils.getChunkIndex(chunkX, chunkZ)] = instance.scheduler().buildTask {
-                if (chunk.viewers.isEmpty()) {
-                    try {
-                        instance.unloadChunk(chunkX, chunkZ)
-                        unloadingSoon.remove(ChunkUtils.getChunkIndex(chunkX, chunkZ))
-                    } catch (_: NullPointerException) {}
-                }
-            }.delay(TaskSchedule.tick(5)).schedule()
-
+            if (chunk.viewers.isEmpty()) {
+                instance.unloadChunk(chunkX, chunkZ)
+            }
         }
 
         val globalEvent = Manager.globalEvent
@@ -166,22 +157,22 @@ object ImmortalEvents {
         eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
             val player = entity as? Player ?: return@listenOnly
 
-            this.instance.scheduler().buildTask {
-                if (instance.players.isNotEmpty() || !instance.isRegistered) return@buildTask
+            if (instance.hasTag(GameManager.doNotUnregisterTag)) return@listenOnly
 
-                if (instance.hasTag(GameManager.doNotUnregisterTag)) return@buildTask
+            this.instance.scheduleNextTick {
+                if (instance.players.isNotEmpty() || !instance.isRegistered) return@scheduleNextTick
 
-                // Destroy the game associated with the instance
-                val gameName = instance.getTag(GameManager.gameNameTag)
-                val gameId = instance.getTag(GameManager.gameIdTag)
-                GameManager.gameMap[gameName]?.get(gameId)?.destroy()
+//                // Destroy the game associated with the instance
+//                val gameName = instance.getTag(GameManager.gameNameTag)
+//                val gameId = instance.getTag(GameManager.gameIdTag)
+//                GameManager.gameMap[gameName]?.get(gameId)?.destroy()
 
                 Manager.instance.unregisterInstance(instance)
-            }.delay(1, TimeUnit.SERVER_TICK).schedule()
+            }
         }
 
         eventNode.listenOnly<PlayerBlockPlaceEvent> {
-            if (!instance.getBlock(this.blockPosition).isAir) {
+            if (!instance.getBlock(this.blockPosition).isSolid) {
                 isCancelled = true
             }
         }
@@ -199,37 +190,18 @@ object ImmortalEvents {
         eventNode.listenOnly<PlayerSpawnEvent> {
             if (this.isFirstSpawn) {
                 player.resetTeam()
-                player.setCustomSynchronizationCooldown(Duration.ofSeconds(20))
 
                 if (player.hasLuckPermission("*")) {
                     player.permissionLevel = 4
                 }
 
                 PermissionUtils.refreshPrefix(player)
-                player.addPermission(Permission("spark"))
             } else {
                 // To mutable list here to copy list in order to avoid concurrent modification and unsupported operation
                 val viewingNpcs = (PacketNPC.viewerMap[player.uuid] ?: return@listenOnly).toMutableList()
                 viewingNpcs.forEach {
                     it.removeViewer(player)
                 }
-            }
-        }
-
-        eventNode.listenOnly<PlayerBlockPlaceEvent> {
-            val dir = blockFace.toDirection()
-            val placedOnPos = blockPosition.sub(dir.normalX().toDouble(), dir.normalY().toDouble(), dir.normalZ().toDouble())
-            val blockPlacedOn = instance.getBlock(placedOnPos)
-
-
-            if (player.gameMode == GameMode.ADVENTURE && player.getItemInHand(hand).meta().canPlaceOn.none { Block.fromNamespaceId(it)!!.compare(blockPlacedOn) } || player.gameMode == GameMode.SPECTATOR) {
-                isCancelled = true
-            }
-        }
-        eventNode.listenOnly<PlayerBlockBreakEvent> {
-
-            if (player.gameMode == GameMode.ADVENTURE && player.itemInMainHand.meta().canDestroy.none { Block.fromNamespaceId(it)!!.compare(block) } || player.gameMode == GameMode.SPECTATOR) {
-                isCancelled = true
             }
         }
     }

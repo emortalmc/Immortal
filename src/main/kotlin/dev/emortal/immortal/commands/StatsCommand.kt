@@ -1,10 +1,8 @@
 package dev.emortal.immortal.commands
 
 import dev.emortal.immortal.util.armify
-import dev.emortal.immortal.util.progressBar
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextColor
 import net.minestom.server.command.builder.Command
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.instance.SharedInstance
@@ -35,7 +33,6 @@ internal object StatsCommand : Command("tps") {
             val totalMem = Runtime.getRuntime().totalMemory() / 1024 / 1024
             val freeMem = Runtime.getRuntime().freeMemory() / 1024 / 1024
             val ramUsage = totalMem - freeMem
-            val ramPercent = ramUsage.toFloat() / totalMem.toFloat()
 
             val mbs = ManagementFactory.getPlatformMBeanServer()
             val name = ObjectName.getInstance("java.lang:type=OperatingSystem")
@@ -56,9 +53,8 @@ internal object StatsCommand : Command("tps") {
 
             sender.sendMessage(
                 Component.text()
-                    .append(Component.text("RAM Usage: \n", NamedTextColor.GRAY))
-                    .append(progressBar(ramPercent, 30, "┃", NamedTextColor.GREEN, TextColor.color(0, 123, 0)))
-                    .append(Component.text(" ${ramUsage}MB / ${totalMem}MB\n", NamedTextColor.GRAY))
+                    .append(Component.text("RAM Usage: ", NamedTextColor.GRAY))
+                    .append(Component.text(" ${ramUsage}MB / ${totalMem}MB", NamedTextColor.GRAY))
 
                     .append(Component.text("\nCPU Usage: ", NamedTextColor.GRAY))
                     .append(Component.text("${cpuPercent}%", NamedTextColor.GREEN))

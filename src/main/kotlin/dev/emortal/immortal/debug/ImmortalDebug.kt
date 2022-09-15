@@ -5,7 +5,6 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.timer.TaskSchedule
-import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.util.concurrent.atomic.AtomicReference
@@ -13,9 +12,7 @@ import kotlin.math.floor
 
 object ImmortalDebug {
 
-    fun enable(debugGame: String) {
-        Logger.info("Running in debug mode! Debug game: $debugGame")
-
+    fun enable() {
         val lastTick = AtomicReference<TickMonitor>()
         Manager.globalEvent.listenOnly<ServerTickMonitorEvent> {
             lastTick.set(tickMonitor)

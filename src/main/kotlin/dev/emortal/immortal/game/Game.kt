@@ -118,10 +118,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             return
         }
         queuedPlayers.remove(player)
+        players.add(player)
 
         Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
-
-        players.add(player)
 
         if (joinMessage) sendMessage(
             Component.text()

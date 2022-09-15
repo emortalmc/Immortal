@@ -5,12 +5,10 @@ import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameConfig
+import dev.emortal.immortal.debug.CheckCommand
 import dev.emortal.immortal.debug.ImmortalDebug
-import dev.emortal.immortal.game.GameManager
-import dev.emortal.immortal.luckperms.LuckpermsListener
 import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.RedisStorage
-import dev.emortal.immortal.util.RedisStorage.unregisterTopic
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.entity.Player
@@ -56,8 +54,10 @@ class ImmortalExtension : Extension() {
             val debugMode = System.getProperty("debug").toBoolean()
             val debugGame = System.getProperty("debuggame")
             if (debugMode) {
+                Logger.info("Running in debug mode! Debug game: $debugGame")
                 if (System.getProperty("debugtablist").toBoolean()) {
-                    ImmortalDebug.enable(debugGame)
+                    ImmortalDebug.enable()
+                    CheckCommand.register()
                 }
             } else {
                 RedisStorage.init()
@@ -65,7 +65,6 @@ class ImmortalExtension : Extension() {
             }
 
             ImmortalEvents.register(eventNode)
-
 
             val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
                 .ambientLight(2f)
@@ -94,8 +93,6 @@ class ImmortalExtension : Extension() {
 
     override fun initialize() {
         init(eventNode)
-
-        LuckpermsListener(this@ImmortalExtension, luckperms)
     }
 
     override fun terminate() {
@@ -105,11 +102,6 @@ class ImmortalExtension : Extension() {
         StatsCommand.unregister()
         ListCommand.unregister()
         VersionCommand.unregister()
-
-        GameManager.registeredGameMap.keys().asIterator().forEachRemaining {
-            unregisterTopic?.publishAsync(it)
-            Logger.info("Unregistering game ${it}")
-        }
 
         RedisStorage.redisson?.shutdown(0, 3, TimeUnit.SECONDS)
 

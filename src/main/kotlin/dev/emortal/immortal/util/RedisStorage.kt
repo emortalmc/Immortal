@@ -23,8 +23,10 @@ object RedisStorage {
                     it.useSingleServer()
                         .setAddress(ImmortalExtension.gameConfig.address)
                         .setClientName(ImmortalExtension.gameConfig.serverName)
-                        .setConnectionPoolSize(5)
-                        .setConnectionMinimumIdleSize(2)
+                        .setConnectionPoolSize(8)
+                        .setConnectionMinimumIdleSize(4)
+                        .setSubscriptionConnectionPoolSize(8)
+                        .setSubscriptionConnectionMinimumIdleSize(4)
                 }
             )
         } else null
@@ -32,7 +34,6 @@ object RedisStorage {
     val registerTopic = redisson?.getTopic("registergame")
     val playerCountTopic = redisson?.getTopic("playercount")
     val joinGameTopic = redisson?.getTopic("joingame")
-    val unregisterTopic = redisson?.getTopic("unregistergame")
 
     fun init() {
         if (redisson == null) return
@@ -42,12 +43,6 @@ object RedisStorage {
             GameManager.registeredGameMap.keys.forEach {
                 Logger.info("Received proxyhello, re-registering game $it")
                 registerTopic?.publishAsync("$it ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
-            }
-        }
-        redisson.getTopic("lobbyhello")?.addListenerAsync(String::class.java) { _, _ ->
-            GameManager.gameMap.forEach {
-                //Logger.info("Received lobbyhello, sending player count for game $it")
-                playerCountTopic?.publishAsync("${it.key} ${it.value.values.sumOf { game -> game.players.size }}")
             }
         }
 
@@ -68,7 +63,7 @@ object RedisStorage {
                     if (player.game?.gameName == subgame) return@addListenerAsync
 
                     player.scheduleNextTick {
-                        player.joinGameOrNew(subgame)
+                        player.joinGameOrNew(subgame, ignoreCooldown = true)
                     }
                 }
 
@@ -88,7 +83,7 @@ object RedisStorage {
                         }
 
                         player.scheduleNextTick {
-                            player.joinGame(game, spectate = true)
+                            player.joinGame(game, spectate = true, ignoreCooldown = true)
                         }
                     }
                 }

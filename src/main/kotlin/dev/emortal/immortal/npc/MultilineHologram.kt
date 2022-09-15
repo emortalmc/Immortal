@@ -38,6 +38,7 @@ class MultilineHologram(val components: MutableList<Component>) {
 
     fun remove() {
         entities.forEach(Entity::remove)
+        entities.clear()
     }
 
 }
