@@ -1,6 +1,5 @@
 package dev.emortal.immortal.util
 
-import dev.emortal.immortal.game.GameManager
 import net.minestom.server.coordinate.Point
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.Entity
@@ -37,13 +36,6 @@ fun Player.safeSetInstance(instance: Instance, pos: Pos? = null): CompletableFut
         Manager.instance.registerInstance(instance)
     }
 
-    var position = pos
-
-    if (hasTag(GameManager.doNotTeleportTag) && isActive) {
-        respawnPoint = this.position
-        position = this.position
-    }
-
     if (!isActive) {
         val future = CompletableFuture<Void>()
 
@@ -57,5 +49,5 @@ fun Player.safeSetInstance(instance: Instance, pos: Pos? = null): CompletableFut
         /*if (position == null)*/ return CompletableFuture.completedFuture(null)
         //return this.teleport(pos)
     }
-    return if (position == null) setInstance(instance) else setInstance(instance, position)
+    return if (pos == null) setInstance(instance) else setInstance(instance, pos)
 }
