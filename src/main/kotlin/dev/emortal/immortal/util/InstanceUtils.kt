@@ -46,8 +46,8 @@ fun Player.safeSetInstance(instance: Instance, pos: Pos? = null): CompletableFut
         return future
     }
     if (instance == this.instance) {
-        /*if (position == null)*/ return CompletableFuture.completedFuture(null)
-        //return this.teleport(pos)
+        if (pos == null) return CompletableFuture.completedFuture(null)
+        return this.teleport(pos)
     }
     return if (pos == null) setInstance(instance) else setInstance(instance, pos)
 }

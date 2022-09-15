@@ -88,12 +88,12 @@ object ImmortalEvents {
                     return@listenOnly
                 }
 
-                instance.loadOptionalChunk(newGame.spawnPosition).thenAccept {
-                    if (it == null) {
-                        player.kick("Chunk is null")
-                        return@thenAccept
-                    }
-                }
+//                instance.loadOptionalChunk(newGame.spawnPosition).thenAccept {
+//                    if (it == null) {
+//                        player.kick("Chunk is null")
+//                        return@thenAccept
+//                    }
+//                }
 
                 newGame.queuedPlayers.add(player)
 
