@@ -33,12 +33,15 @@ object GameManager {
     val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()
     val gameMap = ConcurrentHashMap<String, ConcurrentHashMap<Int, Game>>()
 
+
     val Player.game get() = playerGameMap[this.uuid]
 
     private val lastGameId = AtomicInteger(0)
     fun getNextGameId() = lastGameId.getAndIncrement()
 
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
+
+    val createLock = Object()
 
     private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false) {
         if (!ignoreCooldown && player.hasTag(joiningGameTag)) return
@@ -97,24 +100,30 @@ object GameManager {
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
     ): Game {
-        return gameMap[gameTypeName]?.values?.firstOrNull {
-            it.canBeJoined(player) && it.gameOptions == options
+        synchronized(createLock) {
+            return gameMap[gameTypeName]?.values?.firstOrNull {
+                it.canBeJoined(player) && it.gameOptions == options
+            }
+                ?: createGame(gameTypeName, options, player)
         }
-            ?: createGame(gameTypeName, options, player)
+
 
     }
 
     fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
 
-        //options.private = creator?.party?.privateGames ?: false
+        synchronized(createLock) {
+            //options.private = creator?.party?.privateGames ?: false
 
-        val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call(options)
-            ?: throw IllegalArgumentException("Primary constructor not found.")
-        //game.gameCreator = creator
+            val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call(options)
+                ?: throw IllegalArgumentException("Primary constructor not found.")
+            //game.gameCreator = creator
 
-        gameMap[gameTypeName]?.put(game.id, game)
+            gameMap[gameTypeName]?.put(game.id, game)
 
-        return game
+            return game
+        }
+
     }
 
     inline fun <reified T : Game> registerGame(
