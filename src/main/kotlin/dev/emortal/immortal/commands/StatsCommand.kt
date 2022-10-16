@@ -3,6 +3,7 @@ package dev.emortal.immortal.commands
 import dev.emortal.immortal.util.armify
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextColor
 import net.minestom.server.command.builder.Command
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.instance.SharedInstance
@@ -54,18 +55,19 @@ internal object StatsCommand : Command("tps") {
             sender.sendMessage(
                 Component.text()
                     .append(Component.text("RAM Usage: ", NamedTextColor.GRAY))
-                    .append(Component.text(" ${ramUsage}MB / ${totalMem}MB", NamedTextColor.GRAY))
+                    .append(Component.text("${ramUsage}MB / ${totalMem}MB", NamedTextColor.GRAY))
+                    .append(Component.text(" (", NamedTextColor.GRAY))
+                    .append(Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0) / 100}}", NamedTextColor.GREEN))
 
                     .append(Component.text("\nCPU Usage: ", NamedTextColor.GRAY))
-                    .append(Component.text("${cpuPercent}%", NamedTextColor.GREEN))
+                    .append(Component.text("${if (cpuPercent < 0) "..." else cpuPercent}%", NamedTextColor.GREEN))
 
                     .append(Component.text("\nTPS: ", NamedTextColor.GRAY))
                     .append(Component.text(tps, NamedTextColor.GREEN))
 
-                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-
-                    .append(Component.text("MSPT: ", NamedTextColor.GRAY))
-                    .append(Component.text("${floor(tickMs * 100) / 100}ms\n", NamedTextColor.GREEN))
+                    .append(Component.text("(", NamedTextColor.GRAY))
+                    .append(Component.text("${floor(tickMs * 100.0) / 100}ms", TextColor.lerp(tickMs.toFloat() / 50f, NamedTextColor.GREEN, NamedTextColor.RED)))
+                    .append(Component.text(")\n", NamedTextColor.GRAY))
 
                     .append(Component.text("\nPlayers: ", NamedTextColor.GRAY))
                     .append(Component.text(onlinePlayers, NamedTextColor.GOLD))
@@ -79,10 +81,10 @@ internal object StatsCommand : Command("tps") {
                     .append(Component.text(instances.size - sharedInstances, NamedTextColor.GOLD))
                     .append(Component.text(" (Shared: ${sharedInstances})", NamedTextColor.GRAY))
 
-                    .append(Component.text("\nActive Chunks: ", NamedTextColor.GRAY))
+                    .append(Component.text("\nChunks: ", NamedTextColor.GRAY))
                     .append(Component.text(chunks, NamedTextColor.GOLD))
 
-                    .armify(50)
+                    .armify(40)
             )
         }
 

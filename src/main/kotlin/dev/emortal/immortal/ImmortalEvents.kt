@@ -12,7 +12,6 @@ import dev.emortal.immortal.util.RedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
-
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
@@ -101,6 +100,11 @@ object ImmortalEvents {
                 preparedGameMap[playerUuid] = newGame to false
             }
         }
+
+        eventNode.listenOnly<PlayerChatEvent> {
+            isCancelled = true
+        }
+
         eventNode.listenOnly<PlayerLoginEvent> {
             player.gameMode = GameMode.ADVENTURE
 

@@ -221,6 +221,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         playerLeave(player)
     }
 
+    @Synchronized
     open fun refreshPlayerCount() {
         RedisStorage.playerCountTopic?.publish("$gameName ${GameManager.gameMap[gameName]?.values?.sumOf { it.players.size } ?: 0}")
 
