@@ -8,7 +8,7 @@ import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.debug.CheckCommand
 import dev.emortal.immortal.debug.ImmortalDebug
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.RedisStorage
+import dev.emortal.immortal.util.JedisStorage
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import net.minestom.server.entity.Player
@@ -27,7 +27,6 @@ import world.cepi.kstom.command.register
 import world.cepi.kstom.command.unregister
 import world.cepi.kstom.util.register
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
 class ImmortalExtension : Extension() {
 
@@ -60,7 +59,7 @@ class ImmortalExtension : Extension() {
                     CheckCommand.register()
                 }
             } else {
-                RedisStorage.init()
+                JedisStorage.init()
                 luckperms = LuckPermsProvider.get()
             }
 
@@ -103,8 +102,7 @@ class ImmortalExtension : Extension() {
         ListCommand.unregister()
         VersionCommand.unregister()
 
-        RedisStorage.redisson?.shutdown(0, 3, TimeUnit.SECONDS)
-
+        JedisStorage.jedis?.close()
 
         Logger.info("Immortal terminated!")
     }

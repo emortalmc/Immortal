@@ -3,7 +3,7 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
-import dev.emortal.immortal.util.RedisStorage
+import dev.emortal.immortal.util.JedisStorage
 import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.text.Component
 import net.minestom.server.entity.Player
@@ -155,7 +155,7 @@ object GameManager {
             options
         )
 
-        RedisStorage.registerTopic?.publish("$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
+        JedisStorage.jedis?.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
         gameMap[name] = ConcurrentHashMap()
 

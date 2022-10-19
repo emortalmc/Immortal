@@ -223,7 +223,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     @Synchronized
     open fun refreshPlayerCount() {
-        RedisStorage.playerCountTopic?.publish("$gameName ${GameManager.gameMap[gameName]?.values?.sumOf { it.players.size } ?: 0}")
+        JedisStorage.jedis?.publish("playercount", "$gameName ${GameManager.gameMap[gameName]?.values?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
             scoreboard?.updateLineContent(

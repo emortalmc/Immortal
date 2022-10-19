@@ -61,5 +61,5 @@ fun Player.resetTeam() {
 }
 
 fun Player.sendServer(gameName: String) {
-    RedisStorage.joinGameTopic?.publish("$gameName ${this.uuid}")
+    JedisStorage.jedis?.publish("joingame", "$gameName ${this.uuid}")
 }

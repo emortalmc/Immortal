@@ -8,7 +8,7 @@ import dev.emortal.immortal.game.GameManager.leaveGame
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.util.RedisStorage
+import dev.emortal.immortal.util.JedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
@@ -34,7 +34,7 @@ object ImmortalEvents {
                 System.getProperty("debuggame")
             } else {
                 // Read then delete value
-                RedisStorage.redisson?.getBucket<String>("${playerUuid}-subgame")?.andDelete?.trim()
+                JedisStorage.jedis?.getDel("${playerUuid}-subgame")?.trim()
             }
 
             if (subgame == null && GameManager.registeredGameMap.keys.size == 1) {
@@ -47,7 +47,7 @@ object ImmortalEvents {
                 return@listenOnly
             }
 
-//            Logger.warn(subgame)
+            Logger.warn(subgame)
 
             val args = subgame.split(" ")
             val isSpectating = args.size > 1 && args[1].toBoolean()
