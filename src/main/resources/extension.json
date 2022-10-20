@@ -1,8 +1,5 @@
 {
   "entrypoint": "${project.group}.${project.mainClass}",
   "name": "${project.name}",
-  "version": "${project.version}",
-  "dependencies": [
-    "LuckPerms"
-  ]
+  "version": "${project.version}"
 }
