@@ -60,7 +60,11 @@ class ImmortalExtension : Extension() {
                 }
             } else {
                 JedisStorage.init()
-                luckperms = LuckPermsProvider.get()
+
+                if (System.getProperty("luckperms")?.toBoolean() != false) {
+                    Logger.info("Loading with Luckperms!")
+                    luckperms = LuckPermsProvider.get()
+                }
             }
 
             ImmortalEvents.register(eventNode)
