@@ -64,6 +64,8 @@ class ImmortalExtension : Extension() {
                 if (System.getProperty("luckperms")?.toBoolean() != false) {
                     Logger.info("Loading with Luckperms!")
                     luckperms = LuckPermsProvider.get()
+                } else {
+                    Logger.info("Loading without Luckperms!")
                 }
             }
 

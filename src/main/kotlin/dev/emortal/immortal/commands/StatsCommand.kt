@@ -57,7 +57,7 @@ internal object StatsCommand : Command("tps") {
                     .append(Component.text("RAM Usage: ", NamedTextColor.GRAY))
                     .append(Component.text("${ramUsage}MB / ${totalMem}MB", NamedTextColor.GRAY))
                     .append(Component.text(" (", NamedTextColor.GRAY))
-                    .append(Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0) / 100}}", NamedTextColor.GREEN))
+                    .append(Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0) / 100})", NamedTextColor.GREEN))
 
                     .append(Component.text("\nCPU Usage: ", NamedTextColor.GRAY))
                     .append(Component.text("${if (cpuPercent < 0) "..." else cpuPercent}%", NamedTextColor.GREEN))
@@ -65,7 +65,7 @@ internal object StatsCommand : Command("tps") {
                     .append(Component.text("\nTPS: ", NamedTextColor.GRAY))
                     .append(Component.text(tps, NamedTextColor.GREEN))
 
-                    .append(Component.text("(", NamedTextColor.GRAY))
+                    .append(Component.text(" (", NamedTextColor.GRAY))
                     .append(Component.text("${floor(tickMs * 100.0) / 100}ms", TextColor.lerp(tickMs.toFloat() / 50f, NamedTextColor.GREEN, NamedTextColor.RED)))
                     .append(Component.text(")\n", NamedTextColor.GRAY))
 
