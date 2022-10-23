@@ -77,9 +77,11 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
                 .append(Component.text(" joined the game ", NamedTextColor.GRAY))
         )
 
-        player.respawnPoint = spawnPosition
+        val playerSpawnPoint = getSpawnPosition(player, false)
 
-        player.safeSetInstance(instance, spawnPosition)?.thenRun {
+        player.respawnPoint = playerSpawnPoint
+
+        player.safeSetInstance(instance, playerSpawnPoint)?.thenRun {
             player.reset()
             player.resetTeam()
             scoreboard?.addViewer(player)

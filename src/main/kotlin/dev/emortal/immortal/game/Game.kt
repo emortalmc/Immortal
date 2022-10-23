@@ -48,7 +48,10 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     val gameName = GameManager.registeredClassMap[this::class]!!
     val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
-    open var spawnPosition = Pos(0.5, 70.0, 0.5)
+    /**
+     * Not guaranteed to be ran once per player
+     */
+    open fun getSpawnPosition(player: Player, spectator: Boolean = false) = Pos(0.5, 70.0, 0.5)
 
     lateinit var instance: WeakReference<Instance>
 
@@ -138,9 +141,11 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
                 }
         )
 
-        player.respawnPoint = spawnPosition
+        val playerSpawnPoint = getSpawnPosition(player, false)
 
-        player.safeSetInstance(instance, spawnPosition)?.thenRun {
+        player.respawnPoint = playerSpawnPoint
+
+        player.safeSetInstance(instance, playerSpawnPoint)?.thenRun {
             player.reset()
             player.resetTeam()
             scoreboard?.addViewer(player)
@@ -149,9 +154,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             player.clearTitle()
             player.sendActionBar(Component.empty())
 
-            player.scheduler().buildTask {
+//            player.scheduler().buildTask {
                 playerJoin(player)
-            }.schedule()
+//            }.schedule()
 
             refreshPlayerCount()
 
@@ -244,9 +249,11 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         spectators.add(player)
 
-        player.respawnPoint = spawnPosition
+        val playerSpawnPoint = getSpawnPosition(player, true)
 
-        player.safeSetInstance(instance, spawnPosition)?.thenRun {
+        player.respawnPoint = playerSpawnPoint
+
+        player.safeSetInstance(instance, playerSpawnPoint)?.thenRun {
             player.reset()
             player.resetTeam()
 
@@ -386,6 +393,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
 
         }
+
         players.clear()
         spectators.clear()
         queuedPlayers.clear()

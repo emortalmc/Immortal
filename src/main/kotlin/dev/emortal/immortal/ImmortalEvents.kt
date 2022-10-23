@@ -70,7 +70,7 @@ object ImmortalEvents {
                     player.kick("That player is not in a game")
                     return@listenOnly
                 }
-                player.respawnPoint = game.spawnPosition
+//                player.respawnPoint = game.spawnPosition
 
                 val instance = game.instance.get()
                 if (instance == null) {
@@ -84,7 +84,7 @@ object ImmortalEvents {
                 val instance = newGame.instance.get()
 
                 if (instance == null) {
-                    player.kick("Instance is null")
+                    player.kick("World has not loaded.")
                     return@listenOnly
                 }
 
@@ -101,7 +101,7 @@ object ImmortalEvents {
             }
         }
 
-        eventNode.listenOnly<PlayerChatEvent> {
+        if (!System.getProperty("debug").toBoolean()) eventNode.listenOnly<PlayerChatEvent> {
             isCancelled = true
         }
 
@@ -118,7 +118,7 @@ object ImmortalEvents {
 
             setSpawningInstance(preparedGame.first.instance.get()!!)
 
-            player.respawnPoint = preparedGame.first.spawnPosition
+            player.respawnPoint = preparedGame.first.getSpawnPosition(player, preparedGame.second)
             player.scheduleNextTick {
                 player.joinGame(preparedGame.first, spectate = preparedGame.second, ignoreCooldown = true)
             }
