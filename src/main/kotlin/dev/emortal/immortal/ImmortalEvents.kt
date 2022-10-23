@@ -184,6 +184,12 @@ object ImmortalEvents {
 
         eventNode.listenOnly<PlayerDisconnectEvent> {
             player.leaveGame()
+
+            val viewingNpcs = (PacketNPC.viewerMap[player.uuid] ?: return@listenOnly).toMutableList()
+            viewingNpcs.forEach {
+                it.removeViewer(player)
+            }
+            PacketNPC.viewerMap.remove(player.uuid)
         }
 
         eventNode.listenOnly<PlayerStartSneakingEvent> {
