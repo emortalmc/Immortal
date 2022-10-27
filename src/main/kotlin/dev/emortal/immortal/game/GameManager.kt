@@ -46,7 +46,10 @@ object GameManager {
     private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false) {
         if (!ignoreCooldown && player.hasTag(joiningGameTag)) return
 
-        Logger.info("Attempting to join ${newGame.gameName}")
+        val gameName = registeredClassMap[newGame::class]!!
+        val gameTypeInfo = registeredGameMap[gameName] ?: throw Error("Game type not registered")
+
+        Logger.info("Attempting to join ${gameName}")
 
         lastGame?.removePlayer(player)
         lastGame?.removeSpectator(player)
@@ -62,11 +65,14 @@ object GameManager {
     }
 
     fun Player.joinGame(game: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false): Boolean {
+        val gameName = registeredClassMap[game::class]!!
+        val gameTypeInfo = registeredGameMap[gameName] ?: throw Error("Game type not registered")
+
         if (!game.canBeJoined(this) && !spectate) {
             Logger.warn("Game could not be joined")
             return false
         }
-        if (spectate && !game.gameTypeInfo.spectatable) {
+        if (spectate && !gameTypeInfo.spectatable) {
             Logger.warn("Attempted spectate but game is not spectatable")
             return false
         }

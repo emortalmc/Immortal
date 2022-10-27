@@ -1,10 +1,12 @@
 package dev.emortal.immortal.util
 
+import net.minestom.server.MinecraftServer
 import net.minestom.server.timer.ExecutionType
 import net.minestom.server.timer.Scheduler
 import net.minestom.server.timer.Task
 import net.minestom.server.timer.TaskSchedule
 import world.cepi.kstom.Manager
+import java.lang.ref.WeakReference
 import java.time.Duration
 
 /**
@@ -18,7 +20,7 @@ abstract class MinestomRunnable : Runnable {
     var currentIteration: Long = 0L
     val iterations: Long
 
-    private var task: Task? = null
+    private var task: WeakReference<Task>? = null
     var delaySchedule: TaskSchedule = TaskSchedule.immediate()
         set(value) {
             field = value
@@ -56,7 +58,7 @@ abstract class MinestomRunnable : Runnable {
     }
 
     private fun schedule(scheduler: Scheduler): Task {
-        val t = Manager.scheduler.buildTask {
+        val t = MinecraftServer.getSchedulerManager().buildTask {
             if (iterations != -1L && currentIteration >= iterations) {
                 cancel()
                 cancelled()
@@ -77,17 +79,21 @@ abstract class MinestomRunnable : Runnable {
             .schedule()
 
         if (this.task != null) {
-            this.task?.cancel()
-            taskGroup?.removeTask(this.task)
+            this.task?.get()?.cancel()
+            taskGroup?.removeTask(this.task?.get())
         }
 
         taskGroup?.addTask(t)
 
-        this.task = t
+        this.task = WeakReference(t)
         return t
     }
 
-    fun cancel() = task?.cancel()
+    fun cancel() {
+        taskGroup?.removeTask(task?.get())
+        task?.get()?.cancel()
+        task?.clear()
+    }
 
     /**
         Called when iterations run out

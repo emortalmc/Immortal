@@ -38,6 +38,9 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
         startingTask = null
         scoreboard?.updateLineContent("infoLine", Component.empty())
 
+        val gameName = GameManager.registeredClassMap[this::class]!!
+        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
+
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents()
         gameStarted()
     }
@@ -64,6 +67,9 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
             return
         }
         queuedPlayers.remove(player)
+
+        val gameName = GameManager.registeredClassMap[this::class]!!
+        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
         Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 

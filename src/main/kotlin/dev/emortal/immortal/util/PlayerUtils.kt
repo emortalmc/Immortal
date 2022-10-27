@@ -30,7 +30,7 @@ fun Player.reset() {
     setCanPickupItem(true)
     if (openInventory != null) closeInventory()
     setNoGravity(false)
-    refreshCommands()
+//    refreshCommands()
     heal()
     clearEffects()
     stopSpectating()
@@ -43,7 +43,7 @@ fun Player.reset() {
 
     updateViewableRule()
     updateViewerRule()
-    askSynchronization()
+//    askSynchronization()
 }
 
 fun Player.resetTeam() {

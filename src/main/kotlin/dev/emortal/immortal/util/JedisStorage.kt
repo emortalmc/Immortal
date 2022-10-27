@@ -47,6 +47,7 @@ object JedisStorage {
                     when (args[0].lowercase()) {
                         "changegame" -> {
                             val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
+                            val playerGame = player.game
                             val subgame = args[2]
                             if (!GameManager.gameMap.containsKey(subgame)) {
                                 // Invalid subgame, ignore message
@@ -54,7 +55,12 @@ object JedisStorage {
                                 return
                             }
 
-                            if (player.game?.gameName == subgame) return
+                            if (playerGame == null) return
+
+                            val gameName = GameManager.registeredClassMap[playerGame::class]!!
+                            val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
+
+                            if (gameName == subgame) return
 
                             player.scheduleNextTick {
                                 player.joinGameOrNew(subgame, ignoreCooldown = true)
