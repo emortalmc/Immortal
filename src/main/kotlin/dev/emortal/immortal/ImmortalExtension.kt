@@ -1,5 +1,6 @@
 package dev.emortal.immortal
 
+import dev.emortal.immortal.blockhandler.BannerHandler
 import dev.emortal.immortal.blockhandler.SignHandler
 import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.*
@@ -84,6 +85,7 @@ class ImmortalExtension : Extension() {
             }
             SignHandler.register("minecraft:sign")
             SkullHandler.register("minecraft:skull")
+            BannerHandler.register("minecraft:banner")
 
             ForceStartCommand.register()
             ForceGCCommand.register()
