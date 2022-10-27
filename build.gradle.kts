@@ -22,7 +22,7 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:17ef1c2f57")
+    compileOnly("com.github.Minestom:Minestom:b4af87b8a4")
     compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
     api("com.github.EmortalMC:KStom:50b2b882fa")
     api("com.github.emortaldev:Particable:f7212f39fb")
@@ -30,9 +30,13 @@ dependencies {
     api("com.github.EmortalMC:Rayfast:684e854a48")
 
     api("org.tinylog:tinylog-api-kotlin:2.5.0")
-    compileOnly("redis.clients:jedis:4.3.0")
+    compileOnly("redis.clients:jedis:4.3.1")
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+
+    testImplementation("com.github.Minestom:Minestom:b4af87b8a4")
+    testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 }
 
 tasks {
@@ -54,6 +58,10 @@ tasks {
     }
 
     build { dependsOn(shadowJar) }
+
+    test {
+        useJUnitPlatform()
+    }
 }
 
 val compileKotlin: KotlinCompile by tasks

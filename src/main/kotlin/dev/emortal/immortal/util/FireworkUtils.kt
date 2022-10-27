@@ -14,9 +14,9 @@ import net.minestom.server.item.firework.FireworkEffect
 import net.minestom.server.item.metadata.FireworkMeta
 import net.minestom.server.network.packet.server.play.EntityStatusPacket
 import net.minestom.server.sound.SoundEvent
-import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.PacketUtils.sendGroupedPacket
 import world.cepi.kstom.util.playSound
+import java.time.Duration
 import java.util.concurrent.ThreadLocalRandom
 
 fun Player.showFirework(instance: Instance, position: Pos, effects: MutableList<FireworkEffect>) = listOf(this).showFirework(instance, position, effects)
@@ -66,7 +66,7 @@ fun Collection<Player>.showFireworkWithDuration(
 
     firework.setInstance(instance, position)
 
-    object : MinestomRunnable(repeat = TaskSchedule.nextTick(), iterations = ticks.toLong()) {
+    object : MinestomRunnable(repeat = Duration.ofMillis(50), iterations = ticks) {
 
         override fun run() {
             // acceleration

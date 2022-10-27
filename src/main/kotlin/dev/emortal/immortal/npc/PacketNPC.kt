@@ -1,7 +1,6 @@
 package dev.emortal.immortal.npc
 
 import dev.emortal.immortal.util.MinestomRunnable
-import dev.emortal.immortal.util.TaskGroup
 import dev.emortal.immortal.util.sendServer
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -9,16 +8,14 @@ import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.*
 import net.minestom.server.network.packet.server.play.*
-import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.PacketUtils
-import net.minestom.server.utils.time.TimeUnit
 import world.cepi.kstom.Manager
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
-class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameName: String, val playerSkin: PlayerSkin? = null, val entityType: EntityType = EntityType.PLAYER, val taskGroup: TaskGroup? = null) {
+class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameName: String, val playerSkin: PlayerSkin? = null, val entityType: EntityType = EntityType.PLAYER) {
 
     private val viewers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
     private val taskMap = ConcurrentHashMap<UUID, MinestomRunnable>()
@@ -70,7 +67,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             viewer.sendPacket(entitySpawn)
         }
 
-        taskMap[viewer.uuid] = object : MinestomRunnable(delay = TaskSchedule.duration(3, TimeUnit.SECOND), repeat = TaskSchedule.tick(3), taskGroup = taskGroup, scheduler = viewer.scheduler()) {
+        taskMap[viewer.uuid] = object : MinestomRunnable(delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
             override fun run() {
                 val lookFromPos = position.add(0.0, entityType.height(), 0.0)
                 val lookToPos = viewer.position.add(0.0, if (viewer.isSneaking) 1.5 else 1.8, 0.0)

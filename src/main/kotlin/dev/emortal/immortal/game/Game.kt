@@ -19,11 +19,14 @@ import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventNode
+import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
+import net.minestom.server.event.trait.InstanceEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
+import world.cepi.kstom.event.listenOnly
 import java.time.Duration
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.CountDownLatch
@@ -47,22 +50,10 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
      */
     open fun getSpawnPosition(player: Player, spectator: Boolean = false) = Pos(0.5, 70.0, 0.5)
 
-    var instance: Instance
+    val gameName = GameManager.registeredClassMap[this::class]!!
+    val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
-//    val eventNode = EventNode.type("immortalgame-$id", EventFilter.ALL) { event, thing ->
-//        if (destroyed) return@type false
-//        if (event is InstanceEvent) {
-//            return@type (thing as Instance).uniqueId == instance.uniqueId
-//        }
-//        if (event is EntityEvent) {
-//            return@type (thing as Entity).instance?.uniqueId == instance.uniqueId
-//        }
-//
-//        false
-//    }
-    val eventNode = EventNode.all("immortalgame-$id")
-
-    val taskGroup = TaskGroup()
+    lateinit var instance: Instance
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
@@ -72,9 +63,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     private val latch = CountDownLatch(1)
 
     init {
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
-
         Logger.info("Creating game $gameName")
 
         if (gameOptions.showScoreboard) {
@@ -108,10 +96,23 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             it.setTag(GameManager.gameNameTag, gameName)
             it.setTag(GameManager.gameIdTag, id)
         }
+
+        instance.eventNode().listenOnly<RemoveEntityFromInstanceEvent> {
+//            val player = entity as? Player ?: return@listenOnly
+
+            if (instance.hasTag(GameManager.doNotUnregisterTag)) return@listenOnly
+
+            this.instance.scheduleNextTick {
+                if (instance.players.isNotEmpty() || !instance.isRegistered) return@scheduleNextTick
+
+                Manager.instance.unregisterInstance(instance)
+                destroy()
+            }
+        }
+
         latch.countDown()
 
-        Manager.globalEvent.addChild(eventNode)
-        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents()
+        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents(instance.eventNode())
     }
 
     internal open fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
@@ -122,9 +123,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         }
         queuedPlayers.remove(player)
         players.add(player)
-
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
         Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
 
@@ -148,7 +146,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             player.resetTeam()
             scoreboard?.addViewer(player)
             playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
-            //player.playSound(Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 1f, 1f))
             player.clearTitle()
             player.sendActionBar(Component.empty())
 
@@ -176,9 +173,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         teams.forEach { it.remove(player) }
         players.remove(player)
         scoreboard?.removeViewer(player)
-
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
         val leaveEvent = PlayerLeaveGameEvent(this, player)
         EventDispatcher.call(leaveEvent)
@@ -229,8 +223,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     @Synchronized
     open fun refreshPlayerCount() {
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
+
 
         JedisStorage.jedis?.publish("playercount", "$gameName ${GameManager.gameMap[gameName]?.values?.sumOf { it.players.size } ?: 0}")
 
@@ -248,9 +241,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     internal open fun addSpectator(player: Player) {
         if (spectators.contains(player)) return
         if (players.contains(player)) return
-
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
         Logger.info("${player.username} started spectating game '${gameTypeInfo.name}'")
 
@@ -281,9 +271,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     internal open fun removeSpectator(player: Player) {
         if (!spectators.contains(player)) return
 
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
-
         Logger.info("${player.username} stopped spectating game '${gameTypeInfo.name}'")
 
         spectators.remove(player)
@@ -306,23 +293,23 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             return
         }
 
-        startingTask = object : MinestomRunnable(taskGroup = taskGroup, repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds.toLong()) {
+        startingTask = object : MinestomRunnable(repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
 
             override fun run() {
                 scoreboard?.updateLineContent(
                     "infoLine",
                     Component.text()
                         .append(Component.text("Starting in ", TextColor.color(59, 128, 59)))
-                        .append(Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN))
+                        .append(Component.text(gameOptions.countdownSeconds - currentIteration.get(), NamedTextColor.GREEN))
                         .append(Component.text(" seconds", TextColor.color(59, 128, 59)))
                         .build()
                 )
 
-                if ((gameOptions.countdownSeconds - currentIteration) < 5 || currentIteration % 5L == 0L) {
+                if ((gameOptions.countdownSeconds - currentIteration.get()) < 5 || currentIteration.get() % 5L == 0L) {
                     playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.AMBIENT, 1f, 1.2f))
                     showTitle(
                         Title.title(
-                            Component.text(gameOptions.countdownSeconds - currentIteration, NamedTextColor.GREEN, TextDecoration.BOLD),
+                            Component.text(gameOptions.countdownSeconds - currentIteration.get(), NamedTextColor.GREEN, TextDecoration.BOLD),
                             Component.empty(),
                             Title.Times.times(
                                 Duration.ZERO, Duration.ofSeconds(2), Duration.ofMillis(250)
@@ -353,13 +340,10 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         playSound(Sound.sound(SoundEvent.ENTITY_VILLAGER_NO, Sound.Source.AMBIENT, 1f, 1f))
     }
 
-    abstract fun registerEvents()
+    abstract fun registerEvents(eventNode: EventNode<InstanceEvent>)
 
     open fun start() {
         if (gameState == GameState.PLAYING) return
-
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
         playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
@@ -367,7 +351,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         gameState = GameState.PLAYING
         scoreboard?.updateLineContent("infoLine", Component.empty())
 
-//        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents()
+        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents(instance.eventNode())
         gameStarted()
     }
 
@@ -375,15 +359,10 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         if (destroyed) return
         destroyed = true
 
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
-
         Logger.info("A game of '${gameTypeInfo.name}' is ending")
 
-        Manager.globalEvent.removeChild(eventNode)
-
-
-        taskGroup.cancel()
+//        Manager.globalEvent.removeChild(eventNode)
+//        eventNode = null
 
         gameDestroyed()
 
@@ -410,6 +389,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
 
         }
+
+        if (instance.players.isEmpty()) Manager.instance.unregisterInstance(instance)
 
         players.clear()
         spectators.clear()
@@ -488,24 +469,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     override fun equals(other: Any?): Boolean {
         if (other !is Game) return false
         return other.id == this.id
-    }
-
-    override fun hashCode(): Int {
-        var result = gameOptions.hashCode()
-        result = 31 * result + players.hashCode()
-        result = 31 * result + queuedPlayers.hashCode()
-        result = 31 * result + spectators.hashCode()
-        result = 31 * result + teams.hashCode()
-        result = 31 * result + id.hashCode()
-        result = 31 * result + gameState.hashCode()
-        result = 31 * result + instance.hashCode()
-        result = 31 * result + eventNode.hashCode()
-        result = 31 * result + taskGroup.hashCode()
-        result = 31 * result + (startingTask?.hashCode() ?: 0)
-        result = 31 * result + (scoreboard?.hashCode() ?: 0)
-        result = 31 * result + destroyed.hashCode()
-        result = 31 * result + latch.hashCode()
-        return result
     }
 
 }

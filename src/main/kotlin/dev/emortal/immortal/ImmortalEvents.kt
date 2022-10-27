@@ -13,7 +13,6 @@ import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
-import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.utils.chunk.ChunkUtils
 import org.tinylog.kotlin.Logger
@@ -143,23 +142,6 @@ object ImmortalEvents {
             // Teleport before player dies from void
             if (player.position.y < -64) {
                 player.teleport(player.respawnPoint)
-            }
-        }
-
-        eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
-//            val player = entity as? Player ?: return@listenOnly
-
-            if (instance.hasTag(GameManager.doNotUnregisterTag)) return@listenOnly
-
-            this.instance.scheduleNextTick {
-                if (instance.players.isNotEmpty() || !instance.isRegistered) return@scheduleNextTick
-
-//                // Destroy the game associated with the instance
-//                val gameName = instance.getTag(GameManager.gameNameTag)
-//                val gameId = instance.getTag(GameManager.gameIdTag)
-//                GameManager.gameMap[gameName]?.get(gameId)?.destroy()
-
-                Manager.instance.unregisterInstance(instance)
             }
         }
 

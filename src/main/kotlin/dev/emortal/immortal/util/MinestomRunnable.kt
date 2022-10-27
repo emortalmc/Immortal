@@ -1,102 +1,62 @@
 package dev.emortal.immortal.util
 
-import net.minestom.server.MinecraftServer
-import net.minestom.server.timer.ExecutionType
-import net.minestom.server.timer.Scheduler
-import net.minestom.server.timer.Task
-import net.minestom.server.timer.TaskSchedule
-import world.cepi.kstom.Manager
-import java.lang.ref.WeakReference
+import org.tinylog.kotlin.Logger
 import java.time.Duration
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * A utility to make it easier to build tasks
- *
- * @author emortal
- * @author DasLixou
+ * @param delay How long to delay the task from running
+ * @param repeat How long between intervals of running
+ * @param iterations How many times to iterate, -1 being infinite (also default)
  */
-abstract class MinestomRunnable : Runnable {
+abstract class MinestomRunnable(
+    var delay: Duration = Duration.ZERO,
+    var repeat: Duration = Duration.ZERO,
+    var iterations: Int = -1,
+    val executor: ScheduledExecutorService = executorService
+) {
 
-    var currentIteration: Long = 0L
-    val iterations: Long
-
-    private var task: WeakReference<Task>? = null
-    var delaySchedule: TaskSchedule = TaskSchedule.immediate()
-        set(value) {
-            field = value
-            schedule(scheduler)
-        }
-    var repeatSchedule: TaskSchedule = TaskSchedule.stop()
-        set(value) {
-            field = value
-            schedule(scheduler)
-        }
-    private var executionType: ExecutionType = ExecutionType.SYNC
-    private var taskGroup: TaskGroup? = null
-    private var scheduler: Scheduler = Manager.scheduler
-
-    constructor(delay: Duration = Duration.ZERO, repeat: Duration = Duration.ZERO, executionType: ExecutionType = ExecutionType.SYNC, iterations: Long = -1L, taskGroup: TaskGroup? = null, scheduler: Scheduler = Manager.scheduler) {
-        this.iterations = iterations
-        this.taskGroup = taskGroup
-        this.delaySchedule = if (delay != Duration.ZERO) TaskSchedule.duration(delay) else TaskSchedule.immediate()
-        this.repeatSchedule = if (repeat != Duration.ZERO) TaskSchedule.duration(repeat) else TaskSchedule.stop()
-        this.executionType = executionType
-        this.scheduler = scheduler
-
-        schedule(scheduler)
+    companion object {
+        val executorService = Executors.newScheduledThreadPool(2)
     }
 
-    constructor(delay: TaskSchedule = TaskSchedule.immediate(), repeat: TaskSchedule = TaskSchedule.stop(), executionType: ExecutionType = ExecutionType.SYNC, iterations: Long = -1L, taskGroup: TaskGroup? = null, scheduler: Scheduler = Manager.scheduler) {
-        this.iterations = iterations
-        this.taskGroup = taskGroup
-        this.delaySchedule = delay
-        this.repeatSchedule = repeat
-        this.executionType = executionType
-        this.scheduler = scheduler
+    abstract fun run()
 
-        schedule(scheduler)
-    }
+    private var future: ScheduledFuture<*>? = null
 
-    private fun schedule(scheduler: Scheduler): Task {
-        val t = MinecraftServer.getSchedulerManager().buildTask {
-            if (iterations != -1L && currentIteration >= iterations) {
+    var currentIteration = AtomicInteger(0)
+
+    init {
+
+        future = executor.scheduleAtFixedRate({
+            try {
+                run()
+            } catch (e: Throwable) {
+                Logger.warn("Timer action failed:")
+                e.printStackTrace()
+            }
+
+            val currentIter = currentIteration.getAndIncrement()
+            if (iterations != -1 && currentIter >= iterations) {
                 cancel()
                 cancelled()
-                return@buildTask
+                return@scheduleAtFixedRate
             }
-
-            try {
-                this.run()
-            } catch (e: Throwable) {
-                Manager.exception.handleException(e)
-            }
-
-            currentIteration++
-        }
-            .delay(delaySchedule)
-            .repeat(repeatSchedule)
-            .executionType(executionType)
-            .schedule()
-
-        if (this.task != null) {
-            this.task?.get()?.cancel()
-            taskGroup?.removeTask(this.task?.get())
-        }
-
-        taskGroup?.addTask(t)
-
-        this.task = WeakReference(t)
-        return t
+        }, delay.toMillis(), repeat.toMillis().coerceAtLeast(1), TimeUnit.MILLISECONDS)
     }
+
+    open fun cancelled() {}
 
     fun cancel() {
-        taskGroup?.removeTask(task?.get())
-        task?.get()?.cancel()
-        task?.clear()
+        future?.cancel(false)
     }
 
-    /**
-        Called when iterations run out
-     */
-    open fun cancelled() {}
+    fun cancelImmediate() {
+//        cancel()
+        future?.cancel(true)
+    }
 }

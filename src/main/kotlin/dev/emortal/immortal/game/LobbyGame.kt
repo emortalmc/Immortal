@@ -24,10 +24,10 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
    init {
        gameState = GameState.PLAYING
 
-       eventNode.listenOnly<PlayerBlockPlaceEvent> {
+       instance.eventNode().listenOnly<PlayerBlockPlaceEvent> {
            isCancelled = !allowBlockModification
        }
-       eventNode.listenOnly<PlayerBlockBreakEvent> {
+       instance.eventNode().listenOnly<PlayerBlockBreakEvent> {
            isCancelled = !allowBlockModification
        }
    }
@@ -38,10 +38,7 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
         startingTask = null
         scoreboard?.updateLineContent("infoLine", Component.empty())
 
-        val gameName = GameManager.registeredClassMap[this::class]!!
-        val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
-
-        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents()
+        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents(instance.eventNode())
         gameStarted()
     }
 
