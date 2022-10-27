@@ -11,7 +11,6 @@ import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.JedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
-import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
@@ -72,21 +71,9 @@ object ImmortalEvents {
                 }
 //                player.respawnPoint = game.spawnPosition
 
-                val instance = game.instance.get()
-                if (instance == null) {
-                    player.kick("World has not loaded.")
-                    return@listenOnly
-                }
-
                 preparedGameMap[playerUuid] = game to true
             } else {
                 val newGame = GameManager.findOrCreateGame(player, args[0])
-                val instance = newGame.instance.get()
-
-                if (instance == null) {
-                    player.kick("World has not loaded.")
-                    return@listenOnly
-                }
 
 //                instance.loadChunk(newGame.spawnPosition).thenAccept {
 //                    if (it == null) {
@@ -116,7 +103,7 @@ object ImmortalEvents {
                 return@listenOnly
             }
 
-            setSpawningInstance(preparedGame.first.instance.get()!!)
+            setSpawningInstance(preparedGame.first.instance)
 
             player.respawnPoint = preparedGame.first.getSpawnPosition(player, preparedGame.second)
             player.scheduleNextTick {
@@ -160,7 +147,7 @@ object ImmortalEvents {
         }
 
         eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
-            val player = entity as? Player ?: return@listenOnly
+//            val player = entity as? Player ?: return@listenOnly
 
             if (instance.hasTag(GameManager.doNotUnregisterTag)) return@listenOnly
 

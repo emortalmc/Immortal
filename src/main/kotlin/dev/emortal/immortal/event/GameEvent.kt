@@ -8,7 +8,6 @@ interface GameEvent : InstanceEvent {
 
     fun getGame(): Game
 
-    // Game instance is weak reference and nullable, but we cannot change InstanceEvent
-    override fun getInstance(): Instance = getGame().instance.get()!!
+    override fun getInstance(): Instance = getGame().instance
 
 }

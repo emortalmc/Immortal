@@ -81,7 +81,7 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
 
         player.respawnPoint = playerSpawnPoint
 
-        player.safeSetInstance(instance, playerSpawnPoint)?.thenRun {
+        player.safeSetInstance(instance, playerSpawnPoint).thenRun {
             player.reset()
             player.resetTeam()
             scoreboard?.addViewer(player)

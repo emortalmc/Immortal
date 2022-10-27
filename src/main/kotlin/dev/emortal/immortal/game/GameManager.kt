@@ -41,7 +41,7 @@ object GameManager {
 
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
-    val createLock = Object()
+    private val createLock = Object()
 
     private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false) {
         if (!ignoreCooldown && player.hasTag(joiningGameTag)) return

@@ -29,7 +29,6 @@ import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
-import java.lang.ref.WeakReference
 import java.time.Duration
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.CountDownLatch
@@ -53,7 +52,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
      */
     open fun getSpawnPosition(player: Player, spectator: Boolean = false) = Pos(0.5, 70.0, 0.5)
 
-    lateinit var instance: WeakReference<Instance>
+    lateinit var instance: Instance
 
     val eventNode = EventNode.type("${gameTypeInfo.name}-$id", EventFilter.ALL) { event, _ ->
         if (destroyed) return@type false
@@ -61,10 +60,10 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             return@type event.player.game?.id == id
         }
         if (event is InstanceEvent) {
-            return@type event.instance.uniqueId == instance.get()?.uniqueId
+            return@type event.instance.uniqueId == instance.uniqueId
         }
         if (event is EntityEvent) {
-            return@type event.entity.instance?.uniqueId == instance.get()?.uniqueId
+            return@type event.entity.instance?.uniqueId == instance.uniqueId
         }
 
         false
@@ -109,10 +108,10 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             )
         }
 
-        instance = WeakReference(instanceCreate().also {
+        instance = instanceCreate().also {
             it.setTag(GameManager.gameNameTag, gameName)
             it.setTag(GameManager.gameIdTag, id)
-        })
+        }
         latch.countDown()
 
         Manager.globalEvent.addChild(eventNode)
@@ -145,7 +144,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = playerSpawnPoint
 
-        player.safeSetInstance(instance, playerSpawnPoint)?.thenRun {
+        player.safeSetInstance(instance, playerSpawnPoint).thenRun {
             player.reset()
             player.resetTeam()
             scoreboard?.addViewer(player)
@@ -253,7 +252,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = playerSpawnPoint
 
-        player.safeSetInstance(instance, playerSpawnPoint)?.thenRun {
+        player.safeSetInstance(instance, playerSpawnPoint).thenRun {
             player.reset()
             player.resetTeam()
 
@@ -471,6 +470,26 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     override fun equals(other: Any?): Boolean {
         if (other !is Game) return false
         return other.id == this.id
+    }
+
+    override fun hashCode(): Int {
+        var result = gameOptions.hashCode()
+        result = 31 * result + players.hashCode()
+        result = 31 * result + queuedPlayers.hashCode()
+        result = 31 * result + spectators.hashCode()
+        result = 31 * result + teams.hashCode()
+        result = 31 * result + id.hashCode()
+        result = 31 * result + gameState.hashCode()
+        result = 31 * result + gameName.hashCode()
+        result = 31 * result + gameTypeInfo.hashCode()
+        result = 31 * result + instance.hashCode()
+        result = 31 * result + eventNode.hashCode()
+        result = 31 * result + taskGroup.hashCode()
+        result = 31 * result + (startingTask?.hashCode() ?: 0)
+        result = 31 * result + (scoreboard?.hashCode() ?: 0)
+        result = 31 * result + destroyed.hashCode()
+        result = 31 * result + latch.hashCode()
+        return result
     }
 
 }
