@@ -60,7 +60,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     private var destroyed = false
 
-    private val latch = CountDownLatch(1)
+    val instanceLatch = CountDownLatch(1)
 
     init {
         Logger.info("Creating game $gameName")
@@ -110,13 +110,13 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
         }
 
-        latch.countDown()
+        instanceLatch.countDown()
 
         if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents(instance.eventNode())
     }
 
     internal open fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
-        latch.await()
+        instanceLatch.await()
         if (players.contains(player)) {
             Logger.warn("Already contains player")
             return
