@@ -20,6 +20,8 @@ import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 object ImmortalEvents {
 
@@ -102,7 +104,14 @@ object ImmortalEvents {
                 return@listenOnly
             }
 
-            setSpawningInstance(preparedGame.first.instance)
+            try {
+                setSpawningInstance(preparedGame.first.instanceFuture.get(10, TimeUnit.SECONDS))
+
+            } catch (e: TimeoutException) {
+                player.kick("Game instance was not ready fast enough")
+                Logger.error("Game instance was not ready fast enough")
+                return@listenOnly
+            }
 
             player.respawnPoint = preparedGame.first.getSpawnPosition(player, preparedGame.second)
             player.scheduleNextTick {

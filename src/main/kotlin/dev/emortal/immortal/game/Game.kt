@@ -28,8 +28,8 @@ import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.time.Duration
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CopyOnWriteArraySet
-import java.util.concurrent.CountDownLatch
 
 abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
@@ -53,14 +53,13 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     val gameName = GameManager.registeredClassMap[this::class]!!
     val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
-    var instance: Instance
+    var instanceFuture: CompletableFuture<Instance>
+    lateinit var instance: Instance
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
     private var destroyed = false
-
-    val instanceLatch = CountDownLatch(1)
 
     init {
         Logger.info("Creating game $gameName")
@@ -92,31 +91,30 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             )
         }
 
-        instance = instanceCreate().also {
+        instanceFuture = instanceCreate()
+        instanceFuture.thenAccept {
             it.setTag(GameManager.gameNameTag, gameName)
             it.setTag(GameManager.gameIdTag, id)
-        }
+            instance = it
 
-        instance.eventNode().listenOnly<RemoveEntityFromInstanceEvent> {
+            instance.eventNode().listenOnly<RemoveEntityFromInstanceEvent> {
 //            val player = entity as? Player ?: return@listenOnly
 
-            if (instance.hasTag(GameManager.doNotUnregisterTag)) return@listenOnly
+                if (instance.hasTag(GameManager.doNotUnregisterTag)) return@listenOnly
 
-            this.instance.scheduleNextTick {
-                if (instance.players.isNotEmpty() || !instance.isRegistered) return@scheduleNextTick
+                this.instance.scheduleNextTick {
+                    if (instance.players.isNotEmpty() || !instance.isRegistered) return@scheduleNextTick
 
-                Manager.instance.unregisterInstance(instance)
-                destroy()
+                    Manager.instance.unregisterInstance(instance)
+                    destroy()
+                }
             }
+
+            if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents(instance.eventNode())
         }
-
-        instanceLatch.countDown()
-
-        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents(instance.eventNode())
     }
 
     internal open fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
-        instanceLatch.await()
         if (players.contains(player)) {
             Logger.warn("Already contains player")
             return
@@ -141,29 +139,28 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = playerSpawnPoint
 
-        player.safeSetInstance(instance, playerSpawnPoint).thenRun {
-            player.reset()
-            player.resetTeam()
-            scoreboard?.addViewer(player)
-            playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
-            player.clearTitle()
-            player.sendActionBar(Component.empty())
+        instanceFuture.thenAcceptAsync { instance ->
+            player.safeSetInstance(instance, playerSpawnPoint).thenRun {
+                player.reset()
+                player.resetTeam()
+                scoreboard?.addViewer(player)
+                playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1.2f))
+                player.clearTitle()
+                player.sendActionBar(Component.empty())
 
-//            player.scheduler().buildTask {
                 playerJoin(player)
-//            }.schedule()
 
-            refreshPlayerCount()
+                refreshPlayerCount()
 
-            EventDispatcher.call(PlayerJoinGameEvent(this, player))
+                EventDispatcher.call(PlayerJoinGameEvent(this, player))
 
-            if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
-                if (startingTask == null) {
-                    startCountdown()
+                if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= gameOptions.minPlayers) {
+                    if (startingTask == null) {
+                        startCountdown()
+                    }
                 }
             }
         }
-
 
     }
 
@@ -223,8 +220,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     @Synchronized
     open fun refreshPlayerCount() {
-
-
         JedisStorage.jedis?.publish("playercount", "$gameName ${GameManager.gameMap[gameName]?.values?.sumOf { it.players.size } ?: 0}")
 
         if (gameOptions.minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
@@ -246,25 +241,27 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         spectators.add(player)
 
-        val playerSpawnPoint = getSpawnPosition(player, true)
+        instanceFuture.thenAcceptAsync { instance ->
+            val playerSpawnPoint = getSpawnPosition(player, true)
 
-        player.respawnPoint = playerSpawnPoint
+            player.respawnPoint = playerSpawnPoint
 
-        player.safeSetInstance(instance, playerSpawnPoint).thenRun {
-            player.reset()
-            player.resetTeam()
+            player.safeSetInstance(instance, playerSpawnPoint).thenRun {
+                player.reset()
+                player.resetTeam()
 
-            scoreboard?.addViewer(player)
+                scoreboard?.addViewer(player)
 
-            player.isAutoViewable = false
-            player.isInvisible = true
-            player.gameMode = GameMode.SPECTATOR
-            player.isAllowFlying = true
-            player.isFlying = true
-            //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
-            player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+                player.isAutoViewable = false
+                player.isInvisible = true
+                player.gameMode = GameMode.SPECTATOR
+                player.isAllowFlying = true
+                player.isFlying = true
+                //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+                player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
-            spectatorJoin(player)
+                spectatorJoin(player)
+            }
         }
     }
 
@@ -345,14 +342,16 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     open fun start() {
         if (gameState == GameState.PLAYING) return
 
-        playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        instanceFuture.thenAcceptAsync { instance ->
+            playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
-        startingTask = null
-        gameState = GameState.PLAYING
-        scoreboard?.updateLineContent("infoLine", Component.empty())
+            startingTask = null
+            gameState = GameState.PLAYING
+            scoreboard?.updateLineContent("infoLine", Component.empty())
 
-        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents(instance.eventNode())
-        gameStarted()
+            if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents(instance.eventNode())
+            gameStarted()
+        }
     }
 
     open fun destroy() {
@@ -390,7 +389,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         }
 
-        if (instance.players.isEmpty()) Manager.instance.unregisterInstance(instance)
+        instanceFuture.thenAcceptAsync { instance ->
+            if (instance.players.isEmpty()) Manager.instance.unregisterInstance(instance)
+        }
 
         players.clear()
         spectators.clear()
@@ -462,7 +463,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     open fun gameWon(winningPlayers: Collection<Player>) {}
 
-    abstract fun instanceCreate(): Instance
+    abstract fun instanceCreate(): CompletableFuture<Instance>
 
     override fun getPlayers(): MutableCollection<Player> = (players + spectators).toMutableSet()
 

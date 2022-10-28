@@ -1,7 +1,9 @@
 package dev.emortal.immortal.commands
 
+import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.util.armify
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
 import net.minestom.server.command.builder.Command
@@ -50,40 +52,58 @@ internal object StatsCommand : Command("tps") {
             val entities = Manager.instance.instances.sumOf { it.entities.size } - onlinePlayers
             val instances = Manager.instance.instances
             val sharedInstances = instances.count { it is SharedInstance }
+            val permanentInstances = instances.count { it.hasTag(GameManager.doNotUnregisterTag) }
             val chunks = Manager.instance.instances.sumOf { it.chunks.size }
 
             sender.sendMessage(
-                Component.text()
-                    .append(Component.text("RAM Usage: ", NamedTextColor.GRAY))
-                    .append(Component.text("${ramUsage}MB / ${totalMem}MB", NamedTextColor.GRAY))
-                    .append(Component.text(" (", NamedTextColor.GRAY))
-                    .append(Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0) / 100})", NamedTextColor.GREEN))
+                Component.textOfChildren(
+                    // RAM details
+                    Component.text("RAM: ", NamedTextColor.GRAY),
+                    Component.text("${ramUsage}MB / ${totalMem}MB", NamedTextColor.GRAY),
+                    Component.text(" (", NamedTextColor.GRAY),
+                    Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0) / 100}", NamedTextColor.GREEN),
+                    Component.text(")", NamedTextColor.GRAY),
 
-                    .append(Component.text("\nCPU Usage: ", NamedTextColor.GRAY))
-                    .append(Component.text("${if (cpuPercent < 0) "..." else cpuPercent}%", NamedTextColor.GREEN))
+                    // CPU details
+                    Component.text("\nCPU: ", NamedTextColor.GRAY),
+                    Component.text("${if (cpuPercent < 0) "..." else cpuPercent}%", NamedTextColor.GREEN),
 
-                    .append(Component.text("\nTPS: ", NamedTextColor.GRAY))
-                    .append(Component.text(tps, NamedTextColor.GREEN))
+                    // TPS details
+                    Component.text("\nTPS: ", NamedTextColor.GRAY),
+                    Component.text(tps, NamedTextColor.GREEN),
+                    Component.text(" (", NamedTextColor.GRAY),
+                    Component.text("${floor(tickMs * 100.0) / 100}ms", TextColor.lerp(tickMs.toFloat() / 50f, NamedTextColor.GREEN, NamedTextColor.RED)),
+                    Component.text(")\n", NamedTextColor.GRAY),
 
-                    .append(Component.text(" (", NamedTextColor.GRAY))
-                    .append(Component.text("${floor(tickMs * 100.0) / 100}ms", TextColor.lerp(tickMs.toFloat() / 50f, NamedTextColor.GREEN, NamedTextColor.RED)))
-                    .append(Component.text(")\n", NamedTextColor.GRAY))
+                    // Entities
+                    Component.text("\nEntities: ", NamedTextColor.GRAY)
+                        .append(Component.text(entities + onlinePlayers, NamedTextColor.GOLD))
+                        .hoverEvent(
+                            HoverEvent.showText(
+                                Component.text()
+                                    .append(Component.text("Players: ", NamedTextColor.GRAY))
+                                    .append(Component.text(onlinePlayers, NamedTextColor.GOLD))
+                                    .append(Component.text("\nEntities: ", NamedTextColor.GRAY))
+                                    .append(Component.text(entities, NamedTextColor.GOLD))
+                                    .build()
+                            )),
 
-                    .append(Component.text("\nPlayers: ", NamedTextColor.GRAY))
-                    .append(Component.text(onlinePlayers, NamedTextColor.GOLD))
+                    // Instances
+                    Component.text("\nInstances: ", NamedTextColor.GRAY)
+                        .append(Component.text(instances.size, NamedTextColor.GOLD))
+                        .hoverEvent(HoverEvent.showText(
+                            // hover stuffs :)
+                            Component.text()
+                                .append(Component.text("Shared: ", NamedTextColor.GRAY))
+                                .append(Component.text(sharedInstances, NamedTextColor.GOLD))
+                                .append(Component.text("\nPermanent: ", NamedTextColor.GRAY))
+                                .append(Component.text(permanentInstances, NamedTextColor.GOLD))
+                                .append(Component.text("\nChunks: ", NamedTextColor.GRAY))
+                                .append(Component.text(chunks, NamedTextColor.GOLD))
+                                .build()
+                        ))
 
-                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-
-                    .append(Component.text("Entities: ", NamedTextColor.GRAY))
-                    .append(Component.text(entities, NamedTextColor.GOLD))
-
-                    .append(Component.text("\nInstances: ", NamedTextColor.GRAY))
-                    .append(Component.text(instances.size - sharedInstances, NamedTextColor.GOLD))
-                    .append(Component.text(" (Shared: ${sharedInstances})", NamedTextColor.GRAY))
-
-                    .append(Component.text("\nChunks: ", NamedTextColor.GRAY))
-                    .append(Component.text(chunks, NamedTextColor.GOLD))
-
+                )
                     .armify(40)
             )
         }
