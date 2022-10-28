@@ -31,22 +31,26 @@ abstract class MinestomRunnable(
     var currentIteration = AtomicInteger(0)
 
     init {
+        if (repeat == Duration.ZERO) {
+            future = executor.schedule({ run() }, delay.toMillis(), TimeUnit.MILLISECONDS)
+        } else {
+            future = executor.scheduleAtFixedRate({
+                if (iterations != -1 && currentIteration.get() >= iterations) {
+                    cancel()
+                    cancelled()
+                    return@scheduleAtFixedRate
+                }
 
-        future = executor.scheduleAtFixedRate({
-            try {
-                run()
-            } catch (e: Throwable) {
-                Logger.warn("Timer action failed:")
-                e.printStackTrace()
-            }
+                try {
+                    run()
+                } catch (e: Throwable) {
+                    Logger.warn("Timer action failed:")
+                    e.printStackTrace()
+                }
 
-            val currentIter = currentIteration.getAndIncrement()
-            if (iterations != -1 && currentIter >= iterations) {
-                cancel()
-                cancelled()
-                return@scheduleAtFixedRate
-            }
-        }, delay.toMillis(), repeat.toMillis().coerceAtLeast(1), TimeUnit.MILLISECONDS)
+                currentIteration.incrementAndGet()
+            }, delay.toMillis(), repeat.toMillis().coerceAtLeast(1), TimeUnit.MILLISECONDS)
+        }
     }
 
     open fun cancelled() {}

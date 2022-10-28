@@ -53,7 +53,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     val gameName = GameManager.registeredClassMap[this::class]!!
     val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
-    lateinit var instance: Instance
+    var instance: Instance
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null

@@ -58,7 +58,7 @@ object JedisStorage {
                             if (playerGame == null) return
 
                             val gameName = GameManager.registeredClassMap[playerGame::class]!!
-                            val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
+//                            val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
                             if (gameName == subgame) return
 

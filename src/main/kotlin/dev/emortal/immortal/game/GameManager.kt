@@ -46,10 +46,7 @@ object GameManager {
     private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false) {
         if (!ignoreCooldown && player.hasTag(joiningGameTag)) return
 
-        val gameName = registeredClassMap[newGame::class]!!
-        val gameTypeInfo = registeredGameMap[gameName] ?: throw Error("Game type not registered")
-
-        Logger.info("Attempting to join ${gameName}")
+        Logger.info("Attempting to join ${newGame.gameName}")
 
         lastGame?.removePlayer(player)
         lastGame?.removeSpectator(player)
