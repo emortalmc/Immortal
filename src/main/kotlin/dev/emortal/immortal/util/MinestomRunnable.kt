@@ -12,11 +12,13 @@ import java.util.concurrent.atomic.AtomicInteger
  * @param delay How long to delay the task from running
  * @param repeat How long between intervals of running
  * @param iterations How many times to iterate, -1 being infinite (also default)
+ * @param group Can be null, however will not be automatically cancelled when games end - caution!
  */
 abstract class MinestomRunnable(
     var delay: Duration = Duration.ZERO,
     var repeat: Duration = Duration.ZERO,
     var iterations: Int = -1,
+    var group: RunnableGroup?,
     val executor: ScheduledExecutorService = executorService
 ) {
 
@@ -51,16 +53,21 @@ abstract class MinestomRunnable(
                 currentIteration.incrementAndGet()
             }, delay.toMillis(), repeat.toMillis().coerceAtLeast(1), TimeUnit.MILLISECONDS)
         }
+
+        @Suppress("LeakingThis") // should be fine since runnable is just a glorified object list
+        group?.addRunnable(this@MinestomRunnable)
     }
 
     open fun cancelled() {}
 
     fun cancel() {
         future?.cancel(false)
+        future = null
     }
 
     fun cancelImmediate() {
-//        cancel()
         future?.cancel(true)
+        future = null
     }
+
 }

@@ -11,16 +11,16 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     var allowBlockModification = false
 
     init {
-        gameState = GameState.PLAYING
+        instanceFuture.thenAcceptAsync { instance ->
+            instance.eventNode().listenOnly<PlayerBlockPlaceEvent> {
+                isCancelled = !allowBlockModification
+            }
+            instance.eventNode().listenOnly<PlayerBlockBreakEvent> {
+                isCancelled = !allowBlockModification
+            }
 
-        instance.eventNode().listenOnly<PlayerBlockPlaceEvent> {
-            isCancelled = !allowBlockModification
+            start()
         }
-        instance.eventNode().listenOnly<PlayerBlockBreakEvent> {
-            isCancelled = !allowBlockModification
-        }
-
-        start()
     }
 
     // Lobby does not have a countdown

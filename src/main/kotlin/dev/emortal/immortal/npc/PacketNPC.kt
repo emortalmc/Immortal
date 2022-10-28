@@ -67,7 +67,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             viewer.sendPacket(entitySpawn)
         }
 
-        taskMap[viewer.uuid] = object : MinestomRunnable(delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150)) {
+        taskMap[viewer.uuid] = object : MinestomRunnable(delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150), group = null) {
             override fun run() {
                 val lookFromPos = position.add(0.0, entityType.height(), 0.0)
                 val lookToPos = viewer.position.add(0.0, if (viewer.isSneaking) 1.5 else 1.8, 0.0)

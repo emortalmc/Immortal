@@ -42,9 +42,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     var gameState = GameState.WAITING_FOR_PLAYERS
 
-//    val gameName = GameManager.registeredClassMap[this::class]!!
-//    val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
-
     /**
      * Not guaranteed to be ran once per player
      */
@@ -60,6 +57,8 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     var scoreboard: Sidebar? = null
 
     private var destroyed = false
+
+    val runnableGroup = RunnableGroup()
 
     init {
         Logger.info("Creating game $gameName")
@@ -92,7 +91,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         }
 
         instanceFuture = instanceCreate()
-        instanceFuture.thenAccept {
+        instanceFuture.thenAcceptAsync {
             it.setTag(GameManager.gameNameTag, gameName)
             it.setTag(GameManager.gameIdTag, id)
             instance = it
@@ -290,7 +289,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             return
         }
 
-        startingTask = object : MinestomRunnable(repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds) {
+        startingTask = object : MinestomRunnable(repeat = Duration.ofSeconds(1), iterations = gameOptions.countdownSeconds, group = runnableGroup) {
 
             override fun run() {
                 scoreboard?.updateLineContent(
@@ -373,6 +372,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         teams.forEach {
             it.destroy()
         }
+        runnableGroup.cancelAll()
 
         val debugMode = System.getProperty("debug").toBoolean()
         val debugGame = System.getProperty("debuggame")
