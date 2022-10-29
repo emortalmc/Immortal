@@ -102,8 +102,6 @@ object ImmortalEvents {
                 return@listenOnly
             }
 
-            println("prepared game: ${preparedGame.first.gameState}")
-            println("prepared game: ${preparedGame.first.id}")
             val instance = preparedGame.first.instanceFuture.join()
 
             if (!instance.isRegistered) {

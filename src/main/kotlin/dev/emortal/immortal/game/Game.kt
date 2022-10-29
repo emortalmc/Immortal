@@ -61,7 +61,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
-    private var destroyed = false
+    var destroyed = false
 
     val runnableGroup = RunnableGroup()
 
