@@ -51,15 +51,6 @@ internal object StatsCommand : Command("tps") {
             val value = (att?.value as? Double) ?: 0.0
             val cpuPercent = floor(value * 100_00) / 100.0
 
-            val rt = ManagementFactory.getRuntimeMXBean()
-            val base = rt.startTime
-
-            for (gc in ManagementFactory.getGarbageCollectorMXBeans()) {
-                if (gc is GarbageCollectorMXBean) {
-                    val info = gc.lastGcInfo
-                }
-            }
-
             val monitor = LAST_TICK.get()
             val tickMs = monitor.tickTime
             val tps = floor(1000 / tickMs).toInt().coerceAtMost(20)
