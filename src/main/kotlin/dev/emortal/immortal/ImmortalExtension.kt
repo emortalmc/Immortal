@@ -93,6 +93,7 @@ class ImmortalExtension : Extension() {
             StatsCommand.register()
             ListCommand.register()
             VersionCommand.register()
+            CurrentCommand.register()
 
             Logger.info("Immortal initialized!")
         }
@@ -109,6 +110,7 @@ class ImmortalExtension : Extension() {
         StatsCommand.unregister()
         ListCommand.unregister()
         VersionCommand.unregister()
+        CurrentCommand.unregister()
 
         JedisStorage.jedis?.close()
 

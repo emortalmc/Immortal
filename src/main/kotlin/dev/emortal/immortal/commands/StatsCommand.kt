@@ -1,8 +1,12 @@
 package dev.emortal.immortal.commands
 
+import com.sun.management.GarbageCollectorMXBean
+import com.sun.management.GcInfo
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.util.armify
+import dev.emortal.immortal.util.parsed
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.JoinConfiguration
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
@@ -13,7 +17,9 @@ import net.minestom.server.monitoring.TickMonitor
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.lang.management.ManagementFactory
+import java.lang.management.MemoryUsage
 import java.util.concurrent.atomic.AtomicReference
+import java.util.regex.Pattern
 import javax.management.Attribute
 import javax.management.AttributeList
 import javax.management.ObjectName
@@ -23,6 +29,7 @@ import kotlin.math.floor
 internal object StatsCommand : Command("tps") {
 
     private val LAST_TICK = AtomicReference<TickMonitor>()
+    private val EXCLUDED_MEMORY_SPACES: List<Pattern> = setOf("Metaspace", "Compressed Class Space", "^CodeHeap").map { Pattern.compile(it) }
 
     init {
         Manager.globalEvent.listenOnly<ServerTickMonitorEvent> {
@@ -43,6 +50,15 @@ internal object StatsCommand : Command("tps") {
             val att = list.firstOrNull() as? Attribute
             val value = (att?.value as? Double) ?: 0.0
             val cpuPercent = floor(value * 100_00) / 100.0
+
+            val rt = ManagementFactory.getRuntimeMXBean()
+            val base = rt.startTime
+
+            for (gc in ManagementFactory.getGarbageCollectorMXBeans()) {
+                if (gc is GarbageCollectorMXBean) {
+                    val info = gc.lastGcInfo
+                }
+            }
 
             val monitor = LAST_TICK.get()
             val tickMs = monitor.tickTime
@@ -74,6 +90,8 @@ internal object StatsCommand : Command("tps") {
                     Component.text(" (", NamedTextColor.GRAY),
                     Component.text("${floor(tickMs * 100.0) / 100}ms", TextColor.lerp(tickMs.toFloat() / 50f, NamedTextColor.GREEN, NamedTextColor.RED)),
                     Component.text(")\n", NamedTextColor.GRAY),
+
+                    createGcComponent(),
 
                     // Entities
                     Component.text("\nEntities: ", NamedTextColor.GRAY)
@@ -109,5 +127,79 @@ internal object StatsCommand : Command("tps") {
         }
 
     }
+
+    private fun createGcComponent(): Component {
+        val builder = Component.text()
+            .append(Component.text("GC Info:", NamedTextColor.GRAY))
+
+        this.getGcInfo().entries.forEach { entry ->
+            val entryBuilder = Component.text()
+
+            val lastRunText = if (entry == null) {
+                "Never"
+            } else {
+                val millisSinceRun: Long = getUptime() - entry.value!!.endTime
+                (millisSinceRun / 1000).parsed()
+            }
+
+            entryBuilder.append(Component.text("\n  " + entry.key + ":", NamedTextColor.GRAY))
+                .append(Component.text("\n    Last Run: ", NamedTextColor.GRAY))
+                .append(Component.text(lastRunText, NamedTextColor.GOLD));
+
+            if (entry != null) entryBuilder.hoverEvent(HoverEvent.showText(this.createGcHover(entry.key, entry.value)))
+
+            builder.append(entryBuilder)
+        }
+
+        return builder.build()
+    }
+
+    private fun createGcHover(name: String, info: GcInfo?): Component {
+        val builder = Component.text()
+            .append(Component.text("Name: ", NamedTextColor.GOLD))
+            .append(Component.text(name, NamedTextColor.GRAY))
+            .append(Component.newline())
+            .append(Component.text("Duration: ", NamedTextColor.GOLD))
+            .append(Component.text(info!!.duration.toString() + "ms", NamedTextColor.GRAY))
+            .append(Component.newline(), Component.newline())
+            .append(Component.text("Memory After:", NamedTextColor.GOLD))
+            .append(Component.newline())
+            .append(createMemoryUsagePeriod(info.memoryUsageAfterGc))
+            .append(Component.newline(), Component.newline())
+            .append(Component.text("Memory Before:", NamedTextColor.GOLD))
+            .append(Component.newline())
+            .append(createMemoryUsagePeriod(info.memoryUsageBeforeGc))
+        return builder.build()
+    }
+
+
+    private fun createMemoryUsagePeriod(memoryUsageMap: Map<String, MemoryUsage>): Component {
+        val lines: MutableList<Component> = ArrayList()
+
+        memoryUsageMap.entries.forEach { entry ->
+            if (EXCLUDED_MEMORY_SPACES.any { it.matcher(entry.key).find() }) return@forEach
+
+            lines.add(Component.text().append(Component.text("  " + entry.key + ": ", NamedTextColor.GOLD))
+                .append(Component.text("${entry.value.used / 1024 / 1024} MB", NamedTextColor.GRAY))
+                .build());
+        }
+
+        return Component.join(JoinConfiguration.newlines(), lines)
+    }
+
+    private fun getGcInfo(): Map<String, GcInfo?> {
+        val gcInfo: MutableMap<String, GcInfo> = HashMap()
+        for (garbageCollectorMXBean in ManagementFactory.getGarbageCollectorMXBeans()) {
+            val bean = garbageCollectorMXBean as GarbageCollectorMXBean
+            gcInfo[bean.name] = bean.lastGcInfo
+        }
+        return gcInfo
+    }
+
+    private fun getUptime(): Long {
+        return ManagementFactory.getRuntimeMXBean().uptime
+    }
+
+
 
 }
