@@ -36,6 +36,7 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     override fun getPlayers(): MutableCollection<Player> = players
 
     override fun canBeJoined(player: Player): Boolean {
+        if (destroyed) return false
         if (players.contains(player)) return false
         if (!queuedPlayers.contains(player) && players.size + queuedPlayers.size >= gameOptions.maxPlayers) {
             return false

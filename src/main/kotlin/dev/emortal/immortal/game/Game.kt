@@ -61,12 +61,12 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
-    private var destroyed = false
+    var destroyed = false
 
     val runnableGroup = RunnableGroup()
 
     init {
-        Logger.info("Creating game $gameName")
+        Logger.info("Creating game $gameName#$id")
 
         if (gameOptions.showScoreboard) {
             scoreboard = Sidebar(gameTypeInfo.title)
@@ -126,7 +126,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         queuedPlayers.remove(player)
         players.add(player)
 
-        Logger.info("${player.username} joining game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} joining game ${gameTypeInfo.name}#$id")
 
         if (joinMessage) sendMessage(
             Component.text()
@@ -179,7 +179,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         EventDispatcher.call(leaveEvent)
 
         if (!destroyed) {
-            Logger.info("${player.username} leaving game '${gameTypeInfo.name}'")
+            Logger.info("${player.username} leaving game ${gameTypeInfo.name}#$id")
 
             refreshPlayerCount()
 
@@ -241,7 +241,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         if (spectators.contains(player)) return
         if (players.contains(player)) return
 
-        Logger.info("${player.username} started spectating game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} started spectating game ${gameTypeInfo.name}#$id")
 
         spectators.add(player)
 
@@ -272,7 +272,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     internal open fun removeSpectator(player: Player) {
         if (!spectators.contains(player)) return
 
-        Logger.info("${player.username} stopped spectating game '${gameTypeInfo.name}'")
+        Logger.info("${player.username} stopped spectating game ${gameTypeInfo.name}#$id")
 
         spectators.remove(player)
         scoreboard?.removeViewer(player)
@@ -362,7 +362,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
         if (destroyed) return
         destroyed = true
 
-        Logger.info("A game of '${gameTypeInfo.name}' is ending")
+        Logger.info("Game ${gameTypeInfo.name}#$id is ending")
 
 //        Manager.globalEvent.removeChild(eventNode)
 //        eventNode = null

@@ -8,7 +8,9 @@ class GameQueue(private val pool: Pool<Game>) {
     private var current: Game = pool.acquire().join()
 
     fun next(player: Player): Game {
-        if (!current.canBeJoined(player)) current = pool.acquire().join()
+        if (!current.canBeJoined(player) || !current.instance.isRegistered) {
+            current = pool.acquire().join()
+        }
         return current
     }
 }
