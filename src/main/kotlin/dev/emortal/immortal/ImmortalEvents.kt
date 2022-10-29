@@ -20,8 +20,6 @@ import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 object ImmortalEvents {
 
@@ -74,18 +72,18 @@ object ImmortalEvents {
 
                 preparedGameMap[playerUuid] = game to true
             } else {
-                val newGame = GameManager.findOrCreateGame(player, args[0])
+                synchronized(Game.findLock) {
+                    val newGame = GameManager.findOrCreateGame(player, args[0])
 
-//                instance.loadChunk(newGame.spawnPosition).thenAccept {
-//                    if (it == null) {
-//                        player.kick("Chunk is null")
-//                        return@thenAccept
-//                    }
-//                }
+                    if (newGame == null) {
+                        Logger.warn("Game failed to create")
+                        player.kick("Game was null")
+                        return@listenOnly
+                    }
 
-                newGame.queuedPlayers.add(player)
-
-                preparedGameMap[playerUuid] = newGame to false
+                    newGame.queuedPlayers.add(player)
+                    preparedGameMap[playerUuid] = newGame to false
+                }
             }
         }
 
@@ -104,18 +102,21 @@ object ImmortalEvents {
                 return@listenOnly
             }
 
-            try {
-                setSpawningInstance(preparedGame.first.instanceFuture.get(10, TimeUnit.SECONDS))
+            println("prepared game: ${preparedGame.first.gameState}")
+            println("prepared game: ${preparedGame.first.id}")
+            val instance = preparedGame.first.instanceFuture.join()
 
-            } catch (e: TimeoutException) {
-                player.kick("Game instance was not ready fast enough")
-                Logger.error("Game instance was not ready fast enough")
-                return@listenOnly
+            if (!instance.isRegistered) {
+                println("uhh instance wasn't registered, that's not good")
             }
+
+            setSpawningInstance(instance)
 
             player.respawnPoint = preparedGame.first.getSpawnPosition(player, preparedGame.second)
             player.scheduleNextTick {
-                player.joinGame(preparedGame.first, spectate = preparedGame.second, ignoreCooldown = true)
+                synchronized(Game.joinLock) {
+                    player.joinGame(preparedGame.first, spectate = preparedGame.second, ignoreCooldown = true)
+                }
             }
         }
 

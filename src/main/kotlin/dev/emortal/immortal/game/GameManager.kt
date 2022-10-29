@@ -3,6 +3,8 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.ImmortalExtension
 import dev.emortal.immortal.config.GameOptions
 import dev.emortal.immortal.config.GameTypeInfo
+import dev.emortal.immortal.pool.GameQueue
+import dev.emortal.immortal.pool.Pool
 import dev.emortal.immortal.util.JedisStorage
 import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.text.Component
@@ -16,7 +18,9 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 
+
 object GameManager {
+
     // Instance Tags
     val doNotUnregisterTag = Tag.Boolean("doNotUnregister")
     val doNotAutoUnloadChunkTag = Tag.Boolean("doNotAutoUnloadChunk")
@@ -32,7 +36,7 @@ object GameManager {
     val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
     val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()
     val gameMap = ConcurrentHashMap<String, ConcurrentHashMap<Int, Game>>()
-
+    val gamePoolMap = ConcurrentHashMap<String, GameQueue>()
 
     val Player.game get() = playerGameMap[this.uuid]
 
@@ -40,8 +44,6 @@ object GameManager {
     fun getNextGameId() = lastGameId.getAndIncrement()
 
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
-
-    private val createLock = Object()
 
     private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false) {
         if (!ignoreCooldown && player.hasTag(joiningGameTag)) return
@@ -62,6 +64,8 @@ object GameManager {
     }
 
     fun Player.joinGame(game: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false): Boolean {
+        setTag(joiningGameTag, true)
+
         val gameName = registeredClassMap[game::class]!!
         val gameTypeInfo = registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
@@ -80,7 +84,6 @@ object GameManager {
     }
 
     fun Player.leaveGame() {
-        game?.queuedPlayers?.remove(this)
         game?.removePlayer(this)
         game?.removeSpectator(this)
         playerGameMap.remove(this.uuid)
@@ -94,39 +97,33 @@ object GameManager {
     ) {
         if (!ignoreCooldown && hasTag(joiningGameTag)) return
 
-        joinGame(findOrCreateGame(this, gameTypeName, options), ignoreCooldown = ignoreCooldown)
-        setTag(joiningGameTag, true)
+        val game = findOrCreateGame(this, gameTypeName, options)
+
+        if (game == null) {
+            Logger.error("Game was null")
+            return
+        }
+
+        joinGame(game, ignoreCooldown = ignoreCooldown)
     }
 
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
-    ): Game {
-        synchronized(createLock) {
-            return gameMap[gameTypeName]?.values?.firstOrNull {
-                it.canBeJoined(player) && it.gameOptions == options
-            }
-                ?: createGame(gameTypeName, options, player)
-        }
+    ): Game? {
+        return gamePoolMap[gameTypeName]?.next(player)
 
 
     }
 
-    fun createGame(gameTypeName: String, options: GameOptions, creator: Player? = null): Game {
+    fun createGame(gameTypeName: String, options: GameOptions): Game {
+        val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call(options)
+            ?: throw IllegalArgumentException("Primary constructor not found.")
 
-        synchronized(createLock) {
-            //options.private = creator?.party?.privateGames ?: false
+        gameMap[gameTypeName]?.put(game.id, game)
 
-            val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call(options)
-                ?: throw IllegalArgumentException("Primary constructor not found.")
-            //game.gameCreator = creator
-
-            gameMap[gameTypeName]?.put(game.id, game)
-
-            return game
-        }
-
+        return game
     }
 
     inline fun <reified T : Game> registerGame(
@@ -161,6 +158,7 @@ object GameManager {
         JedisStorage.jedis?.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
         gameMap[name] = ConcurrentHashMap()
+        gamePoolMap[name] = GameQueue(Pool.dynamic({ createGame(name, options) }, { gameMap[name]!!.count { it.value.players.isNotEmpty() } }))
 
         Logger.info("Registered game type '${name}'")
     }

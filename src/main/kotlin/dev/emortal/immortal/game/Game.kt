@@ -33,6 +33,11 @@ import java.util.concurrent.CopyOnWriteArraySet
 
 abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
+    companion object {
+        val joinLock = Object()
+        val findLock = Object()
+    }
+
     val players = CopyOnWriteArraySet<Player>()
     val queuedPlayers = CopyOnWriteArraySet<Player>()
     val spectators = CopyOnWriteArraySet<Player>()
@@ -402,6 +407,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     open fun canBeJoined(player: Player): Boolean {
+        if (destroyed) return false
         if (players.contains(player)) return false
         if (!queuedPlayers.contains(player) && players.size + queuedPlayers.size >= gameOptions.maxPlayers) {
             return false
