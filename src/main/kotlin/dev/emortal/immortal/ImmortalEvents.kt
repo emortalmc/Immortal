@@ -11,8 +11,10 @@ import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.JedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.entity.GameMode
+import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
+import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.utils.chunk.ChunkUtils
 import org.tinylog.kotlin.Logger
@@ -73,14 +75,17 @@ object ImmortalEvents {
                 preparedGameMap[playerUuid] = game to true
             } else {
                 synchronized(Game.findLock) {
-                    val newGame = GameManager.findOrCreateGame(player, args[0])
+                    if (!player.isOnline) return@listenOnly
 
-                    if (newGame == null) {
+                    val newGameFuture = GameManager.findOrCreateGame(player, args[0])
+
+                    if (newGameFuture == null) {
                         Logger.warn("Game failed to create")
                         player.kick("Game was null")
                         return@listenOnly
                     }
 
+                    val newGame = newGameFuture.join()
                     newGame.queuedPlayers.add(player)
                     preparedGameMap[playerUuid] = newGame to false
                 }
@@ -102,19 +107,34 @@ object ImmortalEvents {
                 return@listenOnly
             }
 
-            val instance = preparedGame.first.instanceFuture.join()
+//            val instance = preparedGame.first.instanceFuture?.join()
+            val instance = preparedGame.first.instance
 
-            if (!instance.isRegistered) {
-                println("uhh instance wasn't registered, that's not good")
+            if (!preparedGame.first.canBeJoined(player) || !instance.isRegistered) {
+                if (!instance.isRegistered) preparedGame.first.destroy()
+                player.kick("Game was not joinable (first iter)")
+                Logger.error("Game was not joinable (first iter)")
+
+                preparedGame.first.queuedPlayers.remove(player)
+                return@listenOnly
             }
 
             setSpawningInstance(instance)
 
             player.respawnPoint = preparedGame.first.getSpawnPosition(player, preparedGame.second)
-            player.scheduleNextTick {
-                synchronized(Game.joinLock) {
-                    player.joinGame(preparedGame.first, spectate = preparedGame.second, ignoreCooldown = true)
+            synchronized(Game.joinLock) {
+                if (!player.isOnline) {
+                    preparedGame.first.queuedPlayers.remove(player)
+                    return@listenOnly
                 }
+                if (!preparedGame.first.canBeJoined(player) || !preparedGame.first.instance.isRegistered) {
+                    preparedGame.first.queuedPlayers.remove(player)
+
+                    player.kick("Game was not joinable")
+                    Logger.warn("Game was not joinable")
+                    return@listenOnly
+                }
+                player.joinGame(preparedGame.first, spectate = preparedGame.second, ignoreCooldown = true)
             }
         }
 
@@ -190,6 +210,23 @@ object ImmortalEvents {
                 viewingNpcs.forEach {
                     it.removeViewer(player)
                 }
+            }
+        }
+
+        eventNode.listenOnly<RemoveEntityFromInstanceEvent> {
+            val player = entity as? Player ?: return@listenOnly
+
+            if (instance.hasTag(GameManager.doNotUnregisterTag)) return@listenOnly
+
+            this.instance.scheduleNextTick {
+                if (instance.players.isNotEmpty() || !instance.isRegistered) return@scheduleNextTick
+
+                val gameName = instance.getTag(GameManager.gameNameTag)
+                val gameId = instance.getTag(GameManager.gameIdTag)
+                val game = GameManager.gameMap[gameName]?.get(gameId)
+                game?.destroy()
+
+                Manager.instance.unregisterInstance(instance)
             }
         }
     }

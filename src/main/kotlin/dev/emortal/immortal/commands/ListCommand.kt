@@ -13,6 +13,7 @@ internal object ListCommand : Command("list") {
     init {
         val instancesArgument = ArgumentType.Literal("instances")
         val playersArgument = ArgumentType.Literal("players")
+        val gamesArgument = ArgumentType.Literal("games")
 
         addSyntax({ sender, _ ->
             val message = Component.text()
@@ -24,19 +25,48 @@ internal object ListCommand : Command("list") {
                 val isShared = it is SharedInstance
                 val noUnregister = it.hasTag(GameManager.doNotUnregisterTag)
                 val name = it.getTag(GameManager.gameNameTag) ?: "[no name]"
+                val id = it.getTag(GameManager.gameIdTag) ?: "[no name]"
 
                 message.append(
                     Component.text()
                         .append(Component.text("\n - ", NamedTextColor.GRAY))
-                        .append(Component.text(name, NamedTextColor.YELLOW))
+                        .append(Component.text("$name#$id", NamedTextColor.YELLOW))
                         .append(Component.text(" Shared: $isShared,", NamedTextColor.GRAY))
-                        .append(Component.text(" No Unregister: $noUnregister", NamedTextColor.GRAY))
+                        .append(Component.text(" Permanent: $noUnregister", NamedTextColor.GRAY))
                         .append(Component.text(" (${it.uniqueId})", NamedTextColor.DARK_GRAY))
                 )
             }
 
             sender.sendMessage(message)
         }, instancesArgument)
+
+        addSyntax({ sender, _ ->
+            val message = Component.text()
+
+            message.append(Component.text("some games...\n", NamedTextColor.GOLD))
+
+            GameManager.gameMap.keys.forEach { gameName ->
+                GameManager.gameMap[gameName]?.forEach { game ->
+                    message.append(
+                        Component.text()
+                            .append(Component.text("\n - ", NamedTextColor.GRAY))
+                            .append(Component.text("${game.key}", NamedTextColor.YELLOW))
+                    )
+                    message.append(
+                        Component.text("Players (${game.value.players.size}) | Queued (${game.value.queuedPlayers.size})")
+                    )
+                    game.value.players.forEach { plr ->
+                        message.append(
+                            Component.text("\n ${plr.username}")
+                        )
+                    }
+                }
+
+
+            }
+
+            sender.sendMessage(message)
+        }, gamesArgument)
 
         addSyntax({ sender, _ ->
             val message = Component.text()

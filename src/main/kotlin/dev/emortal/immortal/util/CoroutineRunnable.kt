@@ -68,10 +68,6 @@ abstract class CoroutineRunnable(
 
     fun cancel() {
         keepRunning.set(false)
-    }
-
-    fun cancelImmediate() {
-        cancel()
         job?.cancel()
     }
 }

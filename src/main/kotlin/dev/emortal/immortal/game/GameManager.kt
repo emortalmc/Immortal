@@ -13,6 +13,7 @@ import net.minestom.server.tag.Tag
 import org.tinylog.kotlin.Logger
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
@@ -32,6 +33,7 @@ object GameManager {
     val gameIdTag = Tag.Integer("gameId")
     val joiningGameTag = Tag.Boolean("joiningGame")
 
+
     val playerGameMap = ConcurrentHashMap<UUID, Game>()
     val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
     val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()
@@ -48,7 +50,7 @@ object GameManager {
     private fun handleJoin(player: Player, lastGame: Game?, newGame: Game, spectate: Boolean = false, ignoreCooldown: Boolean = false) {
         if (!ignoreCooldown && player.hasTag(joiningGameTag)) return
 
-        Logger.info("Attempting to join ${newGame.gameName}")
+//        Logger.info("Attempting to join ${newGame.gameName}")
 
         lastGame?.removePlayer(player)
         lastGame?.removeSpectator(player)
@@ -84,8 +86,11 @@ object GameManager {
     }
 
     fun Player.leaveGame() {
-        game?.removePlayer(this)
-        game?.removeSpectator(this)
+        val playerGame = playerGameMap[this.uuid]
+
+        playerGame?.removePlayer(this)
+        playerGame?.removeSpectator(this)
+
         playerGameMap.remove(this.uuid)
         removeTag(joiningGameTag)
     }
@@ -97,33 +102,33 @@ object GameManager {
     ) {
         if (!ignoreCooldown && hasTag(joiningGameTag)) return
 
-        val game = findOrCreateGame(this, gameTypeName, options)
+        val gameFuture = findOrCreateGame(this, gameTypeName, options)
 
-        if (game == null) {
+        if (gameFuture == null) {
             Logger.error("Game was null")
             return
         }
 
-        joinGame(game, ignoreCooldown = ignoreCooldown)
+        gameFuture.thenAccept { game ->
+            joinGame(game, ignoreCooldown = ignoreCooldown)
+        }
     }
 
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String,
         options: GameOptions = registeredGameMap[gameTypeName]!!.options
-    ): Game? {
+    ): CompletableFuture<Game>? {
         return gamePoolMap[gameTypeName]?.next(player)
 
 
     }
 
-    fun createGame(gameTypeName: String, options: GameOptions): Game {
+    fun createGame(gameTypeName: String, options: GameOptions): CompletableFuture<Game>? {
         val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call(options)
             ?: throw IllegalArgumentException("Primary constructor not found.")
 
-        gameMap[gameTypeName]?.put(game.id, game)
-
-        return game
+        return game.create()?.thenApply { game }
     }
 
     inline fun <reified T : Game> registerGame(
@@ -158,7 +163,7 @@ object GameManager {
         JedisStorage.jedis?.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
 
         gameMap[name] = ConcurrentHashMap()
-        gamePoolMap[name] = GameQueue(Pool.dynamic({ createGame(name, options) }, { gameMap[name]!!.count { it.value.players.isNotEmpty() } }))
+        gamePoolMap[name] = GameQueue(Pool.dynamic({ createGame(name, options)!!.join() }, { gameMap[name]!!.count { it.value.players.isNotEmpty() } }, { it.destroy() }), name)
 
         Logger.info("Registered game type '${name}'")
     }

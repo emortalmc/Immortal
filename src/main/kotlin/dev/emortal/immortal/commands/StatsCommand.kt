@@ -110,6 +110,25 @@ internal object StatsCommand : Command("tps") {
                                 .append(Component.text("\nChunks: ", NamedTextColor.GRAY))
                                 .append(Component.text(chunks, NamedTextColor.GOLD))
                                 .build()
+                        )),
+
+                    // Games
+                    Component.text("\nGames: ", NamedTextColor.GRAY)
+                        .append(Component.text(GameManager.gameMap.values.sumOf { it.size }, NamedTextColor.GOLD))
+                        .hoverEvent(HoverEvent.showText(
+                            // hover stuffs :)
+                            Component.text().also {
+                                GameManager.gameMap.keys.forEach { gameName ->
+                                    it.append(
+                                        Component.text()
+                                            .append(Component.text(gameName, NamedTextColor.YELLOW))
+                                            .append(Component.text("\n  Games: ", NamedTextColor.GRAY))
+                                            .append(Component.text(GameManager.gameMap[gameName]!!.size, NamedTextColor.GOLD))
+                                            .append(Component.text("\n  Pool size: ", NamedTextColor.GRAY))
+                                            .append(Component.text(GameManager.gamePoolMap[gameName]!!.pool.size(), NamedTextColor.GOLD))
+                                    )
+                                }
+                            }.build()
                         ))
 
                 )
