@@ -19,17 +19,17 @@ import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventDispatcher
 import net.minestom.server.event.EventNode
-import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.trait.InstanceEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
-import world.cepi.kstom.event.listenOnly
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.TimeUnit
 
 abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
@@ -45,7 +45,7 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
     val id = getNextGameId()
 
-    var gameState = GameState.WAITING_FOR_PLAYERS
+    var gameState = GameState.NOT_CREATED
 
     /**
      * Not guaranteed to be ran once per player
@@ -55,76 +55,76 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     val gameName = GameManager.registeredClassMap[this::class]!!
     val gameTypeInfo = GameManager.registeredGameMap[gameName] ?: throw Error("Game type not registered")
 
-    var instanceFuture: CompletableFuture<Instance>
     lateinit var instance: Instance
 
     var startingTask: MinestomRunnable? = null
     var scoreboard: Sidebar? = null
 
-    var destroyed = false
-
     val runnableGroup = RunnableGroup()
 
-    init {
-        Logger.info("Creating game $gameName#$id")
+    var createFuture: CompletableFuture<Void>? = null
 
-        if (gameOptions.showScoreboard) {
-            scoreboard = Sidebar(gameTypeInfo.title)
+    fun create(): CompletableFuture<Void>? {
+        if (gameState != GameState.NOT_CREATED) return null
 
-            scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
+        createFuture = CompletableFuture.runAsync({
+            Logger.info("Creating game $gameName#$id")
 
-            scoreboard?.createLine(
-                Sidebar.ScoreboardLine(
-                    "infoLine",
-                    Component.text()
-                        .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
-                        .build(),
-                    0
-                )
-            )
-            scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -8))
-            scoreboard?.createLine(
-                Sidebar.ScoreboardLine(
-                    "ipLine",
-                    Component.text()
-                        .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
-                        .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
-                        .build(),
-                    -9
-                )
-            )
-        }
-
-        instanceFuture = instanceCreate()
-        instanceFuture.thenAcceptAsync {
-            it.setTag(GameManager.gameNameTag, gameName)
-            it.setTag(GameManager.gameIdTag, id)
-            instance = it
-
-            instance.eventNode().listenOnly<RemoveEntityFromInstanceEvent> {
-//            val player = entity as? Player ?: return@listenOnly
-
-                if (instance.hasTag(GameManager.doNotUnregisterTag)) return@listenOnly
-
-                this.instance.scheduleNextTick {
-                    if (instance.players.isNotEmpty() || !instance.isRegistered) return@scheduleNextTick
-
-                    Manager.instance.unregisterInstance(instance)
-                    destroy()
-                }
+            try {
+                instance = instanceCreate().get(10, TimeUnit.SECONDS)
+            } catch (e: Exception) {
+                throw e
             }
+            instance.setTag(GameManager.gameNameTag, gameName)
+            instance.setTag(GameManager.gameIdTag, id)
+
+            GameManager.gameMap[gameName]?.put(id, this)
 
             if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.IMMEDIATELY) registerEvents(instance.eventNode())
-        }
+
+            if (gameOptions.showScoreboard) {
+                scoreboard = Sidebar(gameTypeInfo.title)
+
+                scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
+
+                scoreboard?.createLine(
+                    Sidebar.ScoreboardLine(
+                        "infoLine",
+                        Component.text()
+                            .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
+                            .build(),
+                        0
+                    )
+                )
+                scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -8))
+                scoreboard?.createLine(
+                    Sidebar.ScoreboardLine(
+                        "ipLine",
+                        Component.text()
+                            .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
+                            .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
+                            .build(),
+                        -9
+                    )
+                )
+            }
+
+            gameState = GameState.WAITING_FOR_PLAYERS
+
+            gameCreated()
+        }, ForkJoinPool.commonPool())
+
+        return createFuture!!
     }
 
+    open fun gameCreated() {}
+
     internal open fun addPlayer(player: Player, joinMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
-        if (players.contains(player)) {
+        queuedPlayers.remove(player)
+        if (!players.add(player)) {
             Logger.warn("Already contains player")
             return
         }
-        queuedPlayers.remove(player)
-        players.add(player)
 
         Logger.info("${player.username} joining game ${gameTypeInfo.name}#$id")
 
@@ -143,7 +143,12 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         player.respawnPoint = playerSpawnPoint
 
-        instanceFuture.thenAcceptAsync { instance ->
+        player.scheduleNextTick {
+            if (!player.isOnline) {
+                removePlayer(player)
+                return@scheduleNextTick
+            }
+
             player.safeSetInstance(instance, playerSpawnPoint).thenRun {
                 player.reset()
                 player.resetTeam()
@@ -166,56 +171,59 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
             }
         }
 
+
     }
 
     internal open fun removePlayer(player: Player, leaveMessage: Boolean = gameOptions.showsJoinLeaveMessages) {
-        if (!players.contains(player)) Logger.warn("Player is already not in the game, leaving anyway")
+        queuedPlayers.remove(player)
+        if (!players.remove(player)) {
+//            Logger.error("Player is already not in the game, leaving anyway")
+//            return
+        }
 
         teams.forEach { it.remove(player) }
-        players.remove(player)
+
         scoreboard?.removeViewer(player)
 
         val leaveEvent = PlayerLeaveGameEvent(this, player)
         EventDispatcher.call(leaveEvent)
 
-        if (!destroyed) {
-            Logger.info("${player.username} leaving game ${gameTypeInfo.name}#$id")
+        Logger.info("${player.username} leaving game ${gameTypeInfo.name}#$id")
 
-            refreshPlayerCount()
+        refreshPlayerCount()
 
-            if (leaveMessage) sendMessage(
-                Component.text()
-                    .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
-                    .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-                    .append(Component.text(player.username, NamedTextColor.RED))
-                    .append(Component.text(" left the game ", NamedTextColor.GRAY))
-                    .also {
-                        if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
-                    }
-            )
-            playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 0.5f))
-
-            if (players.size < gameOptions.minPlayers) {
-                if (startingTask != null) {
-                    cancelCountdown()
+        if (leaveMessage) sendMessage(
+            Component.text()
+                .append(Component.text("QUIT", NamedTextColor.RED, TextDecoration.BOLD))
+                .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(player.username, NamedTextColor.RED))
+                .append(Component.text(" left the game ", NamedTextColor.GRAY))
+                .also {
+                    if (gameState == GameState.WAITING_FOR_PLAYERS) it.append(Component.text("(${players.size}/${gameOptions.maxPlayers})", NamedTextColor.DARK_GRAY))
                 }
-            }
+        )
+        playSound(Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 0.5f))
 
-            if (gameState == GameState.PLAYING) {
-                val teamsWithPlayers = teams.filter { it.players.isNotEmpty() }
-                if (teamsWithPlayers.size == 1) {
-                    victory(teamsWithPlayers.first())
-                    playerLeave(player)
-                    return
-                }
-                if (players.size == 1) {
-                    victory(players.first())
-                }
+        if (players.size < gameOptions.minPlayers) {
+            if (startingTask != null) {
+                cancelCountdown()
             }
+        }
 
-            if (players.size == 0) {
-                destroy()
+        if (gameState == GameState.PLAYING) {
+            val teamsWithPlayers = teams.filter { it.players.isNotEmpty() }
+            if (teamsWithPlayers.size == 1) {
+                victory(teamsWithPlayers.first())
+                playerLeave(player)
+                return
             }
+            if (players.size == 1) {
+                victory(players.first())
+            }
+        }
+
+        if (players.size == 0) {
+            destroy()
         }
 
 
@@ -245,7 +253,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         spectators.add(player)
 
-        instanceFuture.thenAcceptAsync { instance ->
             val playerSpawnPoint = getSpawnPosition(player, true)
 
             player.respawnPoint = playerSpawnPoint
@@ -266,7 +273,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
                 spectatorJoin(player)
             }
-        }
     }
 
     internal open fun removeSpectator(player: Player) {
@@ -344,23 +350,23 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     abstract fun registerEvents(eventNode: EventNode<InstanceEvent>)
 
     open fun start() {
-        if (gameState == GameState.PLAYING) return
+        if (gameState != GameState.WAITING_FOR_PLAYERS) return
 
-        instanceFuture.thenAcceptAsync { instance ->
-            playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+        playSound(Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
-            startingTask = null
-            gameState = GameState.PLAYING
-            scoreboard?.updateLineContent("infoLine", Component.empty())
+        startingTask = null
+        gameState = GameState.PLAYING
+        scoreboard?.updateLineContent("infoLine", Component.empty())
 
-            if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents(instance.eventNode())
-            gameStarted()
-        }
+        if (gameTypeInfo.whenToRegisterEvents == WhenToRegisterEvents.GAME_START) registerEvents(instance.eventNode())
+        gameStarted()
     }
 
     open fun destroy() {
-        if (destroyed) return
-        destroyed = true
+        if (gameState == GameState.DESTROYED) return
+        gameState = GameState.DESTROYED
+
+        createFuture = null
 
         Logger.info("Game ${gameTypeInfo.name}#$id is ending")
 
@@ -394,8 +400,9 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
 
         }
 
-        instanceFuture.thenAcceptAsync { instance ->
-            if (instance.players.isEmpty()) Manager.instance.unregisterInstance(instance)
+        if (instance.players.isEmpty()) {
+            queuedPlayers.forEach { it.kick("Game ended") }
+            Manager.instance.unregisterInstance(instance)
         }
 
         players.clear()
@@ -407,7 +414,6 @@ abstract class Game(var gameOptions: GameOptions) : PacketGroupingAudience {
     }
 
     open fun canBeJoined(player: Player): Boolean {
-        if (destroyed) return false
         if (players.contains(player)) return false
         if (!queuedPlayers.contains(player) && players.size + queuedPlayers.size >= gameOptions.maxPlayers) {
             return false

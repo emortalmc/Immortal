@@ -35,6 +35,7 @@ class RunnableIntegrationTest {
         }
         val ref = WeakReference(coroutineRunnable)
 
+        coroutineRunnable!!.cancel()
         coroutineRunnable = null
         waitUntilCleared(ref)
     }
@@ -49,6 +50,7 @@ class RunnableIntegrationTest {
                 instance?.resetTitle()
             }
         }
+
         runnable = null
         env.process().instance().unregisterInstance(instance!!)
         instance = null

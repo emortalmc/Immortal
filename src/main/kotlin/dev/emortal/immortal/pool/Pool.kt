@@ -10,6 +10,9 @@ interface Pool<V> {
      */
     fun acquire(): CompletableFuture<V>
 
+    fun size(): Int
+    fun contains(a: V): Boolean
+
     companion object {
         /**
          * Creates a pool that is dynamically sized upon demand.
@@ -21,12 +24,12 @@ interface Pool<V> {
          * @return the created pool
          * @param <V> the type of object in the pool
         </V> */
-        fun <V> dynamic(supplier: Supplier<V>, usedObjectsCount: Supplier<Int>): Pool<V> {
-            return DynamicPoolImpl(supplier, usedObjectsCount)
+        fun <V> dynamic(supplier: Supplier<V>, usedObjectsCount: Supplier<Int>, onRemovePool: (V) -> Unit): Pool<V> {
+            return DynamicPoolImpl(supplier, usedObjectsCount, onRemovePool)
         }
 
-        fun <V> constant(supplier: Supplier<V>): Pool<V> {
-            return dynamic(supplier) { 0 }
+        fun <V> constant(supplier: Supplier<V>, onRemovePool: (V) -> Unit): Pool<V> {
+            return dynamic(supplier, { 0 }, onRemovePool)
         }
     }
 }

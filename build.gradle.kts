@@ -22,7 +22,9 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:b4af87b8a4")
+    compileOnly("com.github.Minestom:Minestom:c3df2af306")
+    testImplementation("com.github.Minestom:Minestom:c3df2af306")
+
     compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
     api("com.github.EmortalMC:KStom:50b2b882fa")
     api("com.github.emortaldev:Particable:f7212f39fb")
@@ -34,7 +36,7 @@ dependencies {
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
 
-    testImplementation("com.github.Minestom:Minestom:b4af87b8a4")
+
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 }

@@ -10,7 +10,7 @@ import kotlin.math.ln
 import kotlin.math.pow
 
 @ApiStatus.Internal
-    class DynamicPoolImpl<V>(private val supplier: Supplier<V>, private val usedObjectsCount: Supplier<Int>) : Pool<V> {
+    class DynamicPoolImpl<V>(private val supplier: Supplier<V>, private val usedObjectsCount: Supplier<Int>, private val onRemovePool: (V) -> Unit) : Pool<V> {
         private val pool: Queue<V> = ArrayDeque()
 
         @Volatile
@@ -28,7 +28,10 @@ import kotlin.math.pow
             }
         }
 
-        private fun resize(): CompletableFuture<Void>? {
+    override fun size(): Int = pool.size
+    override fun contains(a: V): Boolean = pool.contains(a)
+
+    private fun resize(): CompletableFuture<Void>? {
             if (resizing != null) {
                 return resizing!!.thenRun {
                     resizing = null
@@ -45,7 +48,8 @@ import kotlin.math.pow
                         pool.add(supplier.get())
                     }
                     while (pool.size > targetSize) {
-                        pool.poll()
+                        val removedObject = pool.poll()
+                        onRemovePool(removedObject)
                     }
                 }
             }, ForkJoinPool.commonPool())

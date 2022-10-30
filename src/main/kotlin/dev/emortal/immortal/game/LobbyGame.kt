@@ -11,16 +11,14 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     var allowBlockModification = false
 
     init {
-        instanceFuture.thenAcceptAsync { instance ->
-            instance.eventNode().listenOnly<PlayerBlockPlaceEvent> {
-                isCancelled = !allowBlockModification
-            }
-            instance.eventNode().listenOnly<PlayerBlockBreakEvent> {
-                isCancelled = !allowBlockModification
-            }
-
-            start()
+        instance.eventNode().listenOnly<PlayerBlockPlaceEvent> {
+            isCancelled = !allowBlockModification
         }
+        instance.eventNode().listenOnly<PlayerBlockBreakEvent> {
+            isCancelled = !allowBlockModification
+        }
+
+        start()
     }
 
     // Lobby does not have a countdown
@@ -36,7 +34,7 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     override fun getPlayers(): MutableCollection<Player> = players
 
     override fun canBeJoined(player: Player): Boolean {
-        if (destroyed) return false
+        if (gameState == GameState.DESTROYED) return false
         if (players.contains(player)) return false
         if (!queuedPlayers.contains(player) && players.size + queuedPlayers.size >= gameOptions.maxPlayers) {
             return false
