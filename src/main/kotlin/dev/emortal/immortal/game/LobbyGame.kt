@@ -1,6 +1,5 @@
 package dev.emortal.immortal.game
 
-import dev.emortal.immortal.config.GameOptions
 import net.minestom.server.entity.Player
 import net.minestom.server.event.player.PlayerBlockBreakEvent
 import net.minestom.server.event.player.PlayerBlockPlaceEvent
@@ -36,7 +35,7 @@ abstract class LobbyGame(gameOptions: GameOptions) : Game(gameOptions) {
     override fun canBeJoined(player: Player): Boolean {
         if (gameState == GameState.DESTROYED) return false
         if (players.contains(player)) return false
-        if (!queuedPlayers.contains(player) && players.size + queuedPlayers.size >= gameOptions.maxPlayers) {
+        if (!queuedPlayers.contains(player.uuid) && players.size + queuedPlayers.size >= gameOptions.maxPlayers) {
             return false
         }
         return true

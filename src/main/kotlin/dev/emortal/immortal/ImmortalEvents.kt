@@ -86,7 +86,7 @@ object ImmortalEvents {
                     }
 
                     val newGame = newGameFuture.join()
-                    newGame.queuedPlayers.add(player)
+                    newGame.queuedPlayers.add(player.uuid)
                     preparedGameMap[playerUuid] = newGame to false
                 }
             }
@@ -115,7 +115,7 @@ object ImmortalEvents {
                 player.kick("Game was not joinable (first iter)")
                 Logger.error("Game was not joinable (first iter)")
 
-                preparedGame.first.queuedPlayers.remove(player)
+                preparedGame.first.queuedPlayers.remove(player.uuid)
                 return@listenOnly
             }
 
@@ -124,11 +124,11 @@ object ImmortalEvents {
             player.respawnPoint = preparedGame.first.getSpawnPosition(player, preparedGame.second)
             synchronized(Game.joinLock) {
                 if (!player.isOnline) {
-                    preparedGame.first.queuedPlayers.remove(player)
+                    preparedGame.first.queuedPlayers.remove(player.uuid)
                     return@listenOnly
                 }
                 if (!preparedGame.first.canBeJoined(player) || !preparedGame.first.instance.isRegistered) {
-                    preparedGame.first.queuedPlayers.remove(player)
+                    preparedGame.first.queuedPlayers.remove(player.uuid)
 
                     player.kick("Game was not joinable")
                     Logger.warn("Game was not joinable")
@@ -221,9 +221,8 @@ object ImmortalEvents {
             this.instance.scheduleNextTick {
                 if (instance.players.isNotEmpty() || !instance.isRegistered) return@scheduleNextTick
 
-                val gameName = instance.getTag(GameManager.gameNameTag)
                 val gameId = instance.getTag(GameManager.gameIdTag)
-                val game = GameManager.gameMap[gameName]?.get(gameId)
+                val game = GameManager.getGameById(gameId)
                 game?.destroy()
 
                 Manager.instance.unregisterInstance(instance)

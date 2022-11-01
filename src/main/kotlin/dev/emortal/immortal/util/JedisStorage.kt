@@ -49,7 +49,7 @@ object JedisStorage {
                             val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
                             val playerGame = player.game
                             val subgame = args[2]
-                            if (!GameManager.gameMap.containsKey(subgame)) {
+                            if (!GameManager.registeredGameMap.containsKey(subgame)) {
                                 // Invalid subgame, ignore message
                                 Logger.warn("Invalid subgame $subgame")
                                 return
@@ -73,7 +73,7 @@ object JedisStorage {
 
                             val game = playerToSpectate.game
                             if (game != null) {
-                                if (!game.gameOptions.allowsSpectators) {
+                                if (!game.allowsSpectators) {
                                     player.sendMessage(Component.text("That game does not allow spectating", NamedTextColor.RED))
                                     return
                                 }

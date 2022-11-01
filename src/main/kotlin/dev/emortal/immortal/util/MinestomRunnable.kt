@@ -33,6 +33,10 @@ abstract class MinestomRunnable(
     var currentIteration = AtomicInteger(0)
 
     init {
+        schedule()
+    }
+
+    private fun schedule() {
         if (repeat == Duration.ZERO) {
             future = executor.schedule({ run() }, delay.toMillis(), TimeUnit.MILLISECONDS)
         } else {
@@ -54,7 +58,6 @@ abstract class MinestomRunnable(
             }, delay.toMillis(), repeat.toMillis().coerceAtLeast(1), TimeUnit.MILLISECONDS)
         }
 
-        @Suppress("LeakingThis") // should be fine since runnable is just a glorified object list
         group?.addRunnable(this@MinestomRunnable)
     }
 
@@ -63,6 +66,7 @@ abstract class MinestomRunnable(
     fun cancel() {
         future?.cancel(false)
         future = null
+
     }
 
     fun cancelImmediate() {
