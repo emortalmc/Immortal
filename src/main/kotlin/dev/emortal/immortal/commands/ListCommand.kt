@@ -45,21 +45,23 @@ internal object ListCommand : Command("list") {
 
             message.append(Component.text("some games...\n", NamedTextColor.GOLD))
 
-            GameManager.gameMap.keys.forEach { gameName ->
-                GameManager.gameMap[gameName]?.forEach { game ->
+            GameManager.getRegisteredNames().forEach { gameName ->
+                val games = GameManager.getGames(gameName)!!
+
+                games.forEach { game ->
                     message.append(
                         Component.text()
                             .append(Component.text("\n - ", NamedTextColor.GRAY))
-                            .append(Component.text("${game.key}", NamedTextColor.YELLOW))
+                            .append(Component.text("${game.gameName}#${game.id} ", NamedTextColor.YELLOW))
                     )
                     message.append(
-                        Component.text("Players (${game.value.players.size}) | Queued (${game.value.queuedPlayers.size})")
+                        Component.text("Players (${game.players.size})")
                     )
-                    game.value.players.forEach { plr ->
-                        message.append(
-                            Component.text("\n ${plr.username}")
-                        )
-                    }
+//                    game.players.forEach { plr ->
+//                        message.append(
+//                            Component.text("\n ${plr.username}")
+//                        )
+//                    }
                 }
 
 

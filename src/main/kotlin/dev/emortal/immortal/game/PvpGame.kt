@@ -4,7 +4,7 @@ import net.minestom.server.entity.Entity
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 
-abstract class PvpGame(gameOptions: GameOptions) : Game(gameOptions) {
+abstract class PvpGame : Game() {
 
     // TODO: Make messages configurable
     fun kill(player: Player, killer: Entity? = null) {

@@ -22,8 +22,8 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:c3df2af306")
-    testImplementation("com.github.Minestom:Minestom:c3df2af306")
+    compileOnly("com.github.Minestom:Minestom:42195c536b")
+    testImplementation("com.github.Minestom:Minestom:42195c536b")
 
     compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
     api("com.github.EmortalMC:KStom:50b2b882fa")

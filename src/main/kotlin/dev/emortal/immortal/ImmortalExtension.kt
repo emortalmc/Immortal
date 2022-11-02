@@ -6,7 +6,6 @@ import dev.emortal.immortal.blockhandler.SkullHandler
 import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameConfig
-import dev.emortal.immortal.debug.CheckCommand
 import dev.emortal.immortal.debug.ImmortalDebug
 import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.JedisStorage
@@ -57,7 +56,6 @@ class ImmortalExtension : Extension() {
                 Logger.info("Running in debug mode! Debug game: $debugGame")
                 if (System.getProperty("debugtablist").toBoolean()) {
                     ImmortalDebug.enable()
-                    CheckCommand.register()
                 }
             } else {
                 JedisStorage.init()
@@ -86,7 +84,7 @@ class ImmortalExtension : Extension() {
             SignHandler.register("minecraft:sign")
             SkullHandler.register("minecraft:skull")
             BannerHandler.register("minecraft:banner")
-
+            
             ForceStartCommand.register()
             ForceGCCommand.register()
             SoundCommand.register()
