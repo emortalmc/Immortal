@@ -11,6 +11,7 @@ import net.kyori.adventure.title.Title
 import net.minestom.server.MinecraftServer
 import net.minestom.server.adventure.audience.PacketGroupingAudience
 import net.minestom.server.coordinate.Pos
+import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.instance.AddEntityToInstanceEvent
@@ -97,7 +98,11 @@ abstract class Game : PacketGroupingAudience {
                 // Wait until player has fully joined
                 player.scheduleNextTick {
 //                    if (player.instance?.uniqueId != instance.uniqueId)
-                    addPlayer(player)
+                    if (player.hasTag(GameManager.spectatingTag)) {
+                        addSpectator(player)
+                    } else {
+                        addPlayer(player)
+                    }
                 }
             }
 
@@ -109,7 +114,12 @@ abstract class Game : PacketGroupingAudience {
                 if (it.instance.hasTag(GameManager.doNotUnregisterTag)) return@addListener
 
                 it.instance.scheduleNextTick { inst ->
-                    removePlayer(player)
+                    if (player.hasTag(GameManager.spectatingTag)) {
+                        removeSpectator(player)
+                        player.removeTag(GameManager.spectatingTag)
+                    } else {
+                        removePlayer(player)
+                    }
 
                     if (inst.players.isNotEmpty()) return@scheduleNextTick
 
@@ -251,49 +261,36 @@ abstract class Game : PacketGroupingAudience {
         }
     }
 
-//    internal open fun addSpectator(player: Player) {
-//        if (spectators.contains(player)) return
-//        if (players.contains(player)) return
-//
-//        Logger.info("${player.username} started spectating game ${gameTypeInfo.name}#$id")
-//
-//        spectators.add(player)
-//
-//            val playerSpawnPoint = getSpawnPosition(player, true)
-//
-//            player.respawnPoint = playerSpawnPoint
-//
-//            player.safeSetInstance(instance, playerSpawnPoint).thenRun {
-//                player.reset()
-//                player.resetTeam()
-//
-//                scoreboard?.addViewer(player)
-//
-//                player.isAutoViewable = false
-//                player.isInvisible = true
-//                player.gameMode = GameMode.SPECTATOR
-//                player.isAllowFlying = true
-//                player.isFlying = true
-//                //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
-//                player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
-//
-//                spectatorJoin(player)
-//            }
-//    }
-//
-//    internal open fun removeSpectator(player: Player) {
-//        if (!spectators.contains(player)) return
-//
-//        Logger.info("${player.username} stopped spectating game ${gameTypeInfo.name}#$id")
-//
-//        spectators.remove(player)
-//        scoreboard?.removeViewer(player)
-//
-//        spectatorLeave(player)
-//    }
+    internal open fun addSpectator(player: Player) {
+        Logger.info("${player.username} started spectating game ${gameTypeInfo.name}#$id")
 
-//    open fun spectatorJoin(player: Player) {}
-//    open fun spectatorLeave(player: Player) {}
+        player.reset()
+        player.resetTeam()
+
+        scoreboard?.addViewer(player)
+
+        player.isAutoViewable = false
+        player.isInvisible = true
+        player.gameMode = GameMode.SPECTATOR
+        player.isAllowFlying = true
+        player.isFlying = true
+        //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
+        player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
+
+        spectatorJoin(player)
+    }
+
+    internal open fun removeSpectator(player: Player) {
+        Logger.info("${player.username} stopped spectating game ${gameTypeInfo.name}#$id")
+
+        scoreboard?.removeViewer(player)
+
+        if (instance == null || gameState == GameState.DESTROYED) return
+        spectatorLeave(player)
+    }
+
+    open fun spectatorJoin(player: Player) {}
+    open fun spectatorLeave(player: Player) {}
 
     abstract fun playerJoin(player: Player)
     abstract fun playerLeave(player: Player)

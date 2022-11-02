@@ -7,6 +7,8 @@ import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.tinylog.kotlin.Logger
 import redis.clients.jedis.JedisPooled
 import redis.clients.jedis.JedisPubSub
@@ -61,29 +63,26 @@ object JedisStorage {
                             }
                         }
 
-//                        "spectateplayer" -> {
-//                            val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
-//                            val playerToSpectate = Manager.connection.getPlayer((UUID.fromString(args[2]))) ?: return
-//
-//                            val game = playerToSpectate.game
-//                            if (game != null) {
-//                                if (!game.allowsSpectators) {
-//                                    player.sendMessage(Component.text("That game does not allow spectating", NamedTextColor.RED))
-//                                    return
-//                                }
-//                                if (game.id == player.game?.id) {
-//                                    player.sendMessage(Component.text("That player is not on a game", NamedTextColor.RED))
-//                                    return
-//                                }
-//
-//                                val spawnPosition = game.getSpawnPosition(player, spectator = true)
-//
-//                                player.setInstance(game.instance, true)
-////                                player.scheduleNextTick {
-////                                    player.joinGame(game, spectate = true, hasCooldown = false)
-////                                }
-//                            }
-//                        }
+                        "spectateplayer" -> {
+                            val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
+                            val playerToSpectate = Manager.connection.getPlayer((UUID.fromString(args[2]))) ?: return
+
+                            val game = playerToSpectate.game
+                            if (game != null) {
+                                if (!game.allowsSpectators) {
+                                    player.sendMessage(Component.text("That game does not allow spectating", NamedTextColor.RED))
+                                    return
+                                }
+                                if (game.id == player.game?.id) {
+                                    player.sendMessage(Component.text("That player is not on a game", NamedTextColor.RED))
+                                    return
+                                }
+
+                                val spawnPosition = game.getSpawnPosition(player, spectator = true)
+
+                                player.setInstance(game.instance!!, spawnPosition)
+                            }
+                        }
                     }
                 }
             }

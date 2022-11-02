@@ -1,6 +1,7 @@
 package dev.emortal.immortal
 
 import dev.emortal.immortal.game.GameManager
+import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.npc.PacketNPC
@@ -14,6 +15,7 @@ import net.minestom.server.utils.chunk.ChunkUtils
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.Manager
 import world.cepi.kstom.event.listenOnly
+import java.util.*
 
 object ImmortalEvents {
 
@@ -52,20 +54,22 @@ object ImmortalEvents {
             }
 
             if (isSpectating) {
-//                val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
-//                if (playerToSpectate == null) {
-//                    Logger.warn("Player to spectate was null")
-//                    player.kick("That player is not online")
-//                    return@listenOnly
-//                }
-//                val game = playerToSpectate.game
-//                if (game == null) {
-//                    player.kick("That player is not in a game")
-//                    return@listenOnly
-//                }
-////                player.respawnPoint = game.spawnPosition
-//
-//                setSpawningInstance(newGame.instance)
+                val playerToSpectate = Manager.connection.getPlayer(UUID.fromString(args[2]))
+                if (playerToSpectate == null) {
+                    Logger.warn("Player to spectate was null")
+                    player.kick("That player is not online")
+                    return@listenOnly
+                }
+                val game = playerToSpectate.game
+                if (game == null) {
+                    player.kick("That player is not in a game")
+                    return@listenOnly
+                }
+
+                player.setTag(GameManager.spectatingTag, true)
+                player.respawnPoint = game.getSpawnPosition(player, spectator = true)
+
+                setSpawningInstance(game.instance!!)
             } else {
                 val newGameFuture = GameManager.findOrCreateGame(player, args[0])
 
