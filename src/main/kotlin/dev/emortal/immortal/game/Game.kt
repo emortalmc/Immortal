@@ -15,7 +15,6 @@ import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.instance.AddEntityToInstanceEvent
-import net.minestom.server.event.instance.InstanceTickEvent
 import net.minestom.server.event.instance.RemoveEntityFromInstanceEvent
 import net.minestom.server.event.trait.InstanceEvent
 import net.minestom.server.instance.Instance
@@ -124,13 +123,6 @@ abstract class Game : PacketGroupingAudience {
                     if (inst.players.isNotEmpty()) return@scheduleNextTick
 
                     end()
-                }
-            }
-
-            eventNode.addListener(InstanceTickEvent::class.java) {
-                if (it.instance.worldAge > 100) {
-                    doNotMuch()
-                    it.instance.sendMessage(Component.text("funny second"))
                 }
             }
 
