@@ -10,6 +10,7 @@ import net.kyori.adventure.text.JoinConfiguration
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
+import net.minestom.server.MinecraftServer
 import net.minestom.server.command.builder.Command
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.instance.SharedInstance
@@ -53,7 +54,9 @@ internal object StatsCommand : Command("tps") {
 
             val monitor = LAST_TICK.get()
             val tickMs = monitor.tickTime
-            val tps = floor(1000 / tickMs).toInt().coerceAtMost(20)
+            val tpsSetting = MinecraftServer.TICK_PER_SECOND
+            val maxTickMs = MinecraftServer.TICK_MS
+            val tps = floor(1000 / tickMs).toInt().coerceAtMost(tpsSetting)
 
             val onlinePlayers = Manager.connection.onlinePlayers.size
             val entities = Manager.instance.instances.sumOf { it.entities.size } - onlinePlayers
@@ -79,7 +82,7 @@ internal object StatsCommand : Command("tps") {
                     Component.text("\nTPS: ", NamedTextColor.GRAY),
                     Component.text(tps, NamedTextColor.GREEN),
                     Component.text(" (", NamedTextColor.GRAY),
-                    Component.text("${floor(tickMs * 100.0) / 100}ms", TextColor.lerp(tickMs.toFloat() / 50f, NamedTextColor.GREEN, NamedTextColor.RED)),
+                    Component.text("${floor(tickMs * 100.0) / 100}ms", TextColor.lerp(tickMs.toFloat() / maxTickMs.toFloat(), NamedTextColor.GREEN, NamedTextColor.RED)),
                     Component.text(")\n", NamedTextColor.GRAY),
 
                     createGcComponent(),

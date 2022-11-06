@@ -30,11 +30,15 @@ object EndGameQuotes {
         "take a cookie for your efforts",
         "[username] never dies!",
         "average rust enjoyer",
+        "average valence enjoyer",
+        "average minestom enjoyer",
         "i wasn't looking, do it again",
         "built different",
         "carried",
+        "don't forget to breathe!",
         "want a medal?",
-        "you lost the game"
+        "you lost the game",
+        "BLEHHH"
     )
 
     private val defeat = setOf(
@@ -68,7 +72,8 @@ object EndGameQuotes {
         "try harder",
         "You clearly weren't using Graphite",
         "I saw the GC spike",
-        "python user"
+        "python user",
+        "BLEHHH"
     )
 
     private val draw = setOf(
@@ -80,6 +85,7 @@ object EndGameQuotes {
         "It would have been better if someone won",
         "You're both average",
         "You both suck!",
+        "What did I just witness?",
         "Twins?"
     )
 

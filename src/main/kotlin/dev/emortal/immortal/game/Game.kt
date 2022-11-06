@@ -33,9 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger
 abstract class Game : PacketGroupingAudience {
 
     companion object {
-        val findLock = Object()
-        val joinLock = Object()
-
         private val lastGameId = AtomicInteger(0)
     }
 
@@ -77,85 +74,86 @@ abstract class Game : PacketGroupingAudience {
             return CompletableFuture.completedFuture(null)
         }
 
-            Logger.info("Creating game $gameName#$id")
+        Logger.info("Creating game $gameName#$id")
 
-            try {
-                val instanceCreate = instanceCreate()
-                instance = instanceCreate.get(10, TimeUnit.SECONDS)
-                createFuture!!.complete(null)
-            } catch (e: Exception) {
-                throw e
-            }
-            instance!!.setTag(GameManager.gameNameTag, gameName)
-            instance!!.setTag(GameManager.gameIdTag, id)
+        try {
+            val instanceCreate = instanceCreate()
+            instance = instanceCreate.get(10, TimeUnit.SECONDS)
+        } catch (e: Exception) {
+            throw e
+        }
+        instance!!.setTag(GameManager.gameNameTag, gameName)
+        instance!!.setTag(GameManager.gameIdTag, id)
 
-            val eventNode = instance!!.eventNode()
+        val eventNode = instance!!.eventNode()
 
-            eventNode.addListener(AddEntityToInstanceEvent::class.java) {
-                val player = it.entity as? Player ?: return@addListener
+        eventNode.addListener(AddEntityToInstanceEvent::class.java) {
+            val player = it.entity as? Player ?: return@addListener
 
-                // Wait until player has fully joined
-                player.scheduleNextTick {
+            // Wait until player has fully joined
+            player.scheduleNextTick {
 //                    if (player.instance?.uniqueId != instance.uniqueId)
-                    if (player.hasTag(GameManager.spectatingTag)) {
-                        addSpectator(player)
-                    } else {
-                        addPlayer(player)
-                    }
+                if (player.hasTag(GameManager.spectatingTag)) {
+                    addSpectator(player)
+                } else {
+                    addPlayer(player)
                 }
             }
+        }
 
-            eventNode.addListener(RemoveEntityFromInstanceEvent::class.java) {
-                val player = it.entity as? Player ?: return@addListener
+        eventNode.addListener(RemoveEntityFromInstanceEvent::class.java) {
+            val player = it.entity as? Player ?: return@addListener
 
-                playerCount.decrementAndGet()
+            playerCount.decrementAndGet()
 
-                if (it.instance.hasTag(GameManager.doNotUnregisterTag)) return@addListener
+            if (it.instance.hasTag(GameManager.doNotUnregisterTag)) return@addListener
 
-                it.instance.scheduleNextTick { inst ->
-                    if (player.hasTag(GameManager.spectatingTag)) {
-                        removeSpectator(player)
-                        player.removeTag(GameManager.spectatingTag)
-                    } else {
-                        removePlayer(player)
-                    }
-
-                    if (inst.players.isNotEmpty()) return@scheduleNextTick
-
-                    end()
+            it.instance.scheduleNextTick { inst ->
+                if (player.hasTag(GameManager.spectatingTag)) {
+                    removeSpectator(player)
+                    player.removeTag(GameManager.spectatingTag)
+                } else {
+                    removePlayer(player)
                 }
+
+                if (inst.players.isNotEmpty()) return@scheduleNextTick
+
+                end()
             }
+        }
 
-            if (showScoreboard) {
-                scoreboard = Sidebar(gameTypeInfo.title)
+        if (showScoreboard) {
+            scoreboard = Sidebar(gameTypeInfo.title)
 
-                scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
+            scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
 
-                scoreboard?.createLine(
-                    Sidebar.ScoreboardLine(
-                        "infoLine",
-                        Component.text()
-                            .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
-                            .build(),
-                        0
-                    )
+            scoreboard?.createLine(
+                Sidebar.ScoreboardLine(
+                    "infoLine",
+                    Component.text()
+                        .append(Component.text("Waiting for players...", NamedTextColor.GRAY))
+                        .build(),
+                    0
                 )
-                scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -8))
-                scoreboard?.createLine(
-                    Sidebar.ScoreboardLine(
-                        "ipLine",
-                        Component.text()
-                            .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
-                            .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
-                            .build(),
-                        -9
-                    )
+            )
+            scoreboard?.createLine(Sidebar.ScoreboardLine("footerSpacer", Component.empty(), -8))
+            scoreboard?.createLine(
+                Sidebar.ScoreboardLine(
+                    "ipLine",
+                    Component.text()
+                        .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
+                        .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
+                        .build(),
+                    -9
                 )
-            }
+            )
+        }
 
-            gameState = GameState.WAITING_FOR_PLAYERS
+        gameState = GameState.WAITING_FOR_PLAYERS
 
-            gameCreated()
+        createFuture!!.complete(null)
+
+        gameCreated()
 
         return createFuture!!
     }
@@ -191,7 +189,11 @@ abstract class Game : PacketGroupingAudience {
         player.clearTitle()
         player.sendActionBar(Component.empty())
 
-        playerJoin(player)
+        try {
+            playerJoin(player)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         refreshPlayerCount()
 
@@ -207,7 +209,7 @@ abstract class Game : PacketGroupingAudience {
 
         Logger.info("${player.username} leaving game ${gameTypeInfo.name}#$id")
 
-        if (instance == null || gameState == GameState.DESTROYED) return
+        if (instance == null) return
         refreshPlayerCount()
 
         if (leaveMessage) sendMessage(
@@ -234,8 +236,11 @@ abstract class Game : PacketGroupingAudience {
             }
         }
 
-
-        playerLeave(player)
+        try {
+            playerLeave(player)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     @Synchronized
@@ -269,7 +274,11 @@ abstract class Game : PacketGroupingAudience {
         //player.inventory.setItemStack(4, ItemStack.of(Material.COMPASS))
         player.playSound(Sound.sound(SoundEvent.ENTITY_BAT_AMBIENT, Sound.Source.MASTER, 1f, 1f), Sound.Emitter.self())
 
-        spectatorJoin(player)
+        try {
+            spectatorJoin(player)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     internal open fun removeSpectator(player: Player) {
@@ -277,8 +286,12 @@ abstract class Game : PacketGroupingAudience {
 
         scoreboard?.removeViewer(player)
 
-        if (instance == null || gameState == GameState.DESTROYED) return
-        spectatorLeave(player)
+        if (instance == null) return
+        try {
+            spectatorLeave(player)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     open fun spectatorJoin(player: Player) {}
@@ -355,12 +368,8 @@ abstract class Game : PacketGroupingAudience {
         gameState = GameState.PLAYING
         scoreboard?.updateLineContent("infoLine", Component.empty())
 
-//        registerEvents(instance.eventNode())
+        registerEvents(instance!!.eventNode())
         gameStarted()
-    }
-
-    fun doNotMuch() {
-
     }
 
     open fun end() {
@@ -410,16 +419,18 @@ abstract class Game : PacketGroupingAudience {
     }
 
     private fun destroy() {
-        refreshPlayerCount()
+        MinecraftServer.getSchedulerManager().buildTask {
+            refreshPlayerCount()
 
-        MinecraftServer.getInstanceManager().unregisterInstance(instance!!)
+            MinecraftServer.getInstanceManager().unregisterInstance(instance!!)
 
-        createFuture = null
-        startingTask?.cancel()
-        startingTask = null
-        instance = null
+            createFuture = null
+            startingTask?.cancel()
+            startingTask = null
+            instance = null
 
-        GameManager.removeGame(this)
+            GameManager.removeGame(this)
+        }.delay(Duration.ofSeconds(2)).schedule()
     }
 
     open fun canBeJoined(player: Player): Boolean {
@@ -435,16 +446,7 @@ abstract class Game : PacketGroupingAudience {
         if (gameState == GameState.ENDING) return
         gameState = GameState.ENDING
 
-        val victoryTitle = Title.title(
-            Component.text("VICTORY!", NamedTextColor.GOLD, TextDecoration.BOLD),
-            Component.text(EndGameQuotes.victory.random(), NamedTextColor.GRAY),
-            Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
-        )
-        val defeatTitle = Title.title(
-            Component.text("DEFEAT!", NamedTextColor.RED, TextDecoration.BOLD),
-            Component.text(EndGameQuotes.defeat.random(), NamedTextColor.GRAY),
-            Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
-        )
+
 
         val victorySound = Sound.sound(SoundEvent.ENTITY_VILLAGER_CELEBRATE, Sound.Source.MASTER, 1f, 1f)
         val victorySound2 = Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f)
@@ -452,6 +454,17 @@ abstract class Game : PacketGroupingAudience {
         val defeatSound = Sound.sound(SoundEvent.ENTITY_VILLAGER_DEATH, Sound.Source.MASTER, 1f, 0.8f)
 
         players.forEach {
+            val victoryTitle = Title.title(
+                Component.text("VICTORY!", NamedTextColor.GOLD, TextDecoration.BOLD),
+                Component.text(EndGameQuotes.getVictoryQuote(it), NamedTextColor.GRAY),
+                Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
+            )
+            val defeatTitle = Title.title(
+                Component.text("DEFEAT!", NamedTextColor.RED, TextDecoration.BOLD),
+                Component.text(EndGameQuotes.getDefeatQuote(it), NamedTextColor.GRAY),
+                Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
+            )
+
             if (winningPlayers.contains(it)) {
                 it.showTitle(victoryTitle)
                 it.playSound(victorySound)

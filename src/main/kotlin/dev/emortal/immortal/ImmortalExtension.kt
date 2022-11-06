@@ -84,7 +84,7 @@ class ImmortalExtension : Extension() {
             SignHandler.register("minecraft:sign")
             SkullHandler.register("minecraft:skull")
             BannerHandler.register("minecraft:banner")
-            
+
             ForceStartCommand.register()
             ForceGCCommand.register()
             SoundCommand.register()
@@ -92,6 +92,10 @@ class ImmortalExtension : Extension() {
             ListCommand.register()
             VersionCommand.register()
             CurrentCommand.register()
+//            SpamGamesCommand.register()
+
+
+
 
             Logger.info("Immortal initialized!")
         }

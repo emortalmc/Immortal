@@ -68,7 +68,7 @@ object GameManager {
         return gameFuture.thenApply { game ->
             val spawnPosition = game.getSpawnPosition(this)
             this.respawnPoint = spawnPosition
-            this.setInstance(game.instance!!)
+            this.setInstance(game.instance!!, spawnPosition)
             game
         }
     }
