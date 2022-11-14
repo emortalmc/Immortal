@@ -4,6 +4,7 @@ import dev.emortal.immortal.game.GameManager
 import net.minestom.server.MinecraftServer
 import net.minestom.server.command.ConsoleSender
 import net.minestom.server.command.builder.Command
+import net.minestom.server.command.builder.arguments.ArgumentString
 import net.minestom.server.timer.TaskSchedule
 
 
@@ -13,16 +14,22 @@ internal object SpamGamesCommand : Command("spamgames") {
         setCondition { sender, _ ->
             sender is ConsoleSender
         }
-        setDefaultExecutor { sender, _ ->
-            if (sender !is ConsoleSender) return@setDefaultExecutor
-            sender.sendMessage("spamming games")
 
-            var i = 0;
+        val gamemodeArgument = ArgumentString("gamemode")
+
+        addConditionalSyntax({ sender, _ ->
+            sender is ConsoleSender
+        }, { sender, context ->
+            if (sender !is ConsoleSender) return@addConditionalSyntax
+
+            val gameMode = context.get(gamemodeArgument)
+
+            var i = 0
             MinecraftServer.getSchedulerManager().submitTask {
-                repeat(40) {
-                    var game = GameManager.createGame("marathon")
+                repeat(4) {
+                    var game = GameManager.createGame(gameMode)
 
-                    game?.thenAccept {
+                    game!!.thenAccept {
                         it.end()
                     }
 
@@ -32,7 +39,7 @@ internal object SpamGamesCommand : Command("spamgames") {
                 return@submitTask TaskSchedule.nextTick()
 
             }
-        }
+        }, gamemodeArgument)
     }
 
 }

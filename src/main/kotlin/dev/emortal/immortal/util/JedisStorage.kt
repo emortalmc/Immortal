@@ -26,25 +26,33 @@ object JedisStorage {
     fun init() {
         if (jedis == null) return
 
-        CoroutineScope(Dispatchers.IO).launch {
+        val listenerScope = CoroutineScope(Dispatchers.IO)
+
+        listenerScope.launch {
             // Create proxyhello listener
             val proxyHelloSub = object : JedisPubSub() {
                 override fun onMessage(channel: String, message: String) {
                     GameManager.getRegisteredNames().forEach {
                         Logger.info("Received proxyhello, re-registering game $it")
-                        jedis.publish("registergame", "$it ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
+                        jedis.publish(
+                            "registergame",
+                            "$it ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}"
+                        )
                     }
                 }
             }
             jedis.subscribe(proxyHelloSub, "proxyhello")
+        }
 
-
+        listenerScope.launch {
             val playerPubSub = object : JedisPubSub() {
                 override fun onMessage(channel: String, message: String) {
                     val args = message.split(" ")
 
                     when (args[0].lowercase()) {
                         "changegame" -> {
+                            Logger.warn(message)
+
                             val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
                             val playerGame = player.game
                             val subgame = args[2]
@@ -54,9 +62,15 @@ object JedisStorage {
                                 return
                             }
 
-                            if (playerGame == null) return
+                            if (playerGame == null) {
+                                Logger.warn("Player game is null")
+                                return
+                            }
 
-                            if (playerGame.gameName == subgame) return
+                            if (playerGame.gameName == subgame) {
+                                Logger.warn("Player subgame is already the same")
+                                return
+                            }
 
                             player.scheduleNextTick {
                                 player.joinGameOrNew(subgame, hasCooldown = false)

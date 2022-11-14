@@ -8,6 +8,7 @@ import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.*
 import net.minestom.server.network.packet.server.play.*
+import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.PacketUtils
 import world.cepi.kstom.Manager
 import java.time.Duration
@@ -60,7 +61,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
 
             viewer.scheduler().buildTask {
                 viewer.sendPacket(removeFromList)
-            }.delay(Duration.ofSeconds(3)).schedule()
+            }.delay(TaskSchedule.seconds(3)).schedule()
         } else {
             val entitySpawn = SpawnEntityPacket(playerId, uuid, entityType.id(), position, position.yaw, 0, 0, 0, 0)
 

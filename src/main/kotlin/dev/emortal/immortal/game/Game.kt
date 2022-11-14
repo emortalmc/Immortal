@@ -419,18 +419,17 @@ abstract class Game : PacketGroupingAudience {
     }
 
     private fun destroy() {
-        MinecraftServer.getSchedulerManager().buildTask {
+        instance!!.scheduler().buildTask {
             refreshPlayerCount()
-
-            MinecraftServer.getInstanceManager().unregisterInstance(instance!!)
 
             createFuture = null
             startingTask?.cancel()
             startingTask = null
-            instance = null
 
             GameManager.removeGame(this)
-        }.delay(Duration.ofSeconds(2)).schedule()
+            MinecraftServer.getInstanceManager().unregisterInstance(instance!!)
+            instance = null
+        }.delay(TaskSchedule.seconds(2)).schedule()
     }
 
     open fun canBeJoined(player: Player): Boolean {
@@ -477,7 +476,7 @@ abstract class Game : PacketGroupingAudience {
 
         gameWon(winningPlayers)
 
-        Manager.scheduler.buildTask { end() }.delay(Duration.ofSeconds(6)).schedule()
+        Manager.scheduler.buildTask { end() }.delay(TaskSchedule.seconds(6)).schedule()
     }
 
     open fun gameWon(winningPlayers: Collection<Player>) {}

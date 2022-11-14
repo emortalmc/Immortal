@@ -64,12 +64,6 @@ abstract class MinestomRunnable(
     open fun cancelled() {}
 
     fun cancel() {
-        future?.cancel(false)
-        future = null
-
-    }
-
-    fun cancelImmediate() {
         future?.cancel(true)
         future = null
     }

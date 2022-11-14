@@ -71,7 +71,7 @@ internal object StatsCommand : Command("tps") {
                     Component.text("RAM: ", NamedTextColor.GRAY),
                     Component.text("${ramUsage}MB / ${totalMem}MB", NamedTextColor.GRAY),
                     Component.text(" (", NamedTextColor.GRAY),
-                    Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0) / 100}", NamedTextColor.GREEN),
+                    Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0)}%", NamedTextColor.GREEN),
                     Component.text(")", NamedTextColor.GRAY),
 
                     // CPU details
@@ -82,7 +82,7 @@ internal object StatsCommand : Command("tps") {
                     Component.text("\nTPS: ", NamedTextColor.GRAY),
                     Component.text(tps, NamedTextColor.GREEN),
                     Component.text(" (", NamedTextColor.GRAY),
-                    Component.text("${floor(tickMs * 100.0) / 100}ms", TextColor.lerp(tickMs.toFloat() / maxTickMs.toFloat(), NamedTextColor.GREEN, NamedTextColor.RED)),
+                    Component.text("${floor(tickMs * 1000.0) / 1000}ms", TextColor.lerp(tickMs.toFloat() / maxTickMs.toFloat(), NamedTextColor.GREEN, NamedTextColor.RED)),
                     Component.text(")\n", NamedTextColor.GRAY),
 
                     createGcComponent(),

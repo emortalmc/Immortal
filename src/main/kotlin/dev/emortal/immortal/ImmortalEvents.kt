@@ -83,8 +83,8 @@ object ImmortalEvents {
 
                 newGame.playerCount.incrementAndGet()
 
-                Logger.info("player ${player.username} joining game ${newGame.id} with ${newGame.players.size} players")
-                Logger.info("game is joinable? ${newGame.canBeJoined(player)}")
+//                Logger.info("player ${player.username} joining game ${newGame.id} with ${newGame.players.size} players")
+//                Logger.info("game is joinable? ${newGame.canBeJoined(player)}")
 
                 val respawnPoint = newGame.getSpawnPosition(player, spectator = false)
                 player.respawnPoint = respawnPoint
@@ -123,7 +123,7 @@ object ImmortalEvents {
 
         globalEvent.listenOnly<PlayerMoveEvent> {
             // Teleport before player dies from void
-            if (instance.isInVoid(player.position)) {
+            if (player.position.y < -20) {
                 player.teleport(player.respawnPoint)
             }
         }

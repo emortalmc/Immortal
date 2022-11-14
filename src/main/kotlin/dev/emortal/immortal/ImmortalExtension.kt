@@ -7,6 +7,7 @@ import dev.emortal.immortal.commands.*
 import dev.emortal.immortal.config.ConfigHelper
 import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.debug.ImmortalDebug
+import dev.emortal.immortal.debug.SpamGamesCommand
 import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.JedisStorage
 import net.luckperms.api.LuckPerms
@@ -92,7 +93,7 @@ class ImmortalExtension : Extension() {
             ListCommand.register()
             VersionCommand.register()
             CurrentCommand.register()
-//            SpamGamesCommand.register()
+            SpamGamesCommand.register()
 
 
 
