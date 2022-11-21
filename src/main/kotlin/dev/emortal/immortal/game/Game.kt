@@ -94,8 +94,10 @@ abstract class Game : PacketGroupingAudience {
             player.scheduleNextTick {
 //                    if (player.instance?.uniqueId != instance.uniqueId)
                 if (player.hasTag(GameManager.spectatingTag)) {
+                    Logger.info("${player.username} had spectating tag")
                     addSpectator(player)
                 } else {
+                    Logger.info("${player.username} did not have spectating tag")
                     addPlayer(player)
                 }
             }
@@ -106,12 +108,12 @@ abstract class Game : PacketGroupingAudience {
 
             playerCount.decrementAndGet()
 
-            if (it.instance.hasTag(GameManager.doNotUnregisterTag)) return@addListener
+            val hadTag = player.hasTag(GameManager.spectatingTag)
+            player.removeTag(GameManager.spectatingTag)
 
             it.instance.scheduleNextTick { inst ->
-                if (player.hasTag(GameManager.spectatingTag)) {
+                if (hadTag) {
                     removeSpectator(player)
-                    player.removeTag(GameManager.spectatingTag)
                 } else {
                     removePlayer(player)
                 }
@@ -266,7 +268,7 @@ abstract class Game : PacketGroupingAudience {
 
         scoreboard?.addViewer(player)
 
-        player.isAutoViewable = false
+        player.updateViewableRule { false }
         player.isInvisible = true
         player.gameMode = GameMode.SPECTATOR
         player.isAllowFlying = true

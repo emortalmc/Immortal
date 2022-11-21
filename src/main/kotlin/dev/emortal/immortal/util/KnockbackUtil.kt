@@ -1,15 +1,17 @@
 package dev.emortal.immortal.util
 
+import net.minestom.server.MinecraftServer
+import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.Player
 import net.minestom.server.item.Enchantment
 import kotlin.math.*
 
-fun Entity.takeKnockback(attacker: Entity) {
+fun Entity.takeKnockback(position: Pos) {
     val horizontalKnockback = 0.25 * 20.0
 
-    val d0 = attacker.position.x() - position.x()
-    val d1 = attacker.position.z() - position.z()
+    val d0 = this.position.x() - position.x()
+    val d1 = this.position.z() - position.z()
 
     val magnitude = sqrt(d0 * d0 + d1 * d1)
 
@@ -25,11 +27,12 @@ fun Entity.takeKnockback(attacker: Entity) {
 }
 
 fun Entity.takeKnockback(attacker: Player, knockbackLevel: Short = attacker.itemInMainHand.meta().enchantmentMap[Enchantment.KNOCKBACK] ?: 0) {
-    val horizontalKnockback = 0.4 * 20
-    val verticalKnockback = 0.4 * 20
-    val extraHorizontalKnockback = 0.5 * 20
-    val extraVerticalKnockback = 0.1 * 20
-    val limitVerticalKnockback = 0.4 * 20
+    val tps = MinecraftServer.TICK_PER_SECOND
+    val horizontalKnockback = 0.4 * tps
+    val verticalKnockback = 0.4 * tps
+    val extraHorizontalKnockback = 0.5 * tps
+    val extraVerticalKnockback = 0.1 * tps
+    val limitVerticalKnockback = 0.4 * tps
 
     var d0: Double = attacker.position.x - this.position.x
     var d1: Double = attacker.position.z - this.position.z

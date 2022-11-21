@@ -2,8 +2,8 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.7.20"
-    kotlin("plugin.serialization") version "1.7.20"
+    kotlin("jvm") version "1.7.21"
+    kotlin("plugin.serialization") version "1.7.21"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 
     `maven-publish`
@@ -22,10 +22,10 @@ dependencies {
 
     compileOnly("net.luckperms:api:5.4")
 
-    compileOnly("com.github.Minestom:Minestom:42195c536b")
-    testImplementation("com.github.Minestom:Minestom:42195c536b")
+    compileOnly("com.github.Minestom:Minestom:1a013728fd")
+    testImplementation("com.github.Minestom:Minestom:1a013728fd")
 
-    compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
+//    compileOnly("com.github.EmortalMC:Acquaintance:6987f0b3f2")
     api("com.github.EmortalMC:KStom:50b2b882fa")
     api("com.github.emortaldev:Particable:f7212f39fb")
 

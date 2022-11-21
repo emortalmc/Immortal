@@ -41,8 +41,8 @@ fun Player.reset() {
 
     entityMeta.setNotifyAboutChanges(true)
 
-    updateViewableRule()
-    updateViewerRule()
+    updateViewableRule { true }
+    updateViewerRule { true }
 //    askSynchronization()
 }
 

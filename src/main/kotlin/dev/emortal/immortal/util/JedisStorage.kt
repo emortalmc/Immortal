@@ -72,6 +72,8 @@ object JedisStorage {
                                 return
                             }
 
+                            playerGame.scoreboard?.removeViewer(player) // fixes bugginess
+
                             player.scheduleNextTick {
                                 player.joinGameOrNew(subgame, hasCooldown = false)
                             }
@@ -81,6 +83,7 @@ object JedisStorage {
                             val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
                             val playerToSpectate = Manager.connection.getPlayer((UUID.fromString(args[2]))) ?: return
 
+                            val prevGame = player.game
                             val game = playerToSpectate.game
                             if (game != null) {
                                 if (!game.allowsSpectators) {
@@ -94,7 +97,11 @@ object JedisStorage {
 
                                 val spawnPosition = game.getSpawnPosition(player, spectator = true)
 
-                                player.setInstance(game.instance!!, spawnPosition)
+                                prevGame?.scoreboard?.removeViewer(player) // fixes bugginess
+
+                                player.setInstance(game.instance!!, spawnPosition).thenRun {
+                                    player.setTag(GameManager.spectatingTag, true)
+                                }
                             }
                         }
                     }
