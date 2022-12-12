@@ -1,6 +1,6 @@
 package dev.emortal.immortal.util
 
-import dev.emortal.immortal.ImmortalExtension
+import dev.emortal.immortal.Immortal
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
@@ -20,7 +20,7 @@ object JedisStorage {
 
     val jedis =
         if (System.getProperty("debug") != "true") {
-            JedisPooled(ImmortalExtension.gameConfig.address)
+            JedisPooled(Immortal.gameConfig.redisAddress)
         } else null
 
     fun init() {
@@ -36,7 +36,7 @@ object JedisStorage {
                         Logger.info("Received proxyhello, re-registering game $it")
                         jedis.publish(
                             "registergame",
-                            "$it ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}"
+                            "$it ${Immortal.gameConfig.serverName} ${Immortal.port}"
                         )
                     }
                 }
@@ -107,7 +107,7 @@ object JedisStorage {
                     }
                 }
             }
-            jedis.subscribe(playerPubSub, "playerpubsub${ImmortalExtension.gameConfig.serverName}")
+            jedis.subscribe(playerPubSub, "playerpubsub${Immortal.gameConfig.serverName}")
         }
 
     }

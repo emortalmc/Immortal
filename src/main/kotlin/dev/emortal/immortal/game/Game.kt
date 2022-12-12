@@ -62,6 +62,7 @@ abstract class Game : PacketGroupingAudience {
     var instance: Instance? = null
 
     var startingTask: Task? = null
+    var startingSecondsLeft: AtomicInteger = AtomicInteger(0)
     var scoreboard: Sidebar? = null
 
     val runnableGroup = RunnableGroup()
@@ -200,8 +201,20 @@ abstract class Game : PacketGroupingAudience {
         refreshPlayerCount()
 
         if (gameState == GameState.WAITING_FOR_PLAYERS && players.size >= minPlayers) {
+
+
             if (startingTask == null) {
                 startCountdown()
+            } else {
+                if ((maxPlayers / 2.0) < players.size) {
+                    if (startingSecondsLeft.get() < 15) return
+                    startingSecondsLeft.set(15)
+
+                    sendActionBar(
+                        Component.text("Time shortened to 15 seconds!", NamedTextColor.GREEN)
+                    )
+                    playSound(Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_XYLOPHONE, Sound.Source.MASTER, 1f, 2f), Sound.Emitter.self())
+                }
             }
         }
     }
@@ -233,7 +246,7 @@ abstract class Game : PacketGroupingAudience {
         }
 
         if (gameState == GameState.PLAYING) {
-            if (players.size == 1) {
+            if (players.size == 1 && minPlayers != 1) {
                 victory(players.first())
             }
         }
@@ -245,18 +258,19 @@ abstract class Game : PacketGroupingAudience {
         }
     }
 
-    @Synchronized
     open fun refreshPlayerCount() {
-        JedisStorage.jedis?.publish("playercount", "$gameName ${GameManager.getGames(gameName)?.sumOf { if (it.instance == null) 0 else it.players.size } ?: 0}")
+        synchronized(players) {
+            JedisStorage.jedis?.publish("playercount", "$gameName ${GameManager.getGames(gameName)?.sumOf { if (it.instance == null) 0 else it.players.size } ?: 0}")
 
-        if (instance != null && minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
-            scoreboard?.updateLineContent(
-                "infoLine",
-                Component.text(
-                    "Waiting for players... (${minPlayers - players.size} more)",
-                    NamedTextColor.GRAY
+            if (instance != null && minPlayers > players.size && gameState == GameState.WAITING_FOR_PLAYERS) {
+                scoreboard?.updateLineContent(
+                    "infoLine",
+                    Component.text(
+                        "Waiting for players... (${minPlayers - players.size} more)",
+                        NamedTextColor.GRAY
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -310,9 +324,8 @@ abstract class Game : PacketGroupingAudience {
             return
         }
 
-        var count = 0
         startingTask = instance?.scheduler()?.submitTask {
-            count++
+            val count = startingSecondsLeft.incrementAndGet()
 
             if (count >= countdownSeconds) {
                 start()
@@ -348,6 +361,8 @@ abstract class Game : PacketGroupingAudience {
     open fun cancelCountdown() {
         startingTask?.cancel()
         startingTask = null
+
+        startingSecondsLeft.set(0)
 
         showTitle(
             Title.title(

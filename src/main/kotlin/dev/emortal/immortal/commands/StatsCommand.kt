@@ -33,6 +33,7 @@ internal object StatsCommand : Command("tps") {
     private val EXCLUDED_MEMORY_SPACES: List<Pattern> = setOf("Metaspace", "Compressed Class Space", "^CodeHeap").map { Pattern.compile(it) }
 
     init {
+
         Manager.globalEvent.listenOnly<ServerTickMonitorEvent> {
             LAST_TICK.set(tickMonitor)
         }

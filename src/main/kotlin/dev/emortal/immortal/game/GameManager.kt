@@ -1,6 +1,6 @@
 package dev.emortal.immortal.game
 
-import dev.emortal.immortal.ImmortalExtension
+import dev.emortal.immortal.Immortal
 import dev.emortal.immortal.config.GameTypeInfo
 import dev.emortal.immortal.util.JedisStorage
 import kotlinx.coroutines.runBlocking
@@ -140,7 +140,7 @@ object GameManager {
             showsInSlashPlay
         )
 
-        JedisStorage.jedis?.publish("registergame", "$name ${ImmortalExtension.gameConfig.serverName} ${ImmortalExtension.gameConfig.serverPort}")
+        JedisStorage.jedis?.publish("registergame", "$name ${Immortal.gameConfig.serverName} ${Immortal.port} ${showsInSlashPlay}")
 
         gameListMap[name] = ConcurrentHashMap.newKeySet()
 

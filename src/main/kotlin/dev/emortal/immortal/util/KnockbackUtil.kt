@@ -7,13 +7,13 @@ import net.minestom.server.entity.Player
 import net.minestom.server.item.Enchantment
 import kotlin.math.*
 
-fun Entity.takeKnockback(position: Pos) {
+fun Entity.takeKnockback(position: Pos, strength: Double = 1.0) {
     val horizontalKnockback = 0.25 * 20.0
 
-    val d0 = this.position.x() - position.x()
-    val d1 = this.position.z() - position.z()
+    val d0 = position.x() - this.position.x()
+    val d1 = position.z() - this.position.z()
 
-    val magnitude = sqrt(d0 * d0 + d1 * d1)
+    val magnitude = sqrt(d0 * d0 + d1 * d1) * strength
 
     var newVelocity = velocity
         .withX(((velocity.x() / 2) - (d0 / magnitude * horizontalKnockback)))
@@ -21,7 +21,7 @@ fun Entity.takeKnockback(position: Pos) {
         .withZ(((velocity.z() / 2) - (d1 / magnitude * horizontalKnockback)))
 
     if (newVelocity.y() > 8)
-        newVelocity = newVelocity.withY(8.0);
+        newVelocity = newVelocity.withY(8.0)
 
     velocity = newVelocity
 }
@@ -32,7 +32,7 @@ fun Entity.takeKnockback(attacker: Player, knockbackLevel: Short = attacker.item
     val verticalKnockback = 0.4 * tps
     val extraHorizontalKnockback = 0.5 * tps
     val extraVerticalKnockback = 0.1 * tps
-    val limitVerticalKnockback = 0.4 * tps
+    val limitVerticalKnockback = 0.5 * tps
 
     var d0: Double = attacker.position.x - this.position.x
     var d1: Double = attacker.position.z - this.position.z

@@ -1,6 +1,8 @@
 package dev.emortal.immortal.debug
 
 import dev.emortal.immortal.game.GameManager
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.minestom.server.MinecraftServer
 import net.minestom.server.command.ConsoleSender
 import net.minestom.server.command.builder.Command
@@ -24,21 +26,29 @@ internal object SpamGamesCommand : Command("spamgames") {
 
             val gameMode = context.get(gamemodeArgument)
 
-            var i = 0
-            MinecraftServer.getSchedulerManager().submitTask {
-                repeat(4) {
-                    var game = GameManager.createGame(gameMode)
 
-                    game!!.thenAccept {
-                        it.end()
+            runBlocking {
+                launch {
+                    var i = 0
+                    MinecraftServer.getSchedulerManager().submitTask {
+                        repeat(4) {
+                            launch {
+                                var game = GameManager.createGame(gameMode)
+
+                                game!!.thenAccept {
+                                    it.end()
+                                }
+
+                                game = null
+                            }
+                        }
+                        i++
+                        return@submitTask TaskSchedule.nextTick()
+
                     }
-
-                    game = null
                 }
-                i++
-                return@submitTask TaskSchedule.nextTick()
-
             }
+
         }, gamemodeArgument)
     }
 
