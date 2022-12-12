@@ -29,6 +29,7 @@ import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePa
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.utils.callback.CommandCallback
 import net.minestom.server.world.DimensionType
+import org.litote.kmongo.serialization.SerializationClassMappingTypeService
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.command.register
 import world.cepi.kstom.command.unregister
@@ -47,6 +48,8 @@ object Immortal {
     var terminalThread: Thread? = null
 
     fun init(eventNode: EventNode<Event> = MinecraftServer.getGlobalEventHandler()) {
+        System.setProperty("org.litote.mongo.mapping.service", SerializationClassMappingTypeService::class.qualifiedName!!)
+
         gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig())
 
         // Ignore warning when player opens recipe book
