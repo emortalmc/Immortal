@@ -27,7 +27,7 @@ object GameManager {
     val gameNameTag = Tag.String("gameName")
     val gameIdTag = Tag.Integer("gameId")
     val joiningGameTag = Tag.Boolean("joiningGame")
-    val spectatingTag = Tag.Boolean("spectating")
+    val playerSpectatingTag = Tag.Boolean("spectating")
 
     private val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
     private val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()

@@ -26,16 +26,17 @@ import net.minestom.server.instance.block.Block
 import net.minestom.server.listener.UseEntityListener
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
+import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.utils.callback.CommandCallback
 import net.minestom.server.world.DimensionType
 import org.litote.kmongo.serialization.SerializationClassMappingTypeService
 import org.tinylog.kotlin.Logger
 import world.cepi.kstom.command.register
-import world.cepi.kstom.command.unregister
 import world.cepi.kstom.util.register
 import java.nio.file.Path
 import kotlin.concurrent.thread
+import kotlin.system.exitProcess
 
 object Immortal {
 
@@ -43,7 +44,8 @@ object Immortal {
     private val configPath = Path.of("./config.json")
 
     val port get() = System.getProperty("port")?.toInt() ?: gameConfig.port
-    val address get() = gameConfig.ip
+    val address get() = System.getProperty("address") ?: gameConfig.ip
+    val redisAddress get() = System.getProperty("redisAddress") ?: gameConfig.redisAddress
 
     var terminalThread: Thread? = null
 
@@ -63,14 +65,26 @@ object Immortal {
             PacketNPC.viewerMap[player.uuid]?.firstOrNull { it.playerId == packet.targetId }?.onClick(player)
         }
 
-        val debugMode = System.getProperty("debug").toBoolean()
-        val debugGame = System.getProperty("debuggame")
-        if (debugMode) {
-            Logger.info("Running in debug mode! Debug game: $debugGame")
-            if (System.getProperty("debugtablist").toBoolean()) {
+        if (redisAddress.isBlank()) {
+            Logger.info("Running without Redis - Game to join: ${gameConfig.defaultGame}")
+
+            if (gameConfig.defaultGame.isBlank()) {
+                MinecraftServer.getSchedulerManager().buildTask {
+                    Logger.error("Default game is blank in your config.json! Replace it or use Redis")
+                    if (GameManager.getRegisteredNames().isNotEmpty()) {
+                        Logger.error("Maybe try \"${GameManager.getRegisteredNames().first()}\"?")
+                    }
+
+                    exitProcess(1)
+                }.delay(TaskSchedule.seconds(2)).schedule()
+
+            }
+
+            if (System.getProperty("debug").toBoolean()) {
                 ImmortalDebug.enable()
             }
         } else {
+            Logger.info("Running with Redis")
             JedisStorage.init()
         }
 
@@ -127,6 +141,7 @@ object Immortal {
         System.setProperty("minestom.chunk-view-distance", gameConfig.chunkViewDistance.toString())
         MinecraftServer.setCompressionThreshold(0)
         MinecraftServer.setBrandName("Minestom")
+        MinecraftServer.setTerminalEnabled(false)
 
         if (gameConfig.velocitySecret.isBlank()) {
             MojangAuth.init()
@@ -148,13 +163,13 @@ object Immortal {
     }
 
     fun stop() {
-        ForceStartCommand.unregister()
-        ForceGCCommand.unregister()
-        SoundCommand.unregister()
-        StatsCommand.unregister()
-        ListCommand.unregister()
-        VersionCommand.unregister()
-        CurrentCommand.unregister()
+//        ForceStartCommand.unregister()
+//        ForceGCCommand.unregister()
+//        SoundCommand.unregister()
+//        StatsCommand.unregister()
+//        ListCommand.unregister()
+//        VersionCommand.unregister()
+//        CurrentCommand.unregister()
 
         GameManager.getRegisteredNames().forEach {
             JedisStorage.jedis?.publish("playercount", "$it 0")

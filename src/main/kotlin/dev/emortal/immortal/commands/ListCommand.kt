@@ -55,7 +55,7 @@ internal object ListCommand : Command("list") {
                             .append(Component.text("${game.gameName}#${game.id} ", NamedTextColor.YELLOW))
                     )
                     message.append(
-                        Component.text("Players (${game.players.size})")
+                        Component.text("Players (${game.getPlayers().size})")
                     )
 //                    game.players.forEach { plr ->
 //                        message.append(

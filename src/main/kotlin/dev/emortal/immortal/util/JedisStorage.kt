@@ -19,7 +19,7 @@ import java.util.*
 object JedisStorage {
 
     val jedis =
-        if (System.getProperty("debug") != "true") {
+        if (Immortal.redisAddress.isNotBlank()) {
             JedisPooled(Immortal.gameConfig.redisAddress)
         } else null
 
@@ -100,7 +100,7 @@ object JedisStorage {
                                 prevGame?.scoreboard?.removeViewer(player) // fixes bugginess
 
                                 player.setInstance(game.instance!!, spawnPosition).thenRun {
-                                    player.setTag(GameManager.spectatingTag, true)
+                                    player.setTag(GameManager.playerSpectatingTag, true)
                                 }
                             }
                         }

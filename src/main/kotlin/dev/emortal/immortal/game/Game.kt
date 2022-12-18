@@ -1,5 +1,6 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.immortal.Immortal
 import dev.emortal.immortal.game.GameManager.joinGameOrNew
 import dev.emortal.immortal.util.*
 import net.kyori.adventure.sound.Sound
@@ -23,7 +24,6 @@ import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import net.minestom.server.timer.TaskSchedule
 import org.tinylog.kotlin.Logger
-import world.cepi.kstom.Manager
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
@@ -44,6 +44,9 @@ abstract class Game : PacketGroupingAudience {
     abstract val showScoreboard: Boolean
     abstract val showsJoinLeaveMessages: Boolean
     abstract val allowsSpectators: Boolean
+
+    val players get() = getPlayers().filter { !it.hasTag(GameManager.playerSpectatingTag) }
+    val spectators get() = getPlayers().filter { it.hasTag(GameManager.playerSpectatingTag) }
 
     val playerCount = AtomicInteger(0)
 
@@ -94,7 +97,7 @@ abstract class Game : PacketGroupingAudience {
             // Wait until player has fully joined
             player.scheduleNextTick {
 //                    if (player.instance?.uniqueId != instance.uniqueId)
-                if (player.hasTag(GameManager.spectatingTag)) {
+                if (player.hasTag(GameManager.playerSpectatingTag)) {
                     Logger.info("${player.username} had spectating tag")
                     addSpectator(player)
                 } else {
@@ -109,8 +112,8 @@ abstract class Game : PacketGroupingAudience {
 
             playerCount.decrementAndGet()
 
-            val hadTag = player.hasTag(GameManager.spectatingTag)
-            player.removeTag(GameManager.spectatingTag)
+            val hadTag = player.hasTag(GameManager.playerSpectatingTag)
+            player.removeTag(GameManager.playerSpectatingTag)
 
             it.instance.scheduleNextTick { inst ->
                 if (hadTag) {
@@ -406,18 +409,18 @@ abstract class Game : PacketGroupingAudience {
         startingTask = null
         runnableGroup.cancelAll()
 
-        val debugMode = System.getProperty("debug").toBoolean()
-        val debugGame = System.getProperty("debuggame")
+        val debugMode = Immortal.gameConfig.redisAddress.isBlank()
+        val defaultGame = Immortal.gameConfig.defaultGame
 
         // Both spectators and players
 
         val joinCountDown = CountDownLatch(players.size)
 
-        players.shuffled().iterator().forEachRemaining {
+        getPlayers().shuffled().iterator().forEachRemaining {
             scoreboard?.removeViewer(it)
 
             val future = if (debugMode) {
-                it.joinGameOrNew(debugGame, hasCooldown = false)
+                it.joinGameOrNew(defaultGame, hasCooldown = false)
             } else {
                 it.joinGameOrNew(gameName, hasCooldown = false)
             }
@@ -493,14 +496,14 @@ abstract class Game : PacketGroupingAudience {
 
         gameWon(winningPlayers)
 
-        Manager.scheduler.buildTask { end() }.delay(TaskSchedule.seconds(6)).schedule()
+        MinecraftServer.getSchedulerManager().buildTask { end() }.delay(TaskSchedule.seconds(6)).schedule()
     }
 
     open fun gameWon(winningPlayers: Collection<Player>) {}
 
     abstract fun instanceCreate(): CompletableFuture<Instance>
 
-    override fun getPlayers(): MutableCollection<Player> = instance!!.players
+    override fun getPlayers(): MutableCollection<Player> = instance?.players ?: mutableSetOf()
 
     override fun equals(other: Any?): Boolean {
         if (other !is Game) return false

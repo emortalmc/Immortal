@@ -25,9 +25,7 @@ object ImmortalEvents {
         }
 
         eventNode.listenOnly<PlayerLoginEvent> {
-            var subgame = if (System.getProperty("debug") == "true") {
-                System.getProperty("debuggame")
-            } else {
+            var subgame = Immortal.gameConfig.defaultGame.ifBlank {
                 // Read then delete value
                 JedisStorage.jedis?.getDel("${player.uuid}-subgame")?.trim()
             }
@@ -66,7 +64,7 @@ object ImmortalEvents {
                     return@listenOnly
                 }
 
-                player.setTag(GameManager.spectatingTag, true)
+                player.setTag(GameManager.playerSpectatingTag, true)
                 player.respawnPoint = game.getSpawnPosition(player, spectator = true)
 
                 setSpawningInstance(game.instance!!)
