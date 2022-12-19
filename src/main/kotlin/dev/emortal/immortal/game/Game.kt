@@ -147,7 +147,7 @@ abstract class Game : PacketGroupingAudience {
                 Sidebar.ScoreboardLine(
                     "ipLine",
                     Component.text()
-                        .append(Component.text("mc.emortal.dev ", NamedTextColor.DARK_GRAY))
+                        .append(Component.text("mc.emortal.dev ".smallText(), NamedTextColor.DARK_GRAY))
                         .append(Component.text("       ", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH))
                         .build(),
                     -9
@@ -466,29 +466,32 @@ abstract class Game : PacketGroupingAudience {
         gameState = GameState.ENDING
 
 
-
         val victorySound = Sound.sound(SoundEvent.ENTITY_VILLAGER_CELEBRATE, Sound.Source.MASTER, 1f, 1f)
         val victorySound2 = Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f)
 
         val defeatSound = Sound.sound(SoundEvent.ENTITY_VILLAGER_DEATH, Sound.Source.MASTER, 1f, 0.8f)
 
-        players.forEach {
-            val victoryTitle = Title.title(
-                Component.text("VICTORY!", NamedTextColor.GOLD, TextDecoration.BOLD),
-                Component.text(EndGameQuotes.getVictoryQuote(it), NamedTextColor.GRAY),
-                Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
-            )
-            val defeatTitle = Title.title(
-                Component.text("DEFEAT!", NamedTextColor.RED, TextDecoration.BOLD),
-                Component.text(EndGameQuotes.getDefeatQuote(it), NamedTextColor.GRAY),
-                Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
-            )
+        val victoryQuote = EndGameQuotes.victory.random()
+        val defeatQuote = EndGameQuotes.defeat.random()
 
+        players.forEach {
             if (winningPlayers.contains(it)) {
+                val victoryTitle = Title.title(
+                    Component.text("VICTORY!", NamedTextColor.GOLD, TextDecoration.BOLD),
+                    Component.text(EndGameQuotes.getVictoryQuote(victoryQuote, it), NamedTextColor.GRAY),
+                    Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
+                )
+
                 it.showTitle(victoryTitle)
                 it.playSound(victorySound)
                 it.playSound(victorySound2)
             } else {
+                val defeatTitle = Title.title(
+                    Component.text("DEFEAT!", NamedTextColor.RED, TextDecoration.BOLD),
+                    Component.text(EndGameQuotes.getDefeatQuote(defeatQuote, it), NamedTextColor.GRAY),
+                    Title.Times.times(Duration.ZERO, Duration.ofSeconds(3), Duration.ofSeconds(3))
+                )
+
                 it.showTitle(defeatTitle)
                 it.playSound(defeatSound)
             }

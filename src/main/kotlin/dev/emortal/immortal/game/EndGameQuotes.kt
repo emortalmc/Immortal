@@ -6,7 +6,7 @@ import net.minestom.server.item.Material
 
 object EndGameQuotes {
 
-    private val victory = setOf(
+    val victory = setOf(
         "pepeD",
         "gg ez no re",
         "All luck",
@@ -41,7 +41,7 @@ object EndGameQuotes {
         "BLEHHH"
     )
 
-    private val defeat = setOf(
+    val defeat = setOf(
         "I guess you weren't trying",
         "no",
         "L",
@@ -76,7 +76,7 @@ object EndGameQuotes {
         "BLEHHH"
     )
 
-    private val draw = setOf(
+    val draw = setOf(
         "Well that wasn't worth my time",
         "Hopefully one of you win next time",
         "Well... that was unexpected",
@@ -89,19 +89,19 @@ object EndGameQuotes {
         "Twins?"
     )
 
-    fun getVictoryQuote(player: Player): String {
-        val quote = victory.random().replace("[username]", player.username)
+    fun getVictoryQuote(quote: String, player: Player): String {
+        val newQuote = quote.replace("[username]", player.username)
 
-        if (quote == "take a cookie for your efforts") {
+        if (newQuote == "take a cookie for your efforts") {
             player.itemInMainHand = ItemStack.of(Material.COOKIE)
         }
 
         return quote
     }
-    fun getDefeatQuote(player: Player): String {
-        return defeat.random().replace("[username]", player.username)
+    fun getDefeatQuote(quote: String, player: Player): String {
+        return quote.replace("[username]", player.username)
     }
-    fun getDrawQuote(player: Player): String {
-        return draw.random().replace("[username]", player.username)
+    fun getDrawQuote(quote: String, player: Player): String {
+        return quote.replace("[username]", player.username)
     }
 }

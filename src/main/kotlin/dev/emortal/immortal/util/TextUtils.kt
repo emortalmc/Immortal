@@ -32,3 +32,25 @@ fun Int.parsed(): String {
 
     return stringBuilder.toString().trim()
 }
+
+val smallFont = arrayOf(
+    'ᴀ', 'ʙ', 'ᴄ', 'ᴅ', 'ᴇ', 'ꜰ', 'ɢ', 'ʜ', 'ɪ', 'ᴊ', 'ᴋ', 'ʟ', 'ᴍ', 'ɴ', 'ᴏ', 'ᴘ', 'ǫ', 'ʀ', 'ѕ', 'ᴛ', 'ᴜ', 'ᴠ', 'ᴡ', 'х', 'ʏ', 'ᴢ',
+    '₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'
+)
+fun String.smallText(): String {
+    val stringBuilder = StringBuilder()
+
+    this.lowercase().forEach { char ->
+        when (char.code) {
+            // a - z
+            in 97..122 -> stringBuilder.append(smallFont[char.code - 97])
+
+            // 0 - 9
+            in 48..57 -> stringBuilder.append(smallFont[char.code + 26 - 48])
+
+            else -> stringBuilder.append(char)
+        }
+    }
+
+    return stringBuilder.toString()
+}
