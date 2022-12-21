@@ -1,6 +1,5 @@
 package dev.emortal.immortal.npc
 
-import dev.emortal.immortal.util.MinestomRunnable
 import dev.emortal.immortal.util.sendServer
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -8,10 +7,10 @@ import net.kyori.adventure.text.Component
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.*
 import net.minestom.server.network.packet.server.play.*
+import net.minestom.server.timer.Task
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.PacketUtils
 import world.cepi.kstom.Manager
-import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
@@ -19,7 +18,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameName: String, val playerSkin: PlayerSkin? = null, val entityType: EntityType = EntityType.PLAYER) {
 
     private val viewers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
-    private val taskMap = ConcurrentHashMap<UUID, MinestomRunnable>()
+    private val taskMap = ConcurrentHashMap<UUID, Task>()
 
     companion object {
         val viewerMap = ConcurrentHashMap<UUID, CopyOnWriteArrayList<PacketNPC>>()
@@ -31,20 +30,20 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     }
 
     val playerId = Entity.generateId()
-    val prop = if (playerSkin == null) listOf() else listOf(
+    private val prop = if (playerSkin == null) listOf() else listOf(
         PlayerInfoPacket.AddPlayer.Property(
             "textures",
             playerSkin.textures(),
             playerSkin.signature()
         )
     )
-    val uuid = UUID.randomUUID()
+    private val uuid = UUID.randomUUID()
 
-    val playerInfo = PlayerInfoPacket(PlayerInfoPacket.Action.ADD_PLAYER, PlayerInfoPacket.AddPlayer(uuid, gameName, prop, GameMode.CREATIVE, 0, Component.empty(), null))
-    val spawnPlayer = SpawnPlayerPacket(playerId, uuid, position)
-    val teamPacket = TeamsPacket("npcTeam", TeamsPacket.AddEntitiesToTeamAction(listOf(gameName)))
-    val metaPacket = EntityMetaDataPacket(playerId, mapOf(17 to Metadata.Byte(127 /*All layers enabled*/)))
-    val removeFromList = PlayerInfoPacket(PlayerInfoPacket.Action.REMOVE_PLAYER, PlayerInfoPacket.RemovePlayer(uuid))
+    private val playerInfo = PlayerInfoPacket(PlayerInfoPacket.Action.ADD_PLAYER, PlayerInfoPacket.AddPlayer(uuid, gameName, prop, GameMode.CREATIVE, 0, Component.empty(), null))
+    private val spawnPlayer = SpawnPlayerPacket(playerId, uuid, position)
+    private val teamPacket = TeamsPacket("npcTeam", TeamsPacket.AddEntitiesToTeamAction(listOf(gameName)))
+    private val metaPacket = EntityMetaDataPacket(playerId, mapOf(17 to Metadata.Byte(127 /*All layers enabled*/)))
+    private val removeFromList = PlayerInfoPacket(PlayerInfoPacket.Action.REMOVE_PLAYER, PlayerInfoPacket.RemovePlayer(uuid))
 
     fun addViewer(viewer: Player) {
         viewers.add(viewer)
@@ -68,29 +67,25 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             viewer.sendPacket(entitySpawn)
         }
 
-        taskMap[viewer.uuid] = object : MinestomRunnable(delay = Duration.ofSeconds(3), repeat = Duration.ofMillis(150), group = null) {
-            override fun run() {
-                val lookFromPos = position.add(0.0, entityType.height(), 0.0)
-                val lookToPos = viewer.position.add(0.0, if (viewer.isSneaking) 1.5 else 1.8, 0.0)
+        taskMap[viewer.uuid] = viewer.scheduler().buildTask {
+            val lookFromPos = position.add(0.0, entityType.height(), 0.0)
+            val lookToPos = viewer.position.add(0.0, if (viewer.isSneaking) 1.5 else 1.8, 0.0)
 
-                if (lookFromPos.distanceSquared(lookToPos) > 10*10) return
-                val pos = lookFromPos.withDirection(lookToPos.sub(lookFromPos))
+            if (lookFromPos.distanceSquared(lookToPos) > 10*10) return@buildTask
+            val pos = lookFromPos.withDirection(lookToPos.sub(lookFromPos))
 
-                val lookPacket = EntityRotationPacket(playerId, pos.yaw, pos.pitch, true)
-                val headLook = EntityHeadLookPacket(playerId, pos.yaw)
-                viewer.sendPacket(lookPacket)
-                viewer.sendPacket(headLook)
-            }
-        }
-
-        //npcIdMap[playerId] = this
+            val lookPacket = EntityRotationPacket(playerId, pos.yaw, pos.pitch, true)
+//            val headLook = EntityHeadLookPacket(playerId, pos.yaw)
+            viewer.sendPacket(lookPacket)
+//            viewer.sendPacket(headLook)
+        }.delay(TaskSchedule.seconds(4)).repeat(TaskSchedule.tick(3)).schedule()
     }
 
     fun removeViewer(viewer: Player) {
         viewers.remove(viewer)
         viewerMap[viewer.uuid]?.remove(this)
 
-        viewer.sendPackets(DestroyEntitiesPacket(playerId))
+        viewer.sendPacket(DestroyEntitiesPacket(playerId))
         taskMap[viewer.uuid]?.cancel()
         taskMap.remove(viewer.uuid)
     }

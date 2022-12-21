@@ -3,6 +3,9 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.Immortal
 import dev.emortal.immortal.config.GameTypeInfo
 import dev.emortal.immortal.util.JedisStorage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.text.Component
 import net.minestom.server.entity.Player
@@ -16,6 +19,8 @@ import kotlin.reflect.full.primaryConstructor
 
 
 object GameManager {
+
+    private val createGameScope = CoroutineScope(Dispatchers.IO)
 
     // Instance Tags
     val doNotUnregisterTag = Tag.Boolean("doNotUnregister")
@@ -97,6 +102,7 @@ object GameManager {
     }
 
     fun createGame(gameTypeName: String): CompletableFuture<Game>? {
+
         val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call()
             ?: throw IllegalArgumentException("Primary constructor not found.")
 
@@ -105,9 +111,11 @@ object GameManager {
 
         val future = CompletableFuture<Game>()
 
-        val gameCreate = game.create() ?: return null
-        gameCreate.thenRun {
-            future.complete(game)
+        createGameScope.launch {
+            val gameCreate = game.create()
+            gameCreate?.thenRunAsync {
+                future.complete(game)
+            }
         }
 
         return future

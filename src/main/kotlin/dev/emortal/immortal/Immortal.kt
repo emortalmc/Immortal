@@ -12,23 +12,17 @@ import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.terminal.ImmortalTerminal
 import dev.emortal.immortal.util.JedisStorage
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import net.minestom.server.MinecraftServer
-import net.minestom.server.command.CommandSender
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.extras.MojangAuth
 import net.minestom.server.extras.velocity.VelocityProxy
-import net.minestom.server.instance.block.Block
 import net.minestom.server.listener.UseEntityListener
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.NamespaceID
-import net.minestom.server.utils.callback.CommandCallback
 import net.minestom.server.world.DimensionType
 import org.litote.kmongo.serialization.SerializationClassMappingTypeService
 import org.tinylog.kotlin.Logger
@@ -95,24 +89,24 @@ object Immortal {
             .build()
         MinecraftServer.getDimensionTypeManager().addDimension(dimensionType)
 
-        // For some reason minecraft:oak_wall_sign exists so yay
-        Block.values().forEach {
-            if (it.name().endsWith("sign")) {
-                SignHandler.register(it.name())
-            }
-        }
+//        // For some reason minecraft:oak_wall_sign exists so yay
+//        Block.values().forEach {
+//            if (it.name().endsWith("sign")) {
+//                SignHandler.register(it.name())
+//            }
+//        }
         SignHandler.register("minecraft:sign")
         SkullHandler.register("minecraft:skull")
         BannerHandler.register("minecraft:banner")
 
         ForceStartCommand.register()
+        ShortenStartCommand.register()
         ForceGCCommand.register()
         SoundCommand.register()
         StatsCommand.register()
         ListCommand.register()
-        VersionCommand.register()
-        CurrentCommand.register()
         SpamGamesCommand.register()
+        StopCommand.register()
 
         Logger.info("Immortal initialized!")
     }
@@ -122,21 +116,6 @@ object Immortal {
 
         val minestom = MinecraftServer.init()
 
-        MinecraftServer.getCommandManager().unknownCommandCallback =
-            CommandCallback { sender: CommandSender, command: String ->
-                if (command != "") {
-                    sender.sendMessage(
-                        Component.text()
-                            .append(Component.translatable("command.unknown.command", NamedTextColor.RED))
-                            .append(Component.newline())
-                            .append(Component.text("/", NamedTextColor.GRAY))
-                            .append(Component.text(command, NamedTextColor.RED, TextDecoration.UNDERLINED))
-                            .append(Component.translatable("command.context.here", NamedTextColor.RED, TextDecoration.ITALIC))
-                            .build()
-                    )
-                }
-            }
-
         System.setProperty("minestom.entity-view-distance", gameConfig.entityViewDistance.toString())
         System.setProperty("minestom.chunk-view-distance", gameConfig.chunkViewDistance.toString())
         MinecraftServer.setCompressionThreshold(0)
@@ -144,7 +123,7 @@ object Immortal {
         MinecraftServer.setTerminalEnabled(false)
 
         if (gameConfig.velocitySecret.isBlank()) {
-            MojangAuth.init()
+            if (gameConfig.onlineMode) MojangAuth.init()
         } else {
             VelocityProxy.enable(gameConfig.velocitySecret)
         }
@@ -169,7 +148,6 @@ object Immortal {
 //        StatsCommand.unregister()
 //        ListCommand.unregister()
 //        VersionCommand.unregister()
-//        CurrentCommand.unregister()
 
         GameManager.getRegisteredNames().forEach {
             JedisStorage.jedis?.publish("playercount", "$it 0")

@@ -14,10 +14,8 @@ data class GameConfig(
      */
     val defaultGame: String = "",
 
-    /**
-     * Also decides online-mode; if empty, online mode is true
-     */
     val velocitySecret: String = "",
+    val onlineMode: Boolean = true,
     val ip: String = "0.0.0.0",
     val port: Int = 25565,
     val entityViewDistance: Int = 5,

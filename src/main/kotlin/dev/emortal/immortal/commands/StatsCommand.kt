@@ -72,7 +72,7 @@ internal object StatsCommand : Command("tps") {
                     Component.text("RAM: ", NamedTextColor.GRAY),
                     Component.text("${ramUsage}MB / ${totalMem}MB", NamedTextColor.GRAY),
                     Component.text(" (", NamedTextColor.GRAY),
-                    Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0)}%", NamedTextColor.GREEN),
+                    Component.text("${floor((ramUsage.toDouble() / totalMem.toDouble()) * 100.0).toInt()}%", NamedTextColor.GREEN),
                     Component.text(")", NamedTextColor.GRAY),
 
                     // CPU details
@@ -147,18 +147,15 @@ internal object StatsCommand : Command("tps") {
         this.getGcInfo().entries.forEach { entry ->
             val entryBuilder = Component.text()
 
-            val lastRunText = if (entry == null) {
-                "Never"
-            } else {
-                val millisSinceRun: Long = getUptime() - entry.value!!.endTime
-                (millisSinceRun / 1000).parsed()
-            }
+            val millisSinceRun: Long = getUptime() - entry.value.endTime
+            val lastRunText = (millisSinceRun / 1000).parsed()
+
 
             entryBuilder.append(Component.text("\n  " + entry.key + ":", NamedTextColor.GRAY))
                 .append(Component.text("\n    Last Run: ", NamedTextColor.GRAY))
                 .append(Component.text(lastRunText, NamedTextColor.GOLD));
 
-            if (entry != null) entryBuilder.hoverEvent(HoverEvent.showText(this.createGcHover(entry.key, entry.value)))
+            entryBuilder.hoverEvent(HoverEvent.showText(this.createGcHover(entry.key, entry.value)))
 
             builder.append(entryBuilder)
         }
@@ -166,13 +163,13 @@ internal object StatsCommand : Command("tps") {
         return builder.build()
     }
 
-    private fun createGcHover(name: String, info: GcInfo?): Component {
+    private fun createGcHover(name: String, info: GcInfo): Component {
         val builder = Component.text()
             .append(Component.text("Name: ", NamedTextColor.GOLD))
             .append(Component.text(name, NamedTextColor.GRAY))
             .append(Component.newline())
             .append(Component.text("Duration: ", NamedTextColor.GOLD))
-            .append(Component.text(info!!.duration.toString() + "ms", NamedTextColor.GRAY))
+            .append(Component.text(info.duration.toString() + "ms", NamedTextColor.GRAY))
             .append(Component.newline(), Component.newline())
             .append(Component.text("Memory After:", NamedTextColor.GOLD))
             .append(Component.newline())
@@ -199,10 +196,11 @@ internal object StatsCommand : Command("tps") {
         return Component.join(JoinConfiguration.newlines(), lines)
     }
 
-    private fun getGcInfo(): Map<String, GcInfo?> {
+    private fun getGcInfo(): Map<String, GcInfo> {
         val gcInfo: MutableMap<String, GcInfo> = HashMap()
         for (garbageCollectorMXBean in ManagementFactory.getGarbageCollectorMXBeans()) {
             val bean = garbageCollectorMXBean as GarbageCollectorMXBean
+            if (bean.lastGcInfo == null) continue
             gcInfo[bean.name] = bean.lastGcInfo
         }
         return gcInfo

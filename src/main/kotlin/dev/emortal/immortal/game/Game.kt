@@ -27,7 +27,6 @@ import org.tinylog.kotlin.Logger
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 abstract class Game : PacketGroupingAudience {
@@ -82,7 +81,7 @@ abstract class Game : PacketGroupingAudience {
 
         try {
             val instanceCreate = instanceCreate()
-            instance = instanceCreate.get(10, TimeUnit.SECONDS)
+            instance = instanceCreate.join()
         } catch (e: Exception) {
             throw e
         }
@@ -439,17 +438,15 @@ abstract class Game : PacketGroupingAudience {
     }
 
     private fun destroy() {
-        instance!!.scheduler().buildTask {
-            refreshPlayerCount()
+        refreshPlayerCount()
 
-            createFuture = null
-            startingTask?.cancel()
-            startingTask = null
+        createFuture = null
+        startingTask?.cancel()
+        startingTask = null
 
-            GameManager.removeGame(this)
-            MinecraftServer.getInstanceManager().unregisterInstance(instance!!)
-            instance = null
-        }.delay(TaskSchedule.seconds(2)).schedule()
+        GameManager.removeGame(this)
+        MinecraftServer.getInstanceManager().unregisterInstance(instance!!)
+        instance = null
     }
 
     open fun canBeJoined(player: Player): Boolean {
