@@ -1,7 +1,6 @@
 package dev.emortal.immortal
 
 import dev.emortal.immortal.util.CoroutineRunnable
-import dev.emortal.immortal.util.MinestomRunnable
 import kotlinx.coroutines.GlobalScope
 import net.minestom.server.instance.Instance
 import net.minestom.server.timer.Task

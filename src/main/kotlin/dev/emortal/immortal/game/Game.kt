@@ -67,8 +67,6 @@ abstract class Game : PacketGroupingAudience {
     var startingSecondsLeft: AtomicInteger = AtomicInteger(0)
     var scoreboard: Sidebar? = null
 
-    val runnableGroup = RunnableGroup()
-
     var createFuture: CompletableFuture<Void>? = CompletableFuture()
 
     fun create(): CompletableFuture<Void>? {
@@ -397,24 +395,17 @@ abstract class Game : PacketGroupingAudience {
 
         Logger.info("Game ${gameTypeInfo.name}#$id is ending")
 
-//        Manager.globalEvent.removeChild(eventNode)
-//        eventNode = null
-
         gameEnded()
-
-
 
         startingTask?.cancel()
         startingTask = null
-        runnableGroup.cancelAll()
 
         val debugMode = Immortal.gameConfig.redisAddress.isBlank()
         val defaultGame = Immortal.gameConfig.defaultGame
 
-        // Both spectators and players
-
         val joinCountDown = CountDownLatch(players.size)
 
+        // Both spectators and players
         getPlayers().shuffled().iterator().forEachRemaining {
             scoreboard?.removeViewer(it)
 

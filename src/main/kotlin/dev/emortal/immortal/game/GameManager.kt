@@ -101,7 +101,7 @@ object GameManager {
 
     }
 
-    fun createGame(gameTypeName: String): CompletableFuture<Game>? {
+    fun createGame(gameTypeName: String): CompletableFuture<Game> {
 
         val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call()
             ?: throw IllegalArgumentException("Primary constructor not found.")
@@ -111,11 +111,9 @@ object GameManager {
 
         val future = CompletableFuture<Game>()
 
-        createGameScope.launch {
-            val gameCreate = game.create()
-            gameCreate?.thenRunAsync {
-                future.complete(game)
-            }
+        val gameCreate = game.create()
+        gameCreate?.thenRun {
+            future.complete(game)
         }
 
         return future

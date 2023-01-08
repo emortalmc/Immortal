@@ -1,10 +1,15 @@
 package dev.emortal.immortal.util
 
 import dev.emortal.immortal.luckperms.PermissionUtils
+import net.kyori.adventure.audience.Audience
+import net.kyori.adventure.sound.Sound
+import net.kyori.adventure.sound.SoundStop
+import net.minestom.server.MinecraftServer
 import net.minestom.server.attribute.Attribute
+import net.minestom.server.coordinate.Point
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
-import world.cepi.kstom.Manager
+import net.minestom.server.network.packet.server.play.TeamsPacket
 
 fun Player.reset() {
     entityMeta.setNotifyAboutChanges(false)
@@ -32,8 +37,11 @@ fun Player.reset() {
     clearEffects()
     stopSpectating()
 
-    Manager.bossBar.getPlayerBossBars(this).forEach {
-        Manager.bossBar.removeBossBar(this, it)
+    stopSound(SoundStop.all())
+
+    // TODO: doesn't appear to work
+    MinecraftServer.getBossBarManager().getPlayerBossBars(this).forEach {
+        MinecraftServer.getBossBarManager().removeBossBar(this, it)
     }
 
     entityMeta.setNotifyAboutChanges(true)
@@ -45,6 +53,10 @@ fun Player.reset() {
 
 fun Player.resetTeam() {
     PermissionUtils.refreshPrefix(this)
+
+    team = MinecraftServer.getTeamManager().createBuilder(username + "default")
+        .collisionRule(TeamsPacket.CollisionRule.NEVER)
+        .build()
 
 //    val rankWeight = this.rankWeight
 //    val actualWeight = if (rankWeight.isPresent) rankWeight.asInt else 9
@@ -63,3 +75,6 @@ fun Player.resetTeam() {
 fun Player.sendServer(gameName: String) {
     JedisStorage.jedis?.publish("joingame", "$gameName ${this.uuid}")
 }
+
+fun Audience.playSound(sound: Sound, position: Point) =
+    playSound(sound, position.x(), position.y(), position.z())

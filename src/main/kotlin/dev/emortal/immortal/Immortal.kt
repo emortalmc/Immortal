@@ -18,6 +18,7 @@ import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.extras.MojangAuth
 import net.minestom.server.extras.velocity.VelocityProxy
+import net.minestom.server.instance.block.Block
 import net.minestom.server.listener.UseEntityListener
 import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
@@ -26,8 +27,6 @@ import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import org.litote.kmongo.serialization.SerializationClassMappingTypeService
 import org.tinylog.kotlin.Logger
-import world.cepi.kstom.command.register
-import world.cepi.kstom.util.register
 import java.nio.file.Path
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
@@ -89,24 +88,28 @@ object Immortal {
             .build()
         MinecraftServer.getDimensionTypeManager().addDimension(dimensionType)
 
-//        // For some reason minecraft:oak_wall_sign exists so yay
-//        Block.values().forEach {
-//            if (it.name().endsWith("sign")) {
-//                SignHandler.register(it.name())
-//            }
-//        }
-        SignHandler.register("minecraft:sign")
-        SkullHandler.register("minecraft:skull")
-        BannerHandler.register("minecraft:banner")
+        val bm = MinecraftServer.getBlockManager()
+        // For some reason minecraft:oak_wall_sign exists so yay
+        // Required for TNT
+        Block.values().forEach {
+            if (it.name().endsWith("sign")) {
+                bm.registerHandler(it.name()) { SignHandler }
+            }
+        }
+        bm.registerHandler("minecraft:sign") { SignHandler }
+        bm.registerHandler("minecraft:player_head") { SignHandler }
+        bm.registerHandler("minecraft:skull") { SkullHandler }
+        bm.registerHandler("minecraft:banner") { BannerHandler }
 
-        ForceStartCommand.register()
-        ShortenStartCommand.register()
-        ForceGCCommand.register()
-        SoundCommand.register()
-        StatsCommand.register()
-        ListCommand.register()
-        SpamGamesCommand.register()
-        StopCommand.register()
+        val cm = MinecraftServer.getCommandManager()
+        cm.register(ForceStartCommand)
+        cm.register(ShortenStartCommand)
+        cm.register(ForceGCCommand)
+        cm.register(SoundCommand)
+        cm.register(StatsCommand)
+        cm.register(ListCommand)
+        cm.register(SpamGamesCommand)
+        cm.register(StopCommand)
 
         Logger.info("Immortal initialized!")
     }

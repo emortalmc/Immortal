@@ -96,7 +96,7 @@ object EndGameQuotes {
             player.itemInMainHand = ItemStack.of(Material.COOKIE)
         }
 
-        return quote
+        return newQuote
     }
     fun getDefeatQuote(quote: String, player: Player): String {
         return quote.replace("[username]", player.username)

@@ -2,30 +2,35 @@ package dev.emortal.immortal.debug
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.minestom.server.MinecraftServer
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.timer.TaskSchedule
-import world.cepi.kstom.Manager
-import world.cepi.kstom.event.listenOnly
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.floor
 
 object ImmortalDebug {
 
     fun enable() {
+        val globalEventManager = MinecraftServer.getGlobalEventHandler()
+        val scheduler = MinecraftServer.getSchedulerManager()
+        val instanceManager = MinecraftServer.getInstanceManager()
+        val connectionManager = MinecraftServer.getConnectionManager()
+        val benchmarkManager = MinecraftServer.getBenchmarkManager()
+
         val lastTick = AtomicReference<TickMonitor>()
-        Manager.globalEvent.listenOnly<ServerTickMonitorEvent> {
-            lastTick.set(tickMonitor)
+        globalEventManager.addListener(ServerTickMonitorEvent::class.java) { e ->
+            lastTick.set(e.tickMonitor)
         }
 
-        Manager.scheduler.buildTask {
-            Manager.connection.onlinePlayers.forEach { player ->
-                val ramUsage = Manager.benchmark.usedMemory / 1024 / 1024
+        scheduler.buildTask {
+            connectionManager.onlinePlayers.forEach { player ->
+                val ramUsage = benchmarkManager.usedMemory / 1024 / 1024
                 val monitor = lastTick.get()
                 val tickMs = floor(monitor.tickTime * 100) / 100
 
-                val onlinePlayers = Manager.connection.onlinePlayers.size
-                val instances = Manager.instance.instances
+                val onlinePlayers = connectionManager.onlinePlayers.size
+                val instances = instanceManager.instances
                 val entities = instances.sumOf { it.entities.size } - onlinePlayers
                 val chunks = instances.sumOf { it.chunks.size }
 

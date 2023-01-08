@@ -29,11 +29,11 @@ internal object SpamGamesCommand : Command("spamgames") {
                 repeat(4) {
                         var game = GameManager.createGame(gameMode)
 
-                        game!!.thenAccept {
+                        game.thenAccept {
                             it.end()
                         }
 
-                        game = null
+
                 }
                 return@submitTask TaskSchedule.nextTick()
 

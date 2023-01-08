@@ -9,10 +9,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.minestom.server.MinecraftServer
 import org.tinylog.kotlin.Logger
 import redis.clients.jedis.JedisPooled
 import redis.clients.jedis.JedisPubSub
-import world.cepi.kstom.Manager
 import java.util.*
 
 
@@ -45,6 +45,8 @@ object JedisStorage {
         }
 
         listenerScope.launch {
+            val cm = MinecraftServer.getConnectionManager()
+
             val playerPubSub = object : JedisPubSub() {
                 override fun onMessage(channel: String, message: String) {
                     val args = message.split(" ")
@@ -53,7 +55,7 @@ object JedisStorage {
                         "changegame" -> {
                             Logger.warn(message)
 
-                            val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
+                            val player = cm.getPlayer((UUID.fromString(args[1]))) ?: return
                             val playerGame = player.game
                             val subgame = args[2]
                             if (!GameManager.getRegisteredNames().contains(subgame)) {
@@ -80,8 +82,8 @@ object JedisStorage {
                         }
 
                         "spectateplayer" -> {
-                            val player = Manager.connection.getPlayer((UUID.fromString(args[1]))) ?: return
-                            val playerToSpectate = Manager.connection.getPlayer((UUID.fromString(args[2]))) ?: return
+                            val player = cm.getPlayer((UUID.fromString(args[1]))) ?: return
+                            val playerToSpectate = cm.getPlayer((UUID.fromString(args[2]))) ?: return
 
                             val prevGame = player.game
                             val game = playerToSpectate.game

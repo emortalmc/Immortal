@@ -3,10 +3,10 @@ package dev.emortal.immortal.commands
 import dev.emortal.immortal.game.GameManager
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.minestom.server.MinecraftServer
 import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.arguments.ArgumentType
 import net.minestom.server.instance.SharedInstance
-import world.cepi.kstom.Manager
 
 internal object ListCommand : Command("list") {
 
@@ -17,7 +17,7 @@ internal object ListCommand : Command("list") {
 
         addSyntax({ sender, _ ->
             val message = Component.text()
-            val instances = Manager.instance.instances
+            val instances = MinecraftServer.getInstanceManager().instances
 
             message.append(Component.text("${instances.size} instances...\n", NamedTextColor.GOLD))
 
@@ -72,7 +72,7 @@ internal object ListCommand : Command("list") {
 
         addSyntax({ sender, _ ->
             val message = Component.text()
-            val players = Manager.connection.onlinePlayers
+            val players = MinecraftServer.getConnectionManager().onlinePlayers
 
             message.append(Component.text("${players.size} players...\n", NamedTextColor.GOLD))
 

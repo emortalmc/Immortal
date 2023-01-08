@@ -1,6 +1,7 @@
 package dev.emortal.immortal.util
 
 import net.minestom.server.coordinate.Point
+import net.minestom.server.coordinate.Pos
 import net.minestom.server.coordinate.Vec
 
 operator fun Point.plus(other: Point): Point = this.add(other)
@@ -14,3 +15,6 @@ operator fun Point.div(other: Point): Point = this.div(other)
 operator fun Point.div(other: Double): Point = this.div(other)
 
 fun Point.roundToBlock(): Point = Vec(blockX().toDouble(), blockY().toDouble(), blockZ().toDouble())
+
+fun Point.asVec(): Vec = Vec(this.x(), this.y(), this.z())
+fun Point.asPos(): Pos = Pos(this)

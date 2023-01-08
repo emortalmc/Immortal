@@ -15,8 +15,6 @@ import net.minestom.server.command.builder.Command
 import net.minestom.server.event.server.ServerTickMonitorEvent
 import net.minestom.server.instance.SharedInstance
 import net.minestom.server.monitoring.TickMonitor
-import world.cepi.kstom.Manager
-import world.cepi.kstom.event.listenOnly
 import java.lang.management.ManagementFactory
 import java.lang.management.MemoryUsage
 import java.util.concurrent.atomic.AtomicReference
@@ -34,12 +32,15 @@ internal object StatsCommand : Command("tps") {
 
     init {
 
-        Manager.globalEvent.listenOnly<ServerTickMonitorEvent> {
-            LAST_TICK.set(tickMonitor)
+        MinecraftServer.getGlobalEventHandler().addListener(ServerTickMonitorEvent::class.java) { e ->
+            LAST_TICK.set(e.tickMonitor)
         }
     }
 
     init {
+
+        val connectionManager = MinecraftServer.getConnectionManager()
+        val instanceManager = MinecraftServer.getInstanceManager()
 
         setDefaultExecutor { sender, _ ->
             val totalMem = Runtime.getRuntime().totalMemory() / 1024 / 1024
@@ -59,12 +60,12 @@ internal object StatsCommand : Command("tps") {
             val maxTickMs = MinecraftServer.TICK_MS
             val tps = floor(1000 / tickMs).toInt().coerceAtMost(tpsSetting)
 
-            val onlinePlayers = Manager.connection.onlinePlayers.size
-            val entities = Manager.instance.instances.sumOf { it.entities.size } - onlinePlayers
-            val instances = Manager.instance.instances
+            val onlinePlayers = connectionManager.onlinePlayers.size
+            val entities = instanceManager.instances.sumOf { it.entities.size } - onlinePlayers
+            val instances = instanceManager.instances
             val sharedInstances = instances.count { it is SharedInstance }
             val permanentInstances = instances.count { it.hasTag(GameManager.doNotUnregisterTag) }
-            val chunks = Manager.instance.instances.sumOf { it.chunks.size }
+            val chunks = instanceManager.instances.sumOf { it.chunks.size }
 
             sender.sendMessage(
                 Component.textOfChildren(

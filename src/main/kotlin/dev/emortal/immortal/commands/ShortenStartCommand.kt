@@ -33,7 +33,6 @@ internal object ShortenStartCommand : Command("shortstart") {
                 return@setDefaultExecutor
             }
 
-            playerGame.startingTask?.cancel()
             playerGame.startingSecondsLeft.set(4)
             playerGame.sendMessage(Component.text("${player.username} shortened the countdown", NamedTextColor.GOLD))
         }

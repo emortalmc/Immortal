@@ -18,13 +18,14 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.Minestom:Minestom:d7feed23c8")
-    testImplementation("com.github.Minestom:Minestom:d7feed23c8")
+    implementation("com.github.Minestom:Minestom:eb06ba8664")
+    testImplementation("com.github.Minestom:Minestom:eb06ba8664")
 
     // Util
-    api("com.github.EmortalMC:KStom:50b2b882fa")
+//    api("com.github.EmortalMC:KStom:50b2b882fa")
     api("com.github.emortaldev:Particable:f7212f39fb")
     api("com.github.EmortalMC:Rayfast:684e854a48")
+    api("net.kyori:adventure-text-minimessage:4.12.0")
 
     // Logging
     implementation("org.jline:jline:3.21.0")
@@ -35,6 +36,7 @@ dependencies {
     // DB
     api("redis.clients:jedis:4.3.1")
     api("org.litote.kmongo:kmongo-coroutine-serialization:4.8.0")
+    api("org.litote.kmongo:kmongo-id:4.8.0")
 
     // Kotlin
     testImplementation(kotlin("test"))

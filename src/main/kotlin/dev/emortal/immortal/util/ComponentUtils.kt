@@ -15,6 +15,8 @@ fun ComponentLike.armify(length: Int = 79): Component {
         .build()
 }
 
+fun Component.noItalic(): Component = this.decoration(TextDecoration.ITALIC, false)
+
 fun safeStyle(color: TextColor?, decoration: TextDecoration? = null): Style {
     val builder = Style.style()
     builder.color(color)
