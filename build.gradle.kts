@@ -29,7 +29,7 @@ dependencies {
 
     // Logging
     implementation("org.jline:jline:3.21.0")
-    implementation("org.jline:jline-terminal-jansi:3.21.0")
+    implementation("org.jline:jline-terminal-jansi:3.22.0")
     api("org.tinylog:tinylog-api-kotlin:2.5.0")
     implementation("org.tinylog:tinylog-impl:2.5.0")
 
