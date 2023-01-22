@@ -16,9 +16,12 @@ fun Entity.takeKnockback(position: Pos, strength: Double = 1.0) {
     val magnitude = sqrt(d0 * d0 + d1 * d1) * strength
 
     var newVelocity = velocity
-        .withX(((velocity.x() / 2) - (d0 / magnitude * horizontalKnockback)))
+        .also {
+            if (magnitude != 0.0) it
+                .withX(((velocity.x() / 2) - (d0 / magnitude * horizontalKnockback)))
+                .withZ(((velocity.z() / 2) - (d1 / magnitude * horizontalKnockback)))
+        }
         .withY((min((velocity.y() / 2) + 8, 8.0)))
-        .withZ(((velocity.z() / 2) - (d1 / magnitude * horizontalKnockback)))
 
     if (newVelocity.y() > 8)
         newVelocity = newVelocity.withY(8.0)
@@ -26,7 +29,7 @@ fun Entity.takeKnockback(position: Pos, strength: Double = 1.0) {
     velocity = newVelocity
 }
 
-fun Entity.takeKnockback(attacker: Player, knockbackLevel: Short = attacker.itemInMainHand.meta().enchantmentMap[Enchantment.KNOCKBACK] ?: 0) {
+fun Entity.takeKnockback(attacker: Player, knockbackLevel: Double = attacker.itemInMainHand.meta().enchantmentMap[Enchantment.KNOCKBACK]?.toDouble() ?: 0.0) {
     val tps = MinecraftServer.TICK_PER_SECOND
     val horizontalKnockback = 0.4 * tps
     val verticalKnockback = 0.4 * tps
@@ -43,7 +46,7 @@ fun Entity.takeKnockback(attacker: Player, knockbackLevel: Short = attacker.item
 
     val magnitude = sqrt(d0 * d0 + d1 * d1)
 
-    var i = knockbackLevel.toDouble()
+    var i = knockbackLevel
 
     if (attacker.isSprinting) i += 1.0
 
