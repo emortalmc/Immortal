@@ -3,7 +3,6 @@ package dev.emortal.immortal.commands
 import net.kyori.adventure.key.Key
 import net.minestom.server.command.builder.arguments.minecraft.SuggestionType
 import net.minestom.server.command.builder.arguments.minecraft.registry.ArgumentRegistry
-import net.minestom.server.sound.SoundEvent
 
 class ArgumentSound(id: String?) : ArgumentRegistry<Key>(id) {
     init {

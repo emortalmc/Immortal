@@ -7,17 +7,18 @@ import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
 import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.JedisStorage
 import dev.emortal.immortal.util.resetTeam
-import kotlinx.coroutines.NonCancellable.isCancelled
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.GameMode
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.player.*
 import net.minestom.server.utils.chunk.ChunkUtils
-import org.tinylog.kotlin.Logger
+import org.slf4j.LoggerFactory
 import java.util.*
 
 object ImmortalEvents {
+
+    private val LOGGER = LoggerFactory.getLogger(ImmortalEvents::class.java)
 
     fun register(eventNode: EventNode<Event>) {
         if (Immortal.redisAddress.isBlank()) eventNode.addListener(PlayerChatEvent::class.java) { e ->
@@ -37,18 +38,18 @@ object ImmortalEvents {
             }
 
             if (subgame == null) {
-                Logger.error("Subgame is null!")
+                LOGGER.error("Subgame is null!")
                 player.kick("Game was not provided. Try /play")
                 return@addListener
             }
 
-            Logger.warn(subgame)
+            LOGGER.warn(subgame)
 
             val args = subgame.split(" ")
             val isSpectating = args.size > 1 && args[1].toBoolean()
 
             if (!isSpectating && !GameManager.getRegisteredNames().contains(args[0])) {
-                Logger.error("${args[0]} game is not on this server")
+                LOGGER.error("${args[0]} game is not on this server")
                 player.kick("${args[0]} game is not on this server. Try /play")
                 return@addListener
             }
@@ -56,7 +57,7 @@ object ImmortalEvents {
             if (isSpectating) {
                 val playerToSpectate = MinecraftServer.getConnectionManager().getPlayer(UUID.fromString(args[2]))
                 if (playerToSpectate == null) {
-                    Logger.warn("Player to spectate was null")
+                    LOGGER.warn("Player to spectate was null")
                     player.kick("That player is not online")
                     return@addListener
                 }
@@ -74,7 +75,7 @@ object ImmortalEvents {
                 val newGameFuture = GameManager.findOrCreateGame(player, args[0])
 
                 if (newGameFuture == null) {
-                    Logger.warn("Game failed to create")
+                    LOGGER.warn("Game failed to create")
                     player.kick("Game was null")
                     return@addListener
                 }

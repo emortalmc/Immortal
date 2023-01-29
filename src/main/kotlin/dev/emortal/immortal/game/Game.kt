@@ -23,7 +23,7 @@ import net.minestom.server.scoreboard.Sidebar
 import net.minestom.server.sound.SoundEvent
 import net.minestom.server.timer.Task
 import net.minestom.server.timer.TaskSchedule
-import org.tinylog.kotlin.Logger
+import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger
 abstract class Game : PacketGroupingAudience {
 
     companion object {
+        private val LOGGER = LoggerFactory.getLogger(Game::class.java)
         private val lastGameId = AtomicInteger(0)
     }
 
@@ -75,7 +76,7 @@ abstract class Game : PacketGroupingAudience {
             return CompletableFuture.completedFuture(null)
         }
 
-        Logger.info("Creating game $gameName#$id")
+        LOGGER.info("Creating game $gameName#$id")
 
         try {
             val instanceCreate = instanceCreate()
@@ -95,10 +96,10 @@ abstract class Game : PacketGroupingAudience {
             player.scheduleNextTick {
 //                    if (player.instance?.uniqueId != instance.uniqueId)
                 if (player.hasTag(GameManager.playerSpectatingTag)) {
-                    Logger.info("${player.username} had spectating tag")
+                    LOGGER.info("${player.username} had spectating tag")
                     addSpectator(player)
                 } else {
-                    Logger.info("${player.username} did not have spectating tag")
+                    LOGGER.info("${player.username} did not have spectating tag")
                     addPlayer(player)
                 }
             }
@@ -168,7 +169,7 @@ abstract class Game : PacketGroupingAudience {
     open fun gameCreated() {}
 
     private fun addPlayer(player: Player, joinMessage: Boolean = showsJoinLeaveMessages) {
-        Logger.info("${player.username} joining game ${gameTypeInfo.name}#$id")
+        LOGGER.info("${player.username} joining game ${gameTypeInfo.name}#$id")
 
         if (joinMessage) sendMessage(
             Component.text()
@@ -222,7 +223,7 @@ abstract class Game : PacketGroupingAudience {
     private fun removePlayer(player: Player, leaveMessage: Boolean = showsJoinLeaveMessages) {
         scoreboard?.removeViewer(player)
 
-        Logger.info("${player.username} leaving game ${gameTypeInfo.name}#$id")
+        LOGGER.info("${player.username} leaving game ${gameTypeInfo.name}#$id")
 
         if (instance == null) return
         refreshPlayerCount()
@@ -275,7 +276,7 @@ abstract class Game : PacketGroupingAudience {
     }
 
     internal open fun addSpectator(player: Player) {
-        Logger.info("${player.username} started spectating game ${gameTypeInfo.name}#$id")
+        LOGGER.info("${player.username} started spectating game ${gameTypeInfo.name}#$id")
 
         player.reset()
         player.resetTeam()
@@ -298,7 +299,7 @@ abstract class Game : PacketGroupingAudience {
     }
 
     internal open fun removeSpectator(player: Player) {
-        Logger.info("${player.username} stopped spectating game ${gameTypeInfo.name}#$id")
+        LOGGER.info("${player.username} stopped spectating game ${gameTypeInfo.name}#$id")
 
         scoreboard?.removeViewer(player)
 
@@ -393,7 +394,7 @@ abstract class Game : PacketGroupingAudience {
         if (gameState == GameState.DESTROYED) return
         gameState = GameState.DESTROYED
 
-        Logger.info("Game ${gameTypeInfo.name}#$id is ending")
+        LOGGER.info("Game ${gameTypeInfo.name}#$id is ending")
 
         gameEnded()
 

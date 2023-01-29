@@ -10,13 +10,15 @@ import kotlinx.coroutines.launch
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.MinecraftServer
-import org.tinylog.kotlin.Logger
+import org.slf4j.LoggerFactory
 import redis.clients.jedis.JedisPooled
 import redis.clients.jedis.JedisPubSub
 import java.util.*
 
 
 object JedisStorage {
+
+    private val LOGGER = LoggerFactory.getLogger(JedisStorage::class.java)
 
     val jedis =
         if (Immortal.redisAddress.isNotBlank()) {
@@ -33,7 +35,7 @@ object JedisStorage {
             val proxyHelloSub = object : JedisPubSub() {
                 override fun onMessage(channel: String, message: String) {
                     GameManager.getRegisteredNames().forEach {
-                        Logger.info("Received proxyhello, re-registering game $it")
+                        LOGGER.info("Received proxyhello, re-registering game $it")
                         jedis.publish(
                             "registergame",
                             "$it ${Immortal.gameConfig.serverName} ${Immortal.port}"
@@ -53,24 +55,24 @@ object JedisStorage {
 
                     when (args[0].lowercase()) {
                         "changegame" -> {
-                            Logger.warn(message)
+                            LOGGER.warn(message)
 
                             val player = cm.getPlayer((UUID.fromString(args[1]))) ?: return
                             val playerGame = player.game
                             val subgame = args[2]
                             if (!GameManager.getRegisteredNames().contains(subgame)) {
                                 // Invalid subgame, ignore message
-                                Logger.warn("Invalid subgame $subgame")
+                                LOGGER.warn("Invalid subgame $subgame")
                                 return
                             }
 
                             if (playerGame == null) {
-                                Logger.warn("Player game is null")
+                                LOGGER.warn("Player game is null")
                                 return
                             }
 
                             if (playerGame.gameName == subgame) {
-                                Logger.warn("Player subgame is already the same")
+                                LOGGER.warn("Player subgame is already the same")
                                 return
                             }
 

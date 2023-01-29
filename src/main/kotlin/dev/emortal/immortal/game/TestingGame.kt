@@ -1,14 +1,19 @@
 package dev.emortal.immortal.game
 
+import dev.emortal.immortal.debug.TestingGame
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
 import net.minestom.server.event.trait.InstanceEvent
 import net.minestom.server.instance.Instance
-import org.tinylog.kotlin.Logger
+import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
 
 class TestingGame : Game() {
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(TestingGame::class.java)
+    }
 
     override val maxPlayers: Int = 14
     override val minPlayers: Int = 2
@@ -27,22 +32,22 @@ class TestingGame : Game() {
     }
 
     override fun gameStarted() {
-        Logger.info("Testing game $id started")
+        LOGGER.info("Testing game $id started")
     }
 
     override fun gameEnded() {
-        Logger.info("Testing game $id ended")
+        LOGGER.info("Testing game $id ended")
     }
 
     override fun registerEvents(eventNode: EventNode<InstanceEvent>) {
-        Logger.info("Testing game $id register events")
+        LOGGER.info("Testing game $id register events")
     }
 
     override fun instanceCreate(): CompletableFuture<Instance> {
 //        val future = CompletableFuture<Instance>()
         val newInstance = MinecraftServer.getInstanceManager().createInstanceContainer()
 
-        Logger.info("Creating instance. loadin")
+        LOGGER.info("Creating instance. loadin")
 
         newInstance.enableAutoChunkLoad(false)
 

@@ -3,15 +3,12 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.Immortal
 import dev.emortal.immortal.config.GameTypeInfo
 import dev.emortal.immortal.util.JedisStorage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.text.Component
 import net.minestom.server.entity.Player
 import net.minestom.server.tag.Tag
 import net.minestom.server.tag.Taggable
-import org.tinylog.kotlin.Logger
+import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -20,7 +17,9 @@ import kotlin.reflect.full.primaryConstructor
 
 object GameManager {
 
-    private val createGameScope = CoroutineScope(Dispatchers.IO)
+//    private val createGameScope = CoroutineScope(Dispatchers.IO)
+
+    private val LOGGER = LoggerFactory.getLogger(GameManager::class.java)
 
     // Instance Tags
     val doNotUnregisterTag = Tag.Boolean("doNotUnregister")
@@ -66,7 +65,7 @@ object GameManager {
         val gameFuture = findOrCreateGame(this, gameTypeName)
 
         if (gameFuture == null) {
-            Logger.error("Game was null")
+            LOGGER.error("Game was null")
             return null
         }
 
@@ -123,7 +122,7 @@ object GameManager {
         gameIdMap.remove(game.id)
         gameListMap[game.gameName]!!.remove(game.id)
 
-        Logger.info("Game was removed. Game list map is ${gameListMap.size} big")
+        LOGGER.info("Game was removed. Game list map is ${gameListMap.size} big")
     }
 
     inline fun <reified T : Game> registerGame(
@@ -150,6 +149,6 @@ object GameManager {
 
         gameListMap[name] = ConcurrentHashMap.newKeySet()
 
-        Logger.info("Registered game type '${name}'")
+        LOGGER.info("Registered game type '${name}'")
     }
 }

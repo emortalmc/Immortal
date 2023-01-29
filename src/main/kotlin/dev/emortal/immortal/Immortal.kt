@@ -10,7 +10,6 @@ import dev.emortal.immortal.debug.ImmortalDebug
 import dev.emortal.immortal.debug.SpamGamesCommand
 import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.npc.PacketNPC
-import dev.emortal.immortal.terminal.ImmortalTerminal
 import dev.emortal.immortal.util.JedisStorage
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
@@ -26,12 +25,13 @@ import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.NamespaceID
 import net.minestom.server.world.DimensionType
 import org.litote.kmongo.serialization.SerializationClassMappingTypeService
-import org.tinylog.kotlin.Logger
+import org.slf4j.LoggerFactory
 import java.nio.file.Path
-import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
 object Immortal {
+
+    private val LOGGER = LoggerFactory.getLogger(Immortal::class.java)
 
     lateinit var gameConfig: GameConfig
     private val configPath = Path.of("./config.json")
@@ -59,13 +59,13 @@ object Immortal {
         }
 
         if (redisAddress.isBlank()) {
-            Logger.info("Running without Redis - Game to join: ${gameConfig.defaultGame}")
+            LOGGER.info("Running without Redis - Game to join: ${gameConfig.defaultGame}")
 
             if (gameConfig.defaultGame.isBlank()) {
                 MinecraftServer.getSchedulerManager().buildTask {
-                    Logger.error("Default game is blank in your config.json! Replace it or use Redis")
+                    LOGGER.error("Default game is blank in your config.json! Replace it or use Redis")
                     if (GameManager.getRegisteredNames().isNotEmpty()) {
-                        Logger.error("Maybe try \"${GameManager.getRegisteredNames().first()}\"?")
+                        LOGGER.error("Maybe try \"${GameManager.getRegisteredNames().first()}\"?")
                     }
 
                     exitProcess(1)
@@ -77,7 +77,7 @@ object Immortal {
                 ImmortalDebug.enable()
             }
         } else {
-            Logger.info("Running with Redis")
+            LOGGER.info("Running with Redis")
             JedisStorage.init()
         }
 
@@ -111,7 +111,7 @@ object Immortal {
         cm.register(SpamGamesCommand)
         cm.register(StopCommand)
 
-        Logger.info("Immortal initialized!")
+        LOGGER.info("Immortal initialized!")
     }
 
     fun initAsServer() {
@@ -133,15 +133,7 @@ object Immortal {
 
         init()
 
-        MinecraftServer.getSchedulerManager().buildShutdownTask {
-            stop()
-        }
-
         minestom.start(address, port)
-
-        terminalThread = thread(start = true, isDaemon = true, name = "ImmortalConsole") {
-            ImmortalTerminal.start()
-        }
     }
 
     fun stop() {
@@ -158,7 +150,7 @@ object Immortal {
 
         JedisStorage.jedis?.close()
 
-        Logger.info("Immortal terminated!")
+        LOGGER.info("Immortal terminated!")
     }
 
 }

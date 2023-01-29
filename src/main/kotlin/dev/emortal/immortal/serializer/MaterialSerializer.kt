@@ -7,7 +7,6 @@ import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import net.minestom.server.coordinate.Pos
-import net.minestom.server.instance.block.Block
 import net.minestom.server.item.Material
 
 @Serializer(forClass = Pos::class)
