@@ -3,8 +3,8 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.7.22"
-    kotlin("plugin.serialization") version "1.7.22"
+    kotlin("jvm") version "1.8.0"
+    kotlin("plugin.serialization") version "1.8.0"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 
     `maven-publish`
@@ -18,8 +18,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.github.Minestom:Minestom:eb06ba8664")
-    testImplementation("com.github.Minestom:Minestom:eb06ba8664")
+    compileOnly("com.github.hollow-cube:Minestom:e6d4a2cc91")
+    testImplementation("com.github.hollow-cube:Minestom:e6d4a2cc91")
 
     // Util
 //    api("com.github.EmortalMC:KStom:50b2b882fa")
@@ -31,6 +31,9 @@ dependencies {
     api("redis.clients:jedis:4.3.1")
     api("org.litote.kmongo:kmongo-coroutine-serialization:4.8.0")
     api("org.litote.kmongo:kmongo-id:4.8.0")
+
+    implementation("ch.qos.logback:logback-core:1.4.5")
+    implementation("ch.qos.logback:logback-classic:1.4.5")
 
     // Kotlin
     testImplementation(kotlin("test"))

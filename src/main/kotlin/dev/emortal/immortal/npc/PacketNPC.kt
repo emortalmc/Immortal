@@ -31,7 +31,7 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
 
     val playerId = Entity.generateId()
     private val prop = if (playerSkin == null) listOf() else listOf(
-        PlayerInfoPacket.AddPlayer.Property(
+        PlayerInfoUpdatePacket.Property(
             "textures",
             playerSkin.textures(),
             playerSkin.signature()
@@ -39,11 +39,10 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
     )
     private val uuid = UUID.randomUUID()
 
-    private val playerInfo = PlayerInfoPacket(PlayerInfoPacket.Action.ADD_PLAYER, PlayerInfoPacket.AddPlayer(uuid, gameName, prop, GameMode.CREATIVE, 0, Component.empty(), null))
+    private val playerInfo = PlayerInfoUpdatePacket(PlayerInfoUpdatePacket.Action.ADD_PLAYER, PlayerInfoUpdatePacket.Entry(uuid, gameName, prop, false,0, GameMode.CREATIVE, Component.empty(), null))
     private val spawnPlayer = SpawnPlayerPacket(playerId, uuid, position)
     private val teamPacket = TeamsPacket("npcTeam", TeamsPacket.AddEntitiesToTeamAction(listOf(gameName)))
     private val metaPacket = EntityMetaDataPacket(playerId, mapOf(17 to Metadata.Byte(127 /*All layers enabled*/)))
-    private val removeFromList = PlayerInfoPacket(PlayerInfoPacket.Action.REMOVE_PLAYER, PlayerInfoPacket.RemovePlayer(uuid))
 
     fun addViewer(viewer: Player) {
         viewers.add(viewer)
@@ -57,10 +56,6 @@ class PacketNPC(val position: Pos, val hologramLines: List<Component>, val gameN
             viewer.sendPacket(metaPacket)
             viewer.sendPacket(createTeamPacket)
             viewer.sendPacket(teamPacket)
-
-            viewer.scheduler().buildTask {
-                viewer.sendPacket(removeFromList)
-            }.delay(TaskSchedule.seconds(3)).schedule()
         } else {
             val entitySpawn = SpawnEntityPacket(playerId, uuid, entityType.id(), position, position.yaw, 0, 0, 0, 0)
 

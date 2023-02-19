@@ -40,8 +40,6 @@ object Immortal {
     val address get() = System.getProperty("address") ?: gameConfig.ip
     val redisAddress get() = System.getProperty("redisAddress") ?: gameConfig.redisAddress
 
-    var terminalThread: Thread? = null
-
     fun init(eventNode: EventNode<Event> = MinecraftServer.getGlobalEventHandler()) {
         System.setProperty("org.litote.mongo.mapping.service", SerializationClassMappingTypeService::class.qualifiedName!!)
 
