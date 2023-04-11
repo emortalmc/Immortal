@@ -18,13 +18,13 @@ import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.PacketUtils.sendGroupedPacket
 import java.util.concurrent.ThreadLocalRandom
 
-fun Player.showFirework(instance: Instance, position: Pos, effects: MutableList<FireworkEffect>) = listOf(this).showFirework(instance, position, effects)
-fun Player.showFireworkWithDuration(instance: Instance, position: Pos, ticks: Int, effects: MutableList<FireworkEffect>) = listOf(this).showFireworkWithDuration(instance, position, ticks, effects)
+fun Player.showFirework(instance: Instance, position: Pos, effects: List<FireworkEffect>) = listOf(this).showFirework(instance, position, effects)
+fun Player.showFireworkWithDuration(instance: Instance, position: Pos, ticks: Int, effects: List<FireworkEffect>) = listOf(this).showFireworkWithDuration(instance, position, ticks, effects)
 
 fun Collection<Player>.showFirework(
     instance: Instance,
     position: Pos,
-    effects: MutableList<FireworkEffect>
+    effects: List<FireworkEffect>
 ) {
     val fireworkMeta = FireworkMeta.Builder().effects(effects).build()
     val fireworkItemStack = ItemStack.builder(Material.FIREWORK_ROCKET).meta(fireworkMeta).build()
@@ -45,7 +45,7 @@ fun Collection<Player>.showFireworkWithDuration(
     instance: Instance,
     position: Pos,
     ticks: Int,
-    effects: MutableList<FireworkEffect>
+    effects: List<FireworkEffect>
 ) {
     val fireworkMeta = FireworkMeta.Builder().effects(effects).build()
     val fireworkItemStack = ItemStack.builder(Material.FIREWORK_ROCKET).meta(fireworkMeta).build()

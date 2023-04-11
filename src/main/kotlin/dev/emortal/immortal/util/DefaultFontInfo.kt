@@ -72,7 +72,7 @@ internal enum class DefaultFontInfo(val character: Char, val length: Int) {
     AMPERSAND('&', 5),
     ASTERISK('*', 5),
     LEFT_PARENTHESIS('(', 4),
-    RIGHT_PERENTHESIS(')', 4),
+    RIGHT_PARENTHESIS(')', 4),
     MINUS('-', 5),
     UNDERSCORE('_', 5),
     PLUS_SIGN('+', 5),

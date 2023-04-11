@@ -24,7 +24,7 @@ dependencies {
     // Util
 //    api("com.github.EmortalMC:KStom:50b2b882fa")
     api("com.github.emortaldev:Particable:f7212f39fb")
-    api("com.github.EmortalMC:Rayfast:684e854a48")
+    api("com.github.EmortalMC:rayfast:9e5accbdfd")
     api("net.kyori:adventure-text-minimessage:4.12.0")
 
     // DB

@@ -17,8 +17,6 @@ import kotlin.reflect.full.primaryConstructor
 
 object GameManager {
 
-//    private val createGameScope = CoroutineScope(Dispatchers.IO)
-
     private val LOGGER = LoggerFactory.getLogger(GameManager::class.java)
 
     // Instance Tags
@@ -80,7 +78,7 @@ object GameManager {
     fun findOrCreateGame(
         player: Player,
         gameTypeName: String
-    ): CompletableFuture<Game>? {
+    ): CompletableFuture<Game> {
         val firstAvailableGame = getGames(gameTypeName)?.firstOrNull {
             it.canBeJoined(player)
         }

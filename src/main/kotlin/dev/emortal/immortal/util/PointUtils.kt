@@ -15,6 +15,3 @@ operator fun Point.div(other: Point): Point = this.div(other)
 operator fun Point.div(other: Double): Point = this.div(other)
 
 fun Point.roundToBlock(): Point = Vec(blockX().toDouble(), blockY().toDouble(), blockZ().toDouble())
-
-fun Point.asVec(): Vec = Vec.fromPoint(this)
-fun Point.asPos(): Pos = Pos.fromPoint(this)
