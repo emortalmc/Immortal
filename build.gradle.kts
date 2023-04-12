@@ -25,7 +25,7 @@ dependencies {
 //    api("com.github.EmortalMC:KStom:50b2b882fa")
     api("com.github.emortaldev:Particable:f7212f39fb")
     api("com.github.EmortalMC:rayfast:9e5accbdfd")
-    api("net.kyori:adventure-text-minimessage:4.12.0")
+    api("net.kyori:adventure-text-minimessage:4.13.1")
 
     // DB
     api("redis.clients:jedis:4.3.1")
