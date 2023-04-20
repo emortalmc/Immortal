@@ -32,7 +32,7 @@ dependencies {
     api("org.litote.kmongo:kmongo-coroutine-serialization:4.8.0")
     api("org.litote.kmongo:kmongo-id:4.8.0")
 
-    implementation("ch.qos.logback:logback-core:1.4.5")
+    implementation("ch.qos.logback:logback-core:1.4.7")
     implementation("ch.qos.logback:logback-classic:1.4.5")
 
     // Kotlin
