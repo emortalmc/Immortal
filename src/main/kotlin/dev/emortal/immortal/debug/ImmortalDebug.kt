@@ -4,10 +4,7 @@ import dev.emortal.immortal.commands.StatsCommand
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.MinecraftServer
-import net.minestom.server.event.server.ServerTickMonitorEvent
-import net.minestom.server.monitoring.TickMonitor
 import net.minestom.server.timer.TaskSchedule
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.floor
 
 object ImmortalDebug {

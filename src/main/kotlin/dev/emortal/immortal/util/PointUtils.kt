@@ -1,7 +1,6 @@
 package dev.emortal.immortal.util
 
 import net.minestom.server.coordinate.Point
-import net.minestom.server.coordinate.Pos
 import net.minestom.server.coordinate.Vec
 
 operator fun Point.plus(other: Point): Point = this.add(other)

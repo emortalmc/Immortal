@@ -3,14 +3,12 @@ package dev.emortal.immortal.game
 import dev.emortal.immortal.Immortal
 import dev.emortal.immortal.util.JedisStorage
 import kotlinx.coroutines.runBlocking
-import net.kyori.adventure.text.Component
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
 import net.minestom.server.tag.Tag
 import net.minestom.server.tag.Taggable
 import org.slf4j.LoggerFactory
 import space.vectrix.flare.fastutil.Int2ObjectSyncMap
-import java.lang.NullPointerException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Supplier
