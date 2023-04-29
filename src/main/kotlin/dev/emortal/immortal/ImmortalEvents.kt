@@ -4,7 +4,6 @@ import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
-import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.JedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.MinecraftServer
@@ -132,12 +131,6 @@ object ImmortalEvents {
 
         eventNode.addListener(PlayerDisconnectEvent::class.java) { e ->
             e.player.removeTag(GameManager.joiningGameTag)
-
-            val viewingNpcs = (PacketNPC.viewerMap[e.player.uuid] ?: return@addListener).toMutableList()
-            viewingNpcs.forEach {
-                it.removeViewer(e.player)
-            }
-            PacketNPC.viewerMap.remove(e.player.uuid)
         }
 
         eventNode.addListener(PlayerStartSneakingEvent::class.java) { e ->
@@ -155,12 +148,6 @@ object ImmortalEvents {
                 }
 
                 PermissionUtils.refreshPrefix(e.player)
-            } else {
-                // To mutable list here to copy list in order to avoid concurrent modification and unsupported operation
-                val viewingNpcs = (PacketNPC.viewerMap[e.player.uuid] ?: return@addListener).toMutableList()
-                viewingNpcs.forEach {
-                    it.removeViewer(e.player)
-                }
             }
         }
     }

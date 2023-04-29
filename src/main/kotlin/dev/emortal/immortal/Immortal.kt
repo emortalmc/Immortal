@@ -9,7 +9,6 @@ import dev.emortal.immortal.config.GameConfig
 import dev.emortal.immortal.debug.ImmortalDebug
 import dev.emortal.immortal.debug.SpamGamesCommand
 import dev.emortal.immortal.game.GameManager
-import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.JedisStorage
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
@@ -18,8 +17,6 @@ import net.minestom.server.event.EventNode
 import net.minestom.server.extras.MojangAuth
 import net.minestom.server.extras.velocity.VelocityProxy
 import net.minestom.server.instance.block.Block
-import net.minestom.server.listener.UseEntityListener
-import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.NamespaceID
@@ -47,14 +44,6 @@ object Immortal {
 
         // Ignore warning when player opens recipe book
         MinecraftServer.getPacketListenerManager().setListener(ClientSetRecipeBookStatePacket::class.java) { _: ClientSetRecipeBookStatePacket, _: Player -> }
-
-        MinecraftServer.getPacketListenerManager().setListener(ClientInteractEntityPacket::class.java) { packet: ClientInteractEntityPacket, player: Player ->
-            UseEntityListener.useEntityListener(packet, player)
-
-            if (packet.type != ClientInteractEntityPacket.Interact(Player.Hand.MAIN) && packet.type != ClientInteractEntityPacket.Attack()) return@setListener
-
-            PacketNPC.viewerMap[player.uuid]?.firstOrNull { it.playerId == packet.targetId }?.onClick(player)
-        }
 
         if (redisAddress.isBlank()) {
             LOGGER.info("Running without Redis - Game to join: ${gameConfig.defaultGame}")
@@ -115,12 +104,11 @@ object Immortal {
     fun initAsServer() {
         gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig())
 
-        val minestom = MinecraftServer.init()
-
         System.setProperty("minestom.entity-view-distance", gameConfig.entityViewDistance.toString())
         System.setProperty("minestom.chunk-view-distance", gameConfig.chunkViewDistance.toString())
+
+        val minestom = MinecraftServer.init()
         MinecraftServer.setCompressionThreshold(0)
-        MinecraftServer.setTerminalEnabled(false)
 
         if (gameConfig.velocitySecret.isBlank()) {
             if (gameConfig.onlineMode) MojangAuth.init()
