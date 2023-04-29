@@ -1,18 +1,18 @@
 package dev.emortal.immortal.game
 
 import dev.emortal.immortal.Immortal
-import dev.emortal.immortal.config.GameTypeInfo
 import dev.emortal.immortal.util.JedisStorage
 import kotlinx.coroutines.runBlocking
 import net.kyori.adventure.text.Component
+import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
 import net.minestom.server.tag.Tag
 import net.minestom.server.tag.Taggable
 import org.slf4j.LoggerFactory
+import java.lang.NullPointerException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.reflect.KClass
-import kotlin.reflect.full.primaryConstructor
+import java.util.function.Supplier
 
 
 object GameManager {
@@ -31,25 +31,24 @@ object GameManager {
     val joiningGameTag = Tag.Boolean("joiningGame")
     val playerSpectatingTag = Tag.Boolean("spectating")
 
-    private val registeredClassMap = ConcurrentHashMap<KClass<out Game>, String>()
-    private val registeredGameMap = ConcurrentHashMap<String, GameTypeInfo>()
+//    private val registeredClassMap: MutableMap<KClass<out Game>, String> = mutableMapOf()
+    private val supplierMap: MutableMap<String, Supplier<Game>> = ConcurrentHashMap()
 
-    private val gameIdMap = ConcurrentHashMap<Int, Game>()
-    private val gameListMap = ConcurrentHashMap<String, MutableSet<Int>>()
+    private val gameIdMap: MutableMap<Int, Game> = ConcurrentHashMap<Int, Game>()
+    private val gamesMap: MutableMap<String, MutableSet<Game>> = ConcurrentHashMap<String, MutableSet<Game>>()
 
     val Player.game: Game?
         get() = getPlayerGame(this)
 
     //fun Player.joinGameOrSpectate(game: Game): CompletableFuture<Boolean> = joinGame(game) ?: spectateGame(game)
 
-    fun getGameName(clazz: KClass<out Game>): String? = registeredClassMap[clazz]
+//    fun getGameName(clazz: KClass<out Game>): String? = registeredClassMap[clazz]
 
-    fun getGameTypeInfo(gameName: String): GameTypeInfo? = registeredGameMap[gameName]
-    fun getRegisteredNames(): Set<String> = gameListMap.keys.toSet()
+//    fun getGameTypeInfo(gameName: String): GameTypeInfo? = supplierMap[gameName]
+    fun getRegisteredNames(): Set<String> = gamesMap.keys.toSet()
 
     fun getGameById(id: Int): Game? = gameIdMap[id]
-    fun getGameIds(gameName: String): MutableSet<Int>? = gameListMap[gameName]
-    fun getGames(gameName: String): List<Game>? = getGameIds(gameName)?.mapNotNull { getGameById(it) }
+    fun getGames(gameName: String): Set<Game>? = gamesMap[gameName]
 
     fun getPlayerGame(player: Player): Game? = player.instance?.let { getGameByTaggable(it) }
     fun getGameByTaggable(taggable: Taggable): Game? = gameIdMap[taggable.getTag(gameIdTag)]
@@ -62,16 +61,16 @@ object GameManager {
 
         val gameFuture = findOrCreateGame(this, gameTypeName)
 
-        if (gameFuture == null) {
-            LOGGER.error("Game was null")
-            return null
-        }
-
         return gameFuture.thenApply { game ->
+            game.playerCount.incrementAndGet()
+
             val spawnPosition = game.getSpawnPosition(this)
             this.respawnPoint = spawnPosition
             this.setInstance(game.instance!!, spawnPosition)
             game
+        }?.exceptionally {
+            MinecraftServer.getExceptionManager().handleException(it)
+            null
         }
     }
 
@@ -100,52 +99,43 @@ object GameManager {
 
     fun createGame(gameTypeName: String): CompletableFuture<Game> {
 
-        val game = registeredGameMap[gameTypeName]?.clazz?.primaryConstructor?.call()
-            ?: throw IllegalArgumentException("Primary constructor not found.")
+        val game = supplierMap[gameTypeName]?.get()
+            ?: throw IllegalArgumentException("Game could not be created")
 
-        gameListMap[gameTypeName]!!.add(game.id)
+        gamesMap[gameTypeName]!!.add(game)
         gameIdMap[game.id] = game
 
-        val future = CompletableFuture<Game>()
+        val createFuture = game.create() ?: throw NullPointerException("Game has been destroyed!")
 
-        val gameCreate = game.create()
-        gameCreate?.thenRun {
-            future.complete(game)
-        }
-
-        return future
+        return createFuture
+            .exceptionally {
+                MinecraftServer.getExceptionManager().handleException(it)
+                null
+            }
+            .thenApply { game }
     }
 
     fun removeGame(game: Game) {
         gameIdMap.remove(game.id)
-        gameListMap[game.gameName]!!.remove(game.id)
-
-        LOGGER.info("Game was removed. Game list map is ${gameListMap.size} big")
+        gamesMap[game.gameName]!!.remove(game)
     }
 
-    inline fun <reified T : Game> registerGame(
-        name: String,
-        title: Component,
-        showsInSlashPlay: Boolean = true,
-    ) = registerGame(T::class, name, title, showsInSlashPlay)
+//    inline fun <reified T : Game> registerGame(
+//        name: String,
+//        title: Component,
+//        showsInSlashPlay: Boolean = true,
+//    ) = registerGame(T::class, name, title, showsInSlashPlay)
 
     fun registerGame(
-        clazz: KClass<out Game>,
+        gameSupplier: Supplier<Game>,
         name: String,
-        title: Component,
-        showsInSlashPlay: Boolean = true
     ) = runBlocking {
-        registeredClassMap[clazz] = name
-        registeredGameMap[name] = GameTypeInfo(
-            clazz,
-            name,
-            title,
-            showsInSlashPlay
-        )
+//        registeredClassMap[clazz] = name
+        supplierMap[name] = gameSupplier
 
-        JedisStorage.jedis?.publish("registergame", "$name ${Immortal.gameConfig.serverName} ${Immortal.port} ${showsInSlashPlay}")
+        JedisStorage.jedis?.publish("registergame", "$name ${Immortal.gameConfig.serverName} ${Immortal.port} true")
 
-        gameListMap[name] = ConcurrentHashMap.newKeySet()
+        gamesMap[name] = mutableSetOf()
 
         LOGGER.info("Registered game type '${name}'")
     }

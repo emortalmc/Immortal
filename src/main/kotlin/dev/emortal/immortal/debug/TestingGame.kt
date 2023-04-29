@@ -21,6 +21,9 @@ class TestingGame : Game() {
     override val showsJoinLeaveMessages: Boolean = true
     override val allowsSpectators: Boolean = false
 
+    override val gameName: String = "TestingGame"
+    override val gameComponent: Component = Component.text(gameName)
+
     override fun playerJoin(player: Player) {
 
     }

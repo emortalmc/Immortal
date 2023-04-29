@@ -74,14 +74,7 @@ object ImmortalEvents {
             } else {
                 val newGameFuture = GameManager.findOrCreateGame(player, args[0])
 
-                if (newGameFuture == null) {
-                    LOGGER.warn("Game failed to create")
-                    player.kick("Game was null")
-                    return@addListener
-                }
-
                 val newGame = newGameFuture.join()
-
                 newGame.playerCount.incrementAndGet()
 
 //                Logger.info("player ${player.username} joining game ${newGame.id} with ${newGame.players.size} players")

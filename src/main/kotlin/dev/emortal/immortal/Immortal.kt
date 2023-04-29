@@ -120,7 +120,6 @@ object Immortal {
         System.setProperty("minestom.entity-view-distance", gameConfig.entityViewDistance.toString())
         System.setProperty("minestom.chunk-view-distance", gameConfig.chunkViewDistance.toString())
         MinecraftServer.setCompressionThreshold(0)
-        MinecraftServer.setBrandName("Minestom")
         MinecraftServer.setTerminalEnabled(false)
 
         if (gameConfig.velocitySecret.isBlank()) {

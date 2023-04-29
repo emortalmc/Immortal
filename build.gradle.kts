@@ -18,8 +18,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.github.hollow-cube:Minestom:e6d4a2cc91")
-    testImplementation("com.github.hollow-cube:Minestom:e6d4a2cc91")
+    compileOnly("com.github.hollow-cube:Minestom:b7690d1b1b")
+    testImplementation("com.github.hollow-cube:Minestom:b7690d1b1b")
 
     // Util
 //    api("com.github.EmortalMC:KStom:50b2b882fa")

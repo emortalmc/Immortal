@@ -45,6 +45,9 @@ abstract class Game : PacketGroupingAudience {
     abstract val showsJoinLeaveMessages: Boolean
     abstract val allowsSpectators: Boolean
 
+    abstract val gameName: String
+    abstract val gameComponent: Component
+
     val players get() = getPlayers().filter { !it.hasTag(GameManager.playerSpectatingTag) }
     val spectators get() = getPlayers().filter { it.hasTag(GameManager.playerSpectatingTag) }
 
@@ -59,8 +62,8 @@ abstract class Game : PacketGroupingAudience {
      */
     open fun getSpawnPosition(player: Player, spectator: Boolean = false) = Pos(0.5, 70.0, 0.5)
 
-    val gameName = GameManager.getGameName(this::class)!!
-    val gameTypeInfo = GameManager.getGameTypeInfo(gameName) ?: throw Error("Game type not registered")
+//    val gameName = GameManager.getGameName(this::class)!!
+//    val gameTypeInfo = GameManager.getGameTypeInfo(gameName) ?: throw Error("Game type not registered")
 
     var instance: Instance? = null
 
@@ -127,7 +130,7 @@ abstract class Game : PacketGroupingAudience {
         }
 
         if (showScoreboard) {
-            scoreboard = Sidebar(gameTypeInfo.title)
+            scoreboard = Sidebar(gameComponent)
 
             scoreboard?.createLine(Sidebar.ScoreboardLine("headerSpacer", Component.empty(), 99))
 
@@ -169,7 +172,7 @@ abstract class Game : PacketGroupingAudience {
     open fun gameCreated() {}
 
     private fun addPlayer(player: Player, joinMessage: Boolean = showsJoinLeaveMessages) {
-        LOGGER.info("${player.username} joining game ${gameTypeInfo.name}#$id")
+        LOGGER.info("${player.username} joining game ${gameName}#$id")
 
         if (joinMessage) sendMessage(
             Component.text()
@@ -223,7 +226,7 @@ abstract class Game : PacketGroupingAudience {
     private fun removePlayer(player: Player, leaveMessage: Boolean = showsJoinLeaveMessages) {
         scoreboard?.removeViewer(player)
 
-        LOGGER.info("${player.username} leaving game ${gameTypeInfo.name}#$id")
+        LOGGER.info("${player.username} leaving game ${gameName}#$id")
 
         if (instance == null) return
         refreshPlayerCount()
@@ -276,7 +279,7 @@ abstract class Game : PacketGroupingAudience {
     }
 
     internal open fun addSpectator(player: Player) {
-        LOGGER.info("${player.username} started spectating game ${gameTypeInfo.name}#$id")
+        LOGGER.info("${player.username} started spectating game ${gameName}#$id")
 
         player.reset()
         player.resetTeam()
@@ -299,7 +302,7 @@ abstract class Game : PacketGroupingAudience {
     }
 
     internal open fun removeSpectator(player: Player) {
-        LOGGER.info("${player.username} stopped spectating game ${gameTypeInfo.name}#$id")
+        LOGGER.info("${player.username} stopped spectating game ${gameName}#$id")
 
         scoreboard?.removeViewer(player)
 
@@ -394,7 +397,7 @@ abstract class Game : PacketGroupingAudience {
         if (gameState == GameState.DESTROYED) return
         gameState = GameState.DESTROYED
 
-        LOGGER.info("Game ${gameTypeInfo.name}#$id is ending")
+        LOGGER.info("Game ${gameName}#$id is ending")
 
         gameEnded()
 
@@ -426,7 +429,10 @@ abstract class Game : PacketGroupingAudience {
         }
 
         // Destroy game once all players have moved to a new one
-        joinCountDown.toFuture().thenRun { destroy() }
+        joinCountDown.toFuture().thenRun { destroy() }.exceptionally {
+            MinecraftServer.getExceptionManager().handleException(it)
+            null
+        }
     }
 
     private fun destroy() {
