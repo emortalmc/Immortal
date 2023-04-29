@@ -20,6 +20,8 @@ object ImmortalEvents {
     private val LOGGER = LoggerFactory.getLogger(ImmortalEvents::class.java)
 
     fun register(eventNode: EventNode<Event>) {
+        LOGGER.info("Registering events!")
+
         if (Immortal.redisAddress.isBlank()) eventNode.addListener(PlayerChatEvent::class.java) { e ->
             e.isCancelled = true
         }

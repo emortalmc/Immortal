@@ -17,6 +17,7 @@ import net.minestom.server.event.EventNode
 import net.minestom.server.extras.MojangAuth
 import net.minestom.server.extras.velocity.VelocityProxy
 import net.minestom.server.instance.block.Block
+import net.minestom.server.network.packet.client.play.ClientChatSessionUpdatePacket
 import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePacket
 import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.NamespaceID
@@ -37,13 +38,14 @@ object Immortal {
     val address get() = System.getProperty("address") ?: gameConfig.ip
     val redisAddress get() = System.getProperty("redisAddress") ?: gameConfig.redisAddress
 
-    fun init(eventNode: EventNode<Event> = MinecraftServer.getGlobalEventHandler()) {
+    fun init(eventNode: EventNode<Event>? = MinecraftServer.getGlobalEventHandler()) {
         System.setProperty("org.litote.mongo.mapping.service", SerializationClassMappingTypeService::class.qualifiedName!!)
 
         gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig())
 
         // Ignore warning when player opens recipe book
         MinecraftServer.getPacketListenerManager().setListener(ClientSetRecipeBookStatePacket::class.java) { _: ClientSetRecipeBookStatePacket, _: Player -> }
+        MinecraftServer.getPacketListenerManager().setListener(ClientChatSessionUpdatePacket::class.java) { _: ClientChatSessionUpdatePacket, _: Player -> }
 
         if (redisAddress.isBlank()) {
             LOGGER.info("Running without Redis - Game to join: ${gameConfig.defaultGame}")
@@ -68,7 +70,7 @@ object Immortal {
             JedisStorage.init()
         }
 
-        ImmortalEvents.register(eventNode)
+        if (eventNode != null) ImmortalEvents.register(eventNode)
 
         val dimensionType = DimensionType.builder(NamespaceID.from("fullbright"))
             .ambientLight(2f)
@@ -101,7 +103,7 @@ object Immortal {
         LOGGER.info("Immortal initialized!")
     }
 
-    fun initAsServer() {
+    fun initAsServer(eventNode: EventNode<Event>? = MinecraftServer.getGlobalEventHandler()) {
         gameConfig = ConfigHelper.initConfigFile(configPath, GameConfig())
 
         System.setProperty("minestom.entity-view-distance", gameConfig.entityViewDistance.toString())
@@ -116,7 +118,7 @@ object Immortal {
             VelocityProxy.enable(gameConfig.velocitySecret)
         }
 
-        init()
+        init(eventNode)
 
         minestom.start(address, port)
     }
