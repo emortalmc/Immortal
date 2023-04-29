@@ -33,7 +33,7 @@ abstract class Game : PacketGroupingAudience {
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(Game::class.java)
-        private val lastGameId = AtomicInteger(0)
+        private val LAST_GAME_ID = AtomicInteger(0)
     }
 
     // Game Options
@@ -53,7 +53,7 @@ abstract class Game : PacketGroupingAudience {
 
     val playerCount = AtomicInteger(0)
 
-    val id = lastGameId.getAndIncrement()
+    val id = LAST_GAME_ID.getAndIncrement()
 
     var gameState = GameState.NOT_CREATED
 

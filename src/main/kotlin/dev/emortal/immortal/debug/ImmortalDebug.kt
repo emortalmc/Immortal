@@ -1,5 +1,6 @@
 package dev.emortal.immortal.debug
 
+import dev.emortal.immortal.commands.StatsCommand
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.MinecraftServer
@@ -12,16 +13,12 @@ import kotlin.math.floor
 object ImmortalDebug {
 
     fun enable() {
-        val globalEventManager = MinecraftServer.getGlobalEventHandler()
         val scheduler = MinecraftServer.getSchedulerManager()
         val instanceManager = MinecraftServer.getInstanceManager()
         val connectionManager = MinecraftServer.getConnectionManager()
         val benchmarkManager = MinecraftServer.getBenchmarkManager()
 
-        val lastTick = AtomicReference<TickMonitor>()
-        globalEventManager.addListener(ServerTickMonitorEvent::class.java) { e ->
-            lastTick.set(e.tickMonitor)
-        }
+        val lastTick = StatsCommand.LAST_TICK
 
         scheduler.buildTask {
             connectionManager.onlinePlayers.forEach { player ->

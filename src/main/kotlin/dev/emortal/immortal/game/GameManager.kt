@@ -9,6 +9,7 @@ import net.minestom.server.entity.Player
 import net.minestom.server.tag.Tag
 import net.minestom.server.tag.Taggable
 import org.slf4j.LoggerFactory
+import space.vectrix.flare.fastutil.Int2ObjectSyncMap
 import java.lang.NullPointerException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
@@ -31,10 +32,9 @@ object GameManager {
     val joiningGameTag = Tag.Boolean("joiningGame")
     val playerSpectatingTag = Tag.Boolean("spectating")
 
-//    private val registeredClassMap: MutableMap<KClass<out Game>, String> = mutableMapOf()
     private val supplierMap: MutableMap<String, Supplier<Game>> = ConcurrentHashMap()
 
-    private val gameIdMap: MutableMap<Int, Game> = ConcurrentHashMap<Int, Game>()
+    private val gameIdMap: MutableMap<Int, Game> = Int2ObjectSyncMap.hashmap()
     private val gamesMap: MutableMap<String, MutableSet<Game>> = ConcurrentHashMap<String, MutableSet<Game>>()
 
     val Player.game: Game?

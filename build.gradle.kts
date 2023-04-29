@@ -35,6 +35,9 @@ dependencies {
     implementation("ch.qos.logback:logback-core:1.4.5")
     implementation("ch.qos.logback:logback-classic:1.4.5")
 
+    compileOnly("space.vectrix.flare:flare:2.0.1")
+    compileOnly("space.vectrix.flare:flare-fastutil:2.0.1")
+
     // Kotlin
     testImplementation(kotlin("test"))
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
