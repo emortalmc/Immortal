@@ -27,7 +27,7 @@ import kotlin.math.floor
 
 internal object StatsCommand : Command("tps") {
 
-    private val LAST_TICK = AtomicReference<TickMonitor>()
+    public val LAST_TICK = AtomicReference<TickMonitor>()
     private val EXCLUDED_MEMORY_SPACES: List<Pattern> = setOf("Metaspace", "Compressed Class Space", "^CodeHeap").map { Pattern.compile(it) }
 
     init {
@@ -128,7 +128,7 @@ internal object StatsCommand : Command("tps") {
                                         Component.text()
                                             .append(Component.text(gameName, NamedTextColor.YELLOW))
                                             .append(Component.text("\n  Games: ", NamedTextColor.GRAY))
-                                            .append(Component.text(GameManager.getGameIds(gameName)!!.size, NamedTextColor.GOLD))
+                                            .append(Component.text(GameManager.getGames(gameName)!!.size, NamedTextColor.GOLD))
                                     )
                                 }
                             }.build()

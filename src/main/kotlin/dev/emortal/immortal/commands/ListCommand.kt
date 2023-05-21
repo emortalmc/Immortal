@@ -15,6 +15,10 @@ internal object ListCommand : Command("list") {
         val playersArgument = ArgumentType.Literal("players")
         val gamesArgument = ArgumentType.Literal("games")
 
+        setDefaultExecutor { sender, _ ->
+            sender.sendMessage(Component.text("Usage: /list <instances|players|games>", NamedTextColor.RED))
+        }
+
         addSyntax({ sender, _ ->
             val message = Component.text()
             val instances = MinecraftServer.getInstanceManager().instances

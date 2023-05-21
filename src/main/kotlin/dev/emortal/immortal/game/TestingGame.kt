@@ -1,6 +1,7 @@
 package dev.emortal.immortal.game
 
 import dev.emortal.immortal.debug.TestingGame
+import net.kyori.adventure.text.Component
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventNode
@@ -22,6 +23,9 @@ class TestingGame : Game() {
     override val showScoreboard: Boolean = true
     override val showsJoinLeaveMessages: Boolean = true
     override val allowsSpectators: Boolean = true
+
+    override val gameName: String = "TestingGame"
+    override val gameComponent: Component = Component.text(gameName)
 
     override fun playerJoin(player: Player) {
 

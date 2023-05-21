@@ -4,7 +4,6 @@ import dev.emortal.immortal.game.GameManager
 import dev.emortal.immortal.game.GameManager.game
 import dev.emortal.immortal.luckperms.PermissionUtils
 import dev.emortal.immortal.luckperms.PermissionUtils.hasLuckPermission
-import dev.emortal.immortal.npc.PacketNPC
 import dev.emortal.immortal.util.JedisStorage
 import dev.emortal.immortal.util.resetTeam
 import net.minestom.server.MinecraftServer
@@ -21,6 +20,8 @@ object ImmortalEvents {
     private val LOGGER = LoggerFactory.getLogger(ImmortalEvents::class.java)
 
     fun register(eventNode: EventNode<Event>) {
+        LOGGER.info("Registering events!")
+
         if (Immortal.redisAddress.isBlank()) eventNode.addListener(PlayerChatEvent::class.java) { e ->
             e.isCancelled = true
         }
@@ -74,14 +75,7 @@ object ImmortalEvents {
             } else {
                 val newGameFuture = GameManager.findOrCreateGame(player, args[0])
 
-                if (newGameFuture == null) {
-                    LOGGER.warn("Game failed to create")
-                    player.kick("Game was null")
-                    return@addListener
-                }
-
                 val newGame = newGameFuture.join()
-
                 newGame.playerCount.incrementAndGet()
 
 //                Logger.info("player ${player.username} joining game ${newGame.id} with ${newGame.players.size} players")
@@ -139,12 +133,6 @@ object ImmortalEvents {
 
         eventNode.addListener(PlayerDisconnectEvent::class.java) { e ->
             e.player.removeTag(GameManager.joiningGameTag)
-
-            val viewingNpcs = (PacketNPC.viewerMap[e.player.uuid] ?: return@addListener).toMutableList()
-            viewingNpcs.forEach {
-                it.removeViewer(e.player)
-            }
-            PacketNPC.viewerMap.remove(e.player.uuid)
         }
 
         eventNode.addListener(PlayerStartSneakingEvent::class.java) { e ->
@@ -162,12 +150,6 @@ object ImmortalEvents {
                 }
 
                 PermissionUtils.refreshPrefix(e.player)
-            } else {
-                // To mutable list here to copy list in order to avoid concurrent modification and unsupported operation
-                val viewingNpcs = (PacketNPC.viewerMap[e.player.uuid] ?: return@addListener).toMutableList()
-                viewingNpcs.forEach {
-                    it.removeViewer(e.player)
-                }
             }
         }
     }

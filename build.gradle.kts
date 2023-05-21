@@ -18,8 +18,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.github.hollow-cube:Minestom:e6d4a2cc91")
-    testImplementation("com.github.hollow-cube:Minestom:e6d4a2cc91")
+    compileOnly("com.github.hollow-cube:Minestom:d5c92066ce")
+    testImplementation("com.github.hollow-cube:Minestom:6524476a81")
 
     // Util
 //    api("com.github.EmortalMC:KStom:50b2b882fa")
@@ -34,6 +34,9 @@ dependencies {
 
     implementation("ch.qos.logback:logback-core:1.4.5")
     implementation("ch.qos.logback:logback-classic:1.4.5")
+
+    compileOnly("space.vectrix.flare:flare:2.0.1")
+    compileOnly("space.vectrix.flare:flare-fastutil:2.0.1")
 
     // Kotlin
     testImplementation(kotlin("test"))
