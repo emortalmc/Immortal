@@ -33,7 +33,7 @@ dependencies {
     api("org.litote.kmongo:kmongo-id:4.8.0")
 
     implementation("ch.qos.logback:logback-core:1.4.5")
-    implementation("ch.qos.logback:logback-classic:1.4.5")
+    implementation("ch.qos.logback:logback-classic:1.4.7")
 
     compileOnly("space.vectrix.flare:flare:2.0.1")
     compileOnly("space.vectrix.flare:flare-fastutil:2.0.1")
