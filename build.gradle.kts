@@ -28,7 +28,7 @@ dependencies {
     api("net.kyori:adventure-text-minimessage:4.12.0")
 
     // DB
-    api("redis.clients:jedis:4.3.1")
+    api("redis.clients:jedis:4.4.1")
     api("org.litote.kmongo:kmongo-coroutine-serialization:4.8.0")
     api("org.litote.kmongo:kmongo-id:4.8.0")
 
